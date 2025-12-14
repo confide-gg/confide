@@ -1,6 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { getAuthToken, post } from "./client";
-import { CENTRAL_API_URL } from "../config";
 
 export interface FederationTokenResponse {
   token: string;
