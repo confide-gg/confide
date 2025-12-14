@@ -1,5 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
-import { getAuthToken } from "./client";
+import { getAuthToken, post } from "./client";
 import { CENTRAL_API_URL } from "../config";
 
 export interface FederationTokenResponse {
@@ -28,28 +28,7 @@ export async function requestFederationToken(serverDomain: string): Promise<Fede
   const token = getAuthToken();
   if (!token) throw new Error("Not authenticated");
 
-  const response = await fetch(`${CENTRAL_API_URL}/federation/request-token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
-    body: JSON.stringify({ server_domain: serverDomain }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message = text;
-    try {
-      const json = JSON.parse(text);
-      message = json.error || json.message || text;
-    } catch {
-      // ignore
-    }
-    throw new Error(message);
-  }
-
-  return response.json();
+  return post<FederationTokenResponse>("/federation/request-token", { server_domain: serverDomain });
 }
 
 export async function joinServerWithToken(
@@ -198,57 +177,19 @@ export async function registerServer(data: RegisterServerRequest): Promise<Regis
   let centralServerId: string;
 
   if (!serverStatus.central_registered) {
-    const registerResponse = await fetch(`${CENTRAL_API_URL}/federation/register-server`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        dsa_public_key: serverStatus.dsa_public_key,
-        domain: data.domain,
-        display_name: serverStatus.server_name,
-        description: "",
-        is_discoverable: false,
-      }),
+    const registerResult = await post<{ server_id: string }>("/federation/register-server", {
+      dsa_public_key: serverStatus.dsa_public_key,
+      domain: data.domain,
+      display_name: serverStatus.server_name,
+      description: "",
+      is_discoverable: false,
     });
-
-    if (!registerResponse.ok) {
-      const text = await registerResponse.text();
-      let message = text;
-      try {
-        const json = JSON.parse(text);
-        message = json.error || json.message || text;
-      } catch {}
-      throw new Error(`Failed to register with Central: ${message}`);
-    }
-
-    const registerResult = await registerResponse.json() as { server_id: string };
     centralServerId = registerResult.server_id;
   } else {
     throw new Error("Server already registered - use Join Server instead");
   }
 
-  const federationTokenResponse = await fetch(`${CENTRAL_API_URL}/federation/request-token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
-    body: JSON.stringify({ server_domain: data.domain }),
-  });
-
-  if (!federationTokenResponse.ok) {
-    const text = await federationTokenResponse.text();
-    let message = text;
-    try {
-      const json = JSON.parse(text);
-      message = json.error || json.message || text;
-    } catch {}
-    throw new Error(message);
-  }
-
-  const federationToken = await federationTokenResponse.json() as { token: string };
+  const federationToken = await post<{ token: string }>("/federation/request-token", { server_domain: data.domain });
 
   const claimResponse = await fetch(`${serverUrl}/api/setup/claim`, {
     method: "POST",
@@ -269,7 +210,7 @@ export async function registerServer(data: RegisterServerRequest): Promise<Regis
     try {
       const json = JSON.parse(text);
       message = json.error || json.message || text;
-    } catch {}
+    } catch { }
     throw new Error(message);
   }
 

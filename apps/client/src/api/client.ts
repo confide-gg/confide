@@ -25,6 +25,9 @@ export class ApiError extends Error {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new Event("auth:unauthorized"));
+    }
     const text = await response.text();
     let message = text;
     try {

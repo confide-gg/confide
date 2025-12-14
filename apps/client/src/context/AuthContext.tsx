@@ -294,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await auth.logout();
     } catch {
@@ -303,7 +303,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAuthStorage();
     setAuthToken(null);
     setState({ user: null, keys: null, profile: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [logout]);
 
   const refreshProfile = useCallback(async () => {
     await fetchProfile();
