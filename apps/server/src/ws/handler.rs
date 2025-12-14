@@ -196,6 +196,25 @@ async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMes
             };
             state.ws.broadcast_all_except(msg, member_id).await;
         }
+        ClientMessage::SubscribeUser { user_id } => {
+            if let Some(status) = state.ws.get_presence(user_id).await {
+                let msg = ServerMessage::PresenceUpdate {
+                    member_id: user_id,
+                    status,
+                    online: true,
+                };
+                state.ws.send_to_member(member_id, msg).await;
+            } else {
+                // If not found, send offline status? Or just nothing?
+                // Usually we want to know they are offline.
+                let msg = ServerMessage::PresenceUpdate {
+                    member_id: user_id,
+                    status: "offline".to_string(),
+                    online: false,
+                };
+                state.ws.send_to_member(member_id, msg).await;
+            }
+        }
         ClientMessage::Ping => {
             state
                 .ws

@@ -12,6 +12,7 @@ pub enum ClientMessage {
     UnsubscribeChannel { channel_id: Uuid },
     Typing { channel_id: Uuid },
     StopTyping { channel_id: Uuid },
+    SubscribeUser { user_id: Uuid },
     UpdatePresence { status: String },
     Ping,
 }

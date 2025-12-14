@@ -395,9 +395,9 @@ export interface WsTyping {
 }
 
 export interface WsPresence {
-  type: "presence";
+  type: "presence_update";
   data: {
-    user_id: string;
+    member_id: string; // Server sends member_id
     online: boolean;
     status?: string;
     custom_status?: string;

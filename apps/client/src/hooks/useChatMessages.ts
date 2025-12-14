@@ -663,7 +663,7 @@ export function useChatMessages(friendsList: Friend[]) {
                     lastMessage: previewContent,
                     lastMessageTime: response.created_at,
                     isLastMessageMine: true
-                }, ...prev];
+                }, ...prev.filter(p => p.conversationId !== activeChat.conversationId)];
             });
 
         } catch (err) {

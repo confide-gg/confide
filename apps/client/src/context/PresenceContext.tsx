@@ -35,17 +35,17 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
     const unsubscribeMessage = wsService.onMessage((message) => {
       switch (message.type) {
-        case "presence":
+        case "presence_update":
           setUserPresence((prev) => {
             const next = new Map(prev);
             if (message.data.online) {
-              next.set(message.data.user_id, {
+              next.set(message.data.member_id, {
                 status: message.data.status || "online",
                 customStatus: message.data.custom_status,
                 isOnline: true,
               });
             } else {
-              next.delete(message.data.user_id);
+              next.delete(message.data.member_id);
             }
             return next;
           });
@@ -54,8 +54,10 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
         case "presence_sync":
           setUserPresence(() => {
             const next = new Map();
-            message.data.online_users.forEach((presenceInfo: any) => {
-              next.set(presenceInfo.user_id, {
+            // Server sends 'presences' array, not 'online_users'
+            const presences = (message.data as any).presences || message.data.online_users || [];
+            presences.forEach((presenceInfo: any) => {
+              next.set(presenceInfo.member_id || presenceInfo.user_id, {
                 status: presenceInfo.status || "online",
                 customStatus: presenceInfo.custom_status,
                 isOnline: true,
@@ -73,6 +75,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
     const unsubscribeDisconnect = wsService.onDisconnect(() => {
       setIsWsConnected(false);
+      subscribedUsersRef.current.clear(); // Clear subscriptions so we re-subscribe on reconnect
     });
 
     wsService.connect();

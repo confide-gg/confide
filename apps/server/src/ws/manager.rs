@@ -230,4 +230,8 @@ impl ConnectionManager {
     pub async fn get_connected_member_ids(&self) -> Vec<Uuid> {
         self.connections.read().await.keys().copied().collect()
     }
+
+    pub async fn get_presence(&self, member_id: Uuid) -> Option<String> {
+        self.member_presence.read().await.get(&member_id).cloned()
+    }
 }
