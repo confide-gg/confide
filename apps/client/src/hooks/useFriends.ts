@@ -151,6 +151,8 @@ export function useFriends() {
         const alreadyFriend = friendsListRef.current.some((f) => f.id === userId);
         if (alreadyFriend) return;
 
+        subscribeToUsers([userId]);
+
         try {
             const searchResults = await friends.searchUsers(username, 1);
             const userResult = searchResults.find((u) => u.id === userId);
@@ -171,8 +173,6 @@ export function useFriends() {
             const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
 
             await friends.updateFriends({ encrypted_friends: encryptedFriends });
-
-            subscribeToUsers([userId]);
 
             setFriendsList(updatedFriends);
             setSentRequests((prev) => {
