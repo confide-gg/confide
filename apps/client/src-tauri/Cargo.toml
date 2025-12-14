@@ -1,0 +1,53 @@
+[package]
+name = "confide"
+version = "0.1.0"
+description = "Confide - Secure Messaging"
+authors.workspace = true
+edition.workspace = true
+
+[lib]
+name = "confide_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+confide-sdk = { workspace = true, features = ["client"] }
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-http = "2"
+tauri-plugin-notification = "2"
+serde.workspace = true
+serde_json.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["sync", "time", "rt-multi-thread"] }
+uuid.workspace = true
+chrono.workspace = true
+rustls.workspace = true
+log = "0.4"
+env_logger = "0.11"
+
+cpal = "0.15"
+audiopus = "0.3.0-rc.0"
+quinn = { workspace = true, features = ["runtime-tokio"] }
+nnnoiseless = "0.5"
+
+scap = "0.0.8"
+xcap = "0.7"
+image = "0.25"
+ffmpeg-next = "8.0.0"
+webpki-roots = "0.26"
+tauri-plugin-macos-permissions = "2.3.0"
+tauri-plugin-os = "2.3.2"
+crossbeam-channel = "0.5.15"
+once_cell = "1.21.3"
+dirs = "5.0"
+bytes = "1.5"
+rayon = "1.10"
+
+# Platform-specific notification dependencies
+[target.'cfg(target_os = "linux")'.dependencies]
+notify-rust = "4.11"
+

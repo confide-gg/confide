@@ -1,0 +1,50 @@
+# Rust
+target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Bun
+node_modules/
+.bun/
+bun.lockb
+
+# Client build artifacts
+apps/client/dist/
+apps/client/src-tauri/target/
+
+# Environment
+.env
+.env.local
+*.env
+!.env.example
+!.env.development
+!.env.production
+
+# IDE
+.vscode/
+.idea/
+.claude/
+.grepper/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Docker
+docker-compose.override.yml
+
+# Backups
+backups/
+*.bak
+
+# Generated files
+*.sql.tmp

@@ -1,0 +1,160 @@
+import { useState, useEffect, useRef } from "react";
+import { useChat } from "../../context/ChatContext";
+import { useCall } from "../calls/CallContext";
+import { ChatHeader } from "./ChatHeader";
+import { ChatMessages } from "./ChatMessages";
+import { ChatInput } from "./ChatInput";
+import { TypingIndicator } from "./TypingIndicator";
+import { MessageContextMenu } from "./MessageContextMenu";
+import { ProfileSidePanel } from "../profile/ProfileSidePanel";
+import { CallHeader } from "../calls/CallHeader";
+import data from "@emoji-mart/data";
+import Picker from "@emoji-mart/react";
+
+export function ChatArea() {
+  const {
+    activeChat,
+    messageContextMenu,
+    setMessageContextMenu,
+    deleteMessage,
+    addReaction,
+    setReplyTo,
+    chatMessages,
+    showProfilePanel,
+    setShowProfilePanel,
+  } = useChat();
+  const { callState } = useCall();
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+
+  const isInCallWithActiveChat =
+    (callState.status === "active" || callState.status === "left") &&
+    activeChat &&
+    callState.peer_id === activeChat.visitorId;
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const reactionPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(e.target as Node) &&
+        reactionPickerRef.current &&
+        !reactionPickerRef.current.contains(e.target as Node)
+      ) {
+        setMessageContextMenu(null);
+        setShowReactionPicker(false);
+      } else if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(e.target as Node) &&
+        !showReactionPicker
+      ) {
+        setMessageContextMenu(null);
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMessageContextMenu(null);
+        setShowReactionPicker(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [setMessageContextMenu, showReactionPicker]);
+
+  if (!activeChat) {
+    return null;
+  }
+
+  const handleReply = () => {
+    if (messageContextMenu) {
+      const msg = chatMessages.find((m) => m.id === messageContextMenu.message.id);
+      if (msg) {
+        setReplyTo({
+          id: msg.id,
+          content: msg.content,
+          senderName: msg.senderName || "Unknown",
+        });
+      }
+      setMessageContextMenu(null);
+    }
+  };
+
+  const handleReact = () => {
+    setShowReactionPicker(true);
+  };
+
+  const handleDelete = () => {
+    if (messageContextMenu) {
+      deleteMessage(messageContextMenu.message.id);
+    }
+  };
+
+  const handleEdit = () => {
+    setMessageContextMenu(null);
+  };
+
+  const handleEmojiSelect = (emoji: { native: string }) => {
+    if (messageContextMenu) {
+      addReaction(messageContextMenu.message.id, emoji.native);
+    }
+    setShowReactionPicker(false);
+    setMessageContextMenu(null);
+  };
+
+  return (
+    <div className="flex h-full bg-background">
+      <div className="flex flex-col flex-1 min-w-0">
+        {isInCallWithActiveChat && <CallHeader />}
+        <ChatHeader />
+        <ChatMessages />
+        <TypingIndicator />
+        <ChatInput />
+      </div>
+      {showProfilePanel && activeChat && (
+        <ProfileSidePanel
+          userId={activeChat.visitorId}
+          username={activeChat.visitorUsername}
+          onClose={() => setShowProfilePanel(false)}
+        />
+      )}
+      {messageContextMenu && (
+        <div ref={contextMenuRef}>
+          <MessageContextMenu
+            data={messageContextMenu}
+            onReply={handleReply}
+            onReact={handleReact}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onClose={() => setMessageContextMenu(null)}
+          />
+        </div>
+      )}
+      {showReactionPicker && messageContextMenu && (
+        <div
+          ref={reactionPickerRef}
+          style={{
+            position: "fixed",
+            top: messageContextMenu.y,
+            left: messageContextMenu.x + 160,
+            zIndex: 1001,
+          }}
+        >
+          <Picker
+            data={data}
+            onEmojiSelect={handleEmojiSelect}
+            theme="dark"
+            previewPosition="none"
+            skinTonePosition="none"
+            perLine={8}
+          />
+        </div>
+      )}
+    </div>
+  );
+}

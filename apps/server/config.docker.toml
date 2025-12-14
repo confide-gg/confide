@@ -1,0 +1,26 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+public_domain = "localhost:8080"
+
+[database]
+max_connections = 50
+
+[limits]
+max_users = 100
+max_upload_size_mb = 100
+
+[messages]
+retention = "30d"
+
+[discovery]
+enabled = false
+display_name = "Local Dev Server"
+description = "Local development Confide server"
+
+[websocket]
+message_buffer_size = 32
+
+[uploads]
+directory = "/app/uploads"
+max_file_size_mb = 25

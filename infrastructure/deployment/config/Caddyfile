@@ -1,0 +1,39 @@
+{$DOMAIN} {
+	reverse_proxy central:3000 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+
+		transport http {
+			keepalive 30s
+			keepalive_idle_conns 10
+		}
+	}
+
+	encode gzip zstd
+
+	log {
+		output stdout
+		format json
+		level INFO
+	}
+
+	header {
+		-Server
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+	}
+
+	@websocket {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+
+	handle @websocket {
+		reverse_proxy central:3000
+	}
+}

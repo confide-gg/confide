@@ -1,0 +1,19 @@
+{
+  "name": "confide-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/client"
+  ],
+  "scripts": {
+    "client:dev": "bun --cwd apps/client run dev",
+    "client:build": "bun --cwd apps/client run build",
+    "client:tauri": "bun --cwd apps/client run tauri",
+    "client:tauri:dev": "bun --cwd apps/client run tauri dev",
+    "client:tauri:build": "bun --cwd apps/client run tauri build"
+  },
+  "devDependencies": {},
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

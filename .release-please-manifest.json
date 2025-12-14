@@ -1,0 +1,6 @@
+{
+    ".": "0.1.0",
+    "apps/client": "0.1.0",
+    "apps/server": "0.1.0",
+    "apps/central": "0.1.0"
+}
