@@ -13,6 +13,7 @@ export abstract class BaseWebSocket<IncomingMessageType, OutgoingMessageType> {
   protected reconnectAttempts = 0;
   protected maxReconnectAttempts = 5;
   protected reconnectDelay = 1000;
+  protected maxReconnectDelay = 30000;
   protected reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   protected intentionalDisconnect = false;
   protected isConnecting = false;
@@ -211,7 +212,9 @@ export abstract class BaseWebSocket<IncomingMessageType, OutgoingMessageType> {
       return;
     }
 
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+    const baseDelay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+    const jitter = Math.random() * baseDelay * 0.5;
+    const delay = Math.min(baseDelay + jitter, this.maxReconnectDelay);
     this.reconnectAttempts++;
 
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
