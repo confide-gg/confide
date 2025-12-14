@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/confide-gg/confide/compare/confide-client-v0.4.1...confide-client-v0.5.0) (2025-12-14)
+
+
+### Features
+
+* send initial presence on user subscription and fix message field names ([79e0fcb](https://github.com/confide-gg/confide/commit/79e0fcb0968e6f4e17f42419db549a353fa3d8b3))
+
 ## [0.4.1](https://github.com/confide-gg/confide/compare/confide-client-v0.4.0...confide-client-v0.4.1) (2025-12-14)
 
 
