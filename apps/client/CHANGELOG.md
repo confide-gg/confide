@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/confide-gg/confide/compare/confide-client-v0.10.0...confide-client-v0.11.0) (2025-12-14)
+
+
+### Features
+
+* center settings content and reduce themes to dark/light/amoled ([54cc6cf](https://github.com/confide-gg/confide/commit/54cc6cf5f360d0c92d1478cc8af1640b2c986cee))
+
 ## [0.10.0](https://github.com/confide-gg/confide/compare/confide-client-v0.9.0...confide-client-v0.10.0) (2025-12-14)
 
 
