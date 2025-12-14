@@ -299,7 +299,7 @@ async fn reject_call(
         if !state.db.has_call_message(call_id, "call_rejected").await? {
             let message = state
                 .db
-                .create_call_event_message(conv.id, call.caller_id, "call_rejected", call_id, None)
+                .create_call_event_message(conv.id, user_id, "call_rejected", call_id, None)
                 .await?;
 
             send_new_message(
@@ -308,7 +308,7 @@ async fn reject_call(
                 NewMessageData {
                     id: message.id,
                     conversation_id: conv.id,
-                    sender_id: call.caller_id,
+                    sender_id: user_id,
                     encrypted_content: vec![],
                     signature: vec![],
                     reply_to_id: None,

@@ -4,6 +4,7 @@ import type { DecryptedMessage } from "../../types";
 
 interface SystemMessageProps {
   message: DecryptedMessage;
+  peerName?: string;
 }
 
 function formatDuration(seconds: number): string {
@@ -20,7 +21,7 @@ function formatDuration(seconds: number): string {
   return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
 }
 
-export function SystemMessage({ message }: SystemMessageProps) {
+export function SystemMessage({ message, peerName }: SystemMessageProps) {
   const getIcon = () => {
     switch (message.systemType) {
       case "call_started":
@@ -55,18 +56,21 @@ export function SystemMessage({ message }: SystemMessageProps) {
       return message.content;
     }
 
+    const actor = message.isMine ? "You" : (peerName || message.senderName || "They");
+
     switch (message.systemType) {
       case "call_started":
-        return "Call started";
+        return `${actor} started a call`;
       case "call_ended":
         if (message.callDurationSeconds && message.callDurationSeconds > 0) {
-          return `Call ended, lasted ${formatDuration(message.callDurationSeconds)}`;
+          const verb = message.isMine ? "called" : "called you";
+          return `${actor} ${verb} • ${formatDuration(message.callDurationSeconds)}`;
         }
-        return "Call ended";
+        return message.isMine ? "You called" : `${actor} called you`;
       case "call_missed":
-        return "Missed call";
+        return message.isMine ? "You cancelled the call" : `Missed call from ${actor}`;
       case "call_rejected":
-        return "Call declined";
+        return `${actor} declined`;
       default:
         return "";
     }

@@ -80,7 +80,7 @@ export function ChatMessages() {
     <div className="flex-1 overflow-y-auto min-h-0 flex flex-col py-6" ref={messagesContainerRef} onScroll={handleScroll}>
       {chatMessages.map((msg, idx) => (
         msg.isSystem ? (
-          <SystemMessage key={msg.id} message={msg} />
+          <SystemMessage key={msg.id} message={msg} peerName={activeChat.visitorUsername} />
         ) : (
           <Message
             key={msg.id}
