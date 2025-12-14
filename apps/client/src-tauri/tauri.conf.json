@@ -8,7 +8,7 @@
       "endpoints": [
         "https://github.com/confide-gg/confide/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY4RUI1QTg5ODAzNjQ3MTUKUldRVlJ6YUFpVnJyK1BtR0ZHQVlDZ2thd3FtZUMxNzdhWWlrSWl5Q2IxaDhoZ3J3cnZKdTBZODUK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1M0RGQTE5MkY1QzdBMkYKUldRdmVsd3ZHZm85bFh0ZDJRRmtCUVZqcmx2c01IVnlqNmxzMkpmcExKaE5kcmt4N1VjM25BZXQK"
     }
   },
   "build": {
