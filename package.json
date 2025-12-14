@@ -10,9 +10,14 @@
     "client:build": "bun --cwd apps/client run build",
     "client:tauri": "bun --cwd apps/client run tauri",
     "client:tauri:dev": "bun --cwd apps/client run tauri dev",
-    "client:tauri:build": "bun --cwd apps/client run tauri build"
+    "client:tauri:build": "bun --cwd apps/client run tauri build",
+    "prepare": "husky"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "husky": "^9.1.7"
+  },
   "engines": {
     "bun": ">=1.0.0"
   }
