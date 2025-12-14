@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/confide-gg/confide/compare/confide-client-v0.6.0...confide-client-v0.7.0) (2025-12-14)
+
+
+### Features
+
+* add Tauri auto-updater support ([c873b82](https://github.com/confide-gg/confide/commit/c873b8253c3fc2883f02c4db3a10eed720b29ac4))
+
 ## [0.6.0](https://github.com/confide-gg/confide/compare/confide-client-v0.5.0...confide-client-v0.6.0) (2025-12-14)
 
 
