@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/confide-gg/confide/compare/confide-central-v0.3.0...confide-central-v0.4.0) (2025-12-14)
+
+
+### Features
+
+* add user preferences API endpoint ([78fed02](https://github.com/confide-gg/confide/commit/78fed028e3cf67e699dff92b66cc071cf0cc9cf9))
+
 ## [0.3.0](https://github.com/confide-gg/confide/compare/confide-central-v0.2.0...confide-central-v0.3.0) (2025-12-14)
 
 
