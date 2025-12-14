@@ -113,26 +113,45 @@ jobs:
         run: |
           BUNDLE=target/${{ matrix.target }}/release/bundle
           mkdir -p artifacts
+
+          echo "Bundle directory contents:"
+          ls -la $BUNDLE/
+          echo "macOS bundle contents:"
+          ls -la $BUNDLE/macos/ || true
+
           cp $BUNDLE/dmg/*.dmg artifacts/confide-${{ matrix.target }}.dmg || true
 
-          
-          # Updater Artifacts
+          # Updater Artifacts (Tauri v2 puts them in macos folder)
           echo "Preparing updater artifacts..."
-          UPDATER_DIR="target/${{ matrix.target }}/release/bundle/updater"
-          if [ -d "$UPDATER_DIR" ]; then
-            cp $UPDATER_DIR/*.tar.gz artifacts/
-            cp $UPDATER_DIR/*.tar.gz.sig artifacts/
-            
-            JSON_PATH=$(find $UPDATER_DIR -name "*.json" | head -n 1)
-            if [ -n "$JSON_PATH" ]; then
-              FILENAME=$(basename $(ls $UPDATER_DIR/*.tar.gz | head -n 1))
-              DOWNLOAD_URL="https://github.com/confide-gg/confide/releases/download/${GITHUB_REF_NAME}/${FILENAME}"
-              
-              echo "Patching update JSON with URL: $DOWNLOAD_URL"
-              cat "$JSON_PATH" | jq --arg url "$DOWNLOAD_URL" '.platforms."darwin-aarch64".url = $url' > artifacts/latest.json
-            fi
+          MACOS_DIR="$BUNDLE/macos"
+          if ls $MACOS_DIR/*.tar.gz 1> /dev/null 2>&1; then
+            echo "Found updater artifacts in macos folder"
+            cp $MACOS_DIR/*.tar.gz artifacts/
+            cp $MACOS_DIR/*.tar.gz.sig artifacts/ || true
+
+            FILENAME=$(basename $(ls $MACOS_DIR/*.tar.gz | head -n 1))
+            SIGNATURE=$(cat $MACOS_DIR/*.tar.gz.sig 2>/dev/null || echo "")
+            DOWNLOAD_URL="https://github.com/confide-gg/confide/releases/download/${GITHUB_REF_NAME}/${FILENAME}"
+
+            VERSION=$(echo "${{ github.ref_name }}" | sed 's/.*v/v/')
+            echo "Creating latest.json with URL: $DOWNLOAD_URL, version: $VERSION"
+            cat > artifacts/latest.json << EOF
+{
+  "version": "${VERSION}",
+  "notes": "Update available",
+  "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "${SIGNATURE}",
+      "url": "${DOWNLOAD_URL}"
+    }
+  }
+}
+EOF
+            cat artifacts/latest.json
           else
-            echo "Updater directory not found!"
+            echo "No updater artifacts found!"
+            ls -la $MACOS_DIR/ || true
           fi
 
       - name: Upload artifacts

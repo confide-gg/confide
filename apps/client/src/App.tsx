@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Login } from "./pages/Login";
@@ -6,7 +7,9 @@ import { Chat } from "./pages/Chat";
 import { RecoveryKit } from "./pages/RecoveryKit";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Settings } from "./pages/Settings";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import "./App.css";
 
 function ProtectedRoute({ children, allowRecoverySetup = false }: { children: React.ReactNode; allowRecoverySetup?: boolean }) {
@@ -91,6 +94,32 @@ function AppRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    async function checkForUpdates() {
+      try {
+        const update = await check();
+        if (update) {
+          toast(`Update available: v${update.version}`, {
+            description: "A new version is ready to install.",
+            duration: Infinity,
+            action: {
+              label: "Install & Restart",
+              onClick: async () => {
+                toast.loading("Downloading update...", { id: "update-progress" });
+                await update.downloadAndInstall();
+                toast.dismiss("update-progress");
+                await relaunch();
+              },
+            },
+          });
+        }
+      } catch (e) {
+        console.error("Failed to check for updates:", e);
+      }
+    }
+    checkForUpdates();
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthProvider>
