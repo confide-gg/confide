@@ -9,6 +9,7 @@ mod gifs;
 mod keys;
 mod messages;
 pub mod middleware;
+mod preferences;
 mod profiles;
 pub mod rate_limit;
 mod recovery;
@@ -49,4 +50,5 @@ pub fn routes() -> Router<Arc<AppState>> {
         .nest("/servers", servers::routes())
         .nest("/calls", calls::routes())
         .nest("/audio-settings", audio_settings::routes())
+        .nest("/preferences", preferences::routes())
 }

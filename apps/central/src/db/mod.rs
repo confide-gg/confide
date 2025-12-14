@@ -8,6 +8,7 @@ mod federation;
 mod friends;
 mod gifs;
 mod messages;
+mod preferences;
 mod profiles;
 mod servers;
 mod sessions;
