@@ -26,6 +26,13 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const subscribedUsersRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    // Only set up listeners and connect if we have a user
+    if (!user) {
+      wsService.disconnect();
+      setIsWsConnected(false);
+      return;
+    }
+
     const unsubscribeMessage = wsService.onMessage((message) => {
       switch (message.type) {
         case "presence":
@@ -76,21 +83,21 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       unsubscribeDisconnect();
       wsService.disconnect();
     };
-  }, []);
+  }, [user?.id]);
 
   const isOnline = (userId: string) => userPresence.has(userId);
-  
+
   const getUserPresence = (userId: string) => userPresence.get(userId);
 
   const updateMyPresence = (status: string, customStatus?: string) => {
-      if (user) {
-        setUserPresence(prev => {
-            const next = new Map(prev);
-            next.set(user.id, { status, customStatus, isOnline: true });
-            return next;
-        });
-        wsService.updatePresence(status, customStatus);
-      }
+    if (user) {
+      setUserPresence(prev => {
+        const next = new Map(prev);
+        next.set(user.id, { status, customStatus, isOnline: true });
+        return next;
+      });
+      wsService.updatePresence(status, customStatus);
+    }
   };
 
   const subscribeToUsers = useCallback((userIds: string[]) => {
