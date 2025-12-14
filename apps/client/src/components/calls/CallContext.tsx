@@ -259,7 +259,14 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
     await invoke("end_call");
 
     if (currentState.call_id && currentState.status !== "left") {
-      await callsApi.endCall(currentState.call_id).catch(console.error);
+      const isPreConnectedOutgoing = currentState.is_caller &&
+        (currentState.status === "initiating" || currentState.status === "ringing" || currentState.status === "connecting");
+
+      if (isPreConnectedOutgoing) {
+        await callsApi.cancelCall(currentState.call_id).catch(console.error);
+      } else {
+        await callsApi.endCall(currentState.call_id).catch(console.error);
+      }
     }
 
     await refreshState();
