@@ -30,18 +30,9 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-  build-arch:
-    name: Build Arch Linux
-    uses: ./.github/workflows/release-client-arch.yml
-    with:
-      tag_name: ${{ github.ref_name }}
-    secrets:
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-
   publish:
     name: Publish Release
-    needs: [build-macos, build-ubuntu, build-arch]
+    needs: [build-macos, build-ubuntu]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -58,12 +49,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: confide-ubuntu
-          path: artifacts/
-
-      - name: Download Arch artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: confide-arch
           path: artifacts/
 
       - name: Create latest.json for updater
@@ -92,10 +77,6 @@ jobs:
             if [ -n "$PLATFORMS" ]; then PLATFORMS="$PLATFORMS,"; fi
             PLATFORMS="${PLATFORMS}\"linux-x86_64\":{\"signature\":\"${SIG}\",\"url\":\"${URL}\"}"
             rm update-linux-x86_64.json
-          fi
-
-          if [ -f "update-arch-x86_64.json" ]; then
-            rm update-arch-x86_64.json
           fi
 
           if [ -n "$PLATFORMS" ]; then
