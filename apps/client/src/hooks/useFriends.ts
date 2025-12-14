@@ -28,7 +28,13 @@ export function useFriends() {
             if (response.encrypted_friends.length > 0) {
                 const decrypted = await crypto.decryptData(keys.kem_secret_key, response.encrypted_friends);
                 const friendsData = JSON.parse(crypto.bytesToString(decrypted)) as Friend[];
-                setFriendsList(friendsData);
+                const seen = new Set<string>();
+                const deduped = friendsData.filter((f) => {
+                    if (seen.has(f.id)) return false;
+                    seen.add(f.id);
+                    return true;
+                });
+                setFriendsList(deduped);
             } else {
                 setFriendsList([]);
             }
@@ -79,6 +85,12 @@ export function useFriends() {
             return;
         }
 
+        const alreadyFriend = friendsListRef.current.some((f) => f.id === request.from_user.id);
+        if (alreadyFriend) {
+            setFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
+            return;
+        }
+
         try {
             const newFriend: Friend = {
                 id: request.from_user.id,
@@ -87,16 +99,16 @@ export function useFriends() {
                 dsa_public_key: request.from_user.dsa_public_key
             };
 
-            const updatedFriends = [...friendsListRef.current, newFriend];
+            const currentFriends = friendsListRef.current.filter((f) => f.id !== newFriend.id);
+            const updatedFriends = [...currentFriends, newFriend];
             const jsonData = JSON.stringify(updatedFriends);
             const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
 
             await friends.acceptFriendRequest(request.id, { encrypted_friends: encryptedFriends });
 
-            subscribeToUsers([newFriend.id]);
-
             setFriendsList(updatedFriends);
             setFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
+            subscribeToUsers([newFriend.id]);
         } catch (err) {
             console.error("Failed to accept friend request:", err);
             throw err;
@@ -116,7 +128,7 @@ export function useFriends() {
     const removeFriend = useCallback(async (friendToRemove: Friend) => {
         if (!keys) return;
         try {
-            const updatedFriends = friendsList.filter((f) => f.id !== friendToRemove.id);
+            const updatedFriends = friendsListRef.current.filter((f) => f.id !== friendToRemove.id);
             const jsonData = JSON.stringify(updatedFriends);
             const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
 
@@ -131,7 +143,7 @@ export function useFriends() {
             console.error("Failed to remove friend:", err);
             throw err;
         }
-    }, [keys, friendsList]);
+    }, [keys]);
 
     useEffect(() => {
         loadFriends();
@@ -149,7 +161,15 @@ export function useFriends() {
         if (!keys) return;
 
         const alreadyFriend = friendsListRef.current.some((f) => f.id === userId);
-        if (alreadyFriend) return;
+        if (alreadyFriend) {
+            subscribeToUsers([userId]);
+            setSentRequests((prev) => {
+                const next = new Set(prev);
+                next.delete(userId);
+                return next;
+            });
+            return;
+        }
 
         subscribeToUsers([userId]);
 
@@ -168,7 +188,8 @@ export function useFriends() {
                 dsa_public_key: userResult.dsa_public_key
             };
 
-            const updatedFriends = [...friendsListRef.current, newFriend];
+            const currentFriends = friendsListRef.current.filter((f) => f.id !== userId);
+            const updatedFriends = [...currentFriends, newFriend];
             const jsonData = JSON.stringify(updatedFriends);
             const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
 
@@ -186,6 +207,21 @@ export function useFriends() {
             throw err;
         }
     }, [keys, subscribeToUsers]);
+
+    const onFriendRemoved = useCallback(async (userId: string) => {
+        if (!keys) return;
+
+        const updatedFriends = friendsListRef.current.filter((f) => f.id !== userId);
+        setFriendsList(updatedFriends);
+
+        try {
+            const jsonData = JSON.stringify(updatedFriends);
+            const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
+            await friends.updateFriends({ encrypted_friends: encryptedFriends });
+        } catch (err) {
+            console.error("Failed to sync friend removal:", err);
+        }
+    }, [keys]);
 
     return {
         friendsList,
@@ -207,6 +243,7 @@ export function useFriends() {
         handleAcceptRequest,
         handleRejectRequest,
         removeFriend,
-        onFriendAccepted
+        onFriendAccepted,
+        onFriendRemoved
     };
 }

@@ -182,7 +182,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setSuccessMessage(`Friend request accepted by ${message.data.by_username}`);
           break;
         case "friend_removed":
-          friendsLogic.setFriendsList(prev => prev.filter(f => f.id !== message.data.by_user_id));
+          friendsLogic.onFriendRemoved(message.data.by_user_id);
           break;
         case "key_update":
           friendsLogic.setFriendsList(prev => prev.map(f => {
