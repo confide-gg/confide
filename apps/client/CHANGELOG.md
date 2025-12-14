@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.1](https://github.com/confide-gg/confide/compare/confide-client-v0.11.0...confide-client-v0.11.1) (2025-12-14)
+
+
+### Bug Fixes
+
+* call events in chat now correctly show who called, declined, or cancelled ([b97a754](https://github.com/confide-gg/confide/commit/b97a754e19b45f92f221e8c7bbf18e18959a9a71))
+* cancel outgoing call properly sends call_cancel to callee ([a52a739](https://github.com/confide-gg/confide/commit/a52a739b48fe6bd72984dd27196fff0d1df4dfe0))
+* hangup button in minimized call overlay ([709ce55](https://github.com/confide-gg/confide/commit/709ce556acd22812914d7749630416f774c01d32))
+* load theme preferences on app startup ([511ce9b](https://github.com/confide-gg/confide/commit/511ce9b7811d73c7d375e13c7c06b3c7a54a1aba))
+
 ## [0.11.0](https://github.com/confide-gg/confide/compare/confide-client-v0.10.0...confide-client-v0.11.0) (2025-12-14)
 
 
