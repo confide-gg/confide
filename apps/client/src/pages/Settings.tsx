@@ -121,15 +121,17 @@ export function Settings() {
         </div>
 
         <ScrollArea className="flex-1">
-          <div className="p-6">
-            {activeTab === "profile" && <ProfileSettings />}
-            {activeTab === "voice" && <VoiceSettings />}
-            {activeTab === "account" && (
-              <div className="space-y-4 text-sm text-muted-foreground">
-                <p>Account settings coming soon...</p>
-              </div>
-            )}
-            {activeTab === "appearance" && <AppearanceSettings />}
+          <div className="p-6 min-h-full flex items-center justify-center">
+            <div className="w-full max-w-4xl">
+              {activeTab === "profile" && <ProfileSettings />}
+              {activeTab === "voice" && <VoiceSettings />}
+              {activeTab === "account" && (
+                <div className="space-y-4 text-sm text-muted-foreground">
+                  <p>Account settings coming soon...</p>
+                </div>
+              )}
+              {activeTab === "appearance" && <AppearanceSettings />}
+            </div>
           </div>
         </ScrollArea>
       </div>
