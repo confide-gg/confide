@@ -1,9 +1,5 @@
 {
     "packages": {
-        ".": {
-            "release-type": "rust",
-            "package-name": "confide-monorepo"
-        },
         "apps/client": {
             "release-type": "node",
             "package-name": "confide-client",

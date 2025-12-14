@@ -13,10 +13,8 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: google-github-actions/release-please-action@v4
+      - uses: googleapis/release-please-action@v4
         with:
-          # this assumes that you have created a personal access token
-          # (PAT) and stored it as a secret named MY_RELEASE_PLEASE_TOKEN
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
