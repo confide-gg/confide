@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/confide-gg/confide/compare/confide-client-v0.7.0...confide-client-v0.8.0) (2025-12-14)
+
+
+### Features
+
+* add multi-platform release workflows for macOS, Ubuntu, and Arch ([a619817](https://github.com/confide-gg/confide/commit/a619817cf939ffccc3b2d51a0a6e412b94b40bdc))
+
 ## [0.7.0](https://github.com/confide-gg/confide/compare/confide-client-v0.6.0...confide-client-v0.7.0) (2025-12-14)
 
 
