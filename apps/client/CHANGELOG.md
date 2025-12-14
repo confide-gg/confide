@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/confide-gg/confide/compare/confide-client-v0.5.0...confide-client-v0.6.0) (2025-12-14)
+
+
+### Features
+
+* show client and central version in settings footer ([8e84482](https://github.com/confide-gg/confide/commit/8e844820b62c1672984d9202b6904308654f03b0))
+
 ## [0.5.0](https://github.com/confide-gg/confide/compare/confide-client-v0.4.1...confide-client-v0.5.0) (2025-12-14)
 
 
