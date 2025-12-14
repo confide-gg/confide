@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.1](https://github.com/confide-gg/confide/compare/confide-client-v0.4.0...confide-client-v0.4.1) (2025-12-14)
+
+
+### Bug Fixes
+
+* add jitter and max delay cap to WebSocket reconnection backoff ([1e32864](https://github.com/confide-gg/confide/commit/1e32864f788ed8222c8c998633364fcda999727b))
+* check connection state before sending federated WS subscriptions ([caf2fdb](https://github.com/confide-gg/confide/commit/caf2fdbca1cba328adeb3668c26989b65752d755))
+* **client:** debounce 401 unauthorized events to prevent logout loops ([f6338b2](https://github.com/confide-gg/confide/commit/f6338b276fe75472f0a57fa825d311861d5d824e))
+* prevent duplicate friends and sync removals to server ([7364976](https://github.com/confide-gg/confide/commit/736497652b2fc4b1fdfe7af1aafce9199ab150a7))
+* resolve initial presence sync and duplicate key crash ([eaa870c](https://github.com/confide-gg/confide/commit/eaa870c1b8bbd20ce1944c9771e7c1642c349e63))
+* resubscribe to presence on WS reconnect and queue when disconnected ([c412a55](https://github.com/confide-gg/confide/commit/c412a559a2c37e98c21024c139255d8e7a9db764))
+* subscribe to presence before async operations in onFriendAccepted ([c4c5069](https://github.com/confide-gg/confide/commit/c4c506946a4c63bcf6b48c5b71b398c2c0ca586a))
+
 ## [0.4.0](https://github.com/confide-gg/confide/compare/confide-client-v0.3.0...confide-client-v0.4.0) (2025-12-14)
 
 
