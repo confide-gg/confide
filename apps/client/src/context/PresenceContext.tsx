@@ -69,7 +69,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    const unsubscribeConnect = wsService.onConnect(() => {
+    const handleConnect = () => {
       setIsWsConnected(true);
       activeSubscriptionsRef.current.clear();
       for (const userId of subscribedUsersRef.current) {
@@ -84,14 +84,20 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
         }
       }
       pendingSubscriptionsRef.current.clear();
-    });
+    };
+
+    const unsubscribeConnect = wsService.onConnect(handleConnect);
 
     const unsubscribeDisconnect = wsService.onDisconnect(() => {
       setIsWsConnected(false);
       activeSubscriptionsRef.current.clear();
     });
 
-    wsService.connect();
+    if (wsService.isConnected()) {
+      handleConnect();
+    } else {
+      wsService.connect();
+    }
 
     return () => {
       unsubscribeMessage();

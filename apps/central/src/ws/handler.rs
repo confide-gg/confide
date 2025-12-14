@@ -32,7 +32,7 @@ pub enum WsMessage {
     KeyExchange(KeyExchangeData),
     #[serde(rename = "typing")]
     Typing(TypingData),
-    #[serde(rename = "presence")]
+    #[serde(rename = "presence_update")]
     Presence(PresenceData),
     #[serde(rename = "presence_sync")]
     PresenceSync(PresenceSyncData),
@@ -189,6 +189,7 @@ pub struct TypingData {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PresenceData {
+    #[serde(rename = "member_id")]
     pub user_id: Uuid,
     pub online: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -199,6 +200,7 @@ pub struct PresenceData {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PresenceInfo {
+    #[serde(rename = "member_id")]
     pub user_id: Uuid,
     pub status: String,
     pub custom_status: Option<String>,
@@ -483,6 +485,33 @@ async fn handle_client_message(
                 tracing::error!("Failed to subscribe to user {}: {:?}", data.user_id, e);
             } else {
                 tracing::debug!("User {} subscribed to user channel {}", user_id, channel);
+                if let Ok(mut conn) = state.redis.get_multiplexed_async_connection().await {
+                    let is_online: Result<bool, _> = redis::cmd("SISMEMBER")
+                        .arg("online_users")
+                        .arg(data.user_id.to_string())
+                        .query_async(&mut conn)
+                        .await;
+                    let online = is_online.unwrap_or(false);
+                    let (status, custom_status) = if online {
+                        state
+                            .db
+                            .get_user_presence_data(data.user_id)
+                            .await
+                            .map(|(s, c)| (Some(s), c))
+                            .unwrap_or((Some("online".to_string()), None))
+                    } else {
+                        (None, None)
+                    };
+                    let presence_msg = WsMessage::Presence(PresenceData {
+                        user_id: data.user_id,
+                        online,
+                        status,
+                        custom_status,
+                    });
+                    if let Ok(json) = serde_json::to_string(&presence_msg) {
+                        let _ = publish_message(&state.redis, &channel, &json).await;
+                    }
+                }
             }
         }
         WsMessage::Typing(data) => {
