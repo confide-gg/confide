@@ -1,0 +1,110 @@
+name: Build Client (Arch Linux)
+
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: true
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: true
+
+jobs:
+  build-arch:
+    name: Arch Linux (x86_64)
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install base dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm \
+            base-devel \
+            git \
+            sudo \
+            which
+
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          pacman -S --noconfirm \
+            rust \
+            webkit2gtk-4.1 \
+            gtk3 \
+            libayatana-appindicator \
+            librsvg \
+            alsa-lib \
+            openssl \
+            libxdo \
+            libxcb \
+            libxrandr \
+            libx11 \
+            pipewire \
+            libnotify \
+            opus \
+            ffmpeg \
+            clang \
+            pkgconf \
+            nasm \
+            curl \
+            unzip \
+            xdg-utils \
+            patchelf
+
+      - name: Setup Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "/root/.bun/bin" >> $GITHUB_PATH
+
+      - name: Install frontend dependencies
+        working-directory: apps/client
+        run: /root/.bun/bin/bun install --frozen-lockfile
+
+      - name: Build Tauri app
+        working-directory: apps/client
+        run: /root/.bun/bin/bun run tauri build --target x86_64-unknown-linux-gnu
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Prepare artifacts
+        run: |
+          BUNDLE=target/x86_64-unknown-linux-gnu/release/bundle
+          mkdir -p artifacts
+
+          echo "=== Bundle contents ==="
+          ls -la $BUNDLE/ || true
+          ls -la $BUNDLE/appimage/ || true
+
+          cp $BUNDLE/appimage/*.AppImage artifacts/Confide-arch-x86_64.AppImage || true
+
+          if ls $BUNDLE/appimage/*.tar.gz 1> /dev/null 2>&1; then
+            TARBALL=$(ls $BUNDLE/appimage/*.tar.gz | head -1)
+            TARBALL_NAME=$(basename "$TARBALL" | sed 's/\.tar\.gz$//')-arch.tar.gz
+            cp "$TARBALL" "artifacts/${TARBALL_NAME}"
+            cp "$TARBALL.sig" "artifacts/${TARBALL_NAME}.sig" || true
+
+            SIGNATURE=$(cat "$TARBALL.sig" 2>/dev/null || echo "")
+            URL="https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag_name }}/${TARBALL_NAME}"
+            VERSION=$(echo "${{ inputs.tag_name }}" | sed 's/.*v//')
+
+            if [ -n "$SIGNATURE" ]; then
+              echo "{\"platform\":\"linux-x86_64\",\"version\":\"${VERSION}\",\"signature\":\"${SIGNATURE}\",\"url\":\"${URL}\"}" > artifacts/update-arch-x86_64.json
+              cat artifacts/update-arch-x86_64.json
+            fi
+          fi
+
+          echo "=== Final artifacts ==="
+          ls -la artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: confide-arch
+          path: artifacts/*
+          if-no-files-found: error

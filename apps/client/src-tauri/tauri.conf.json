@@ -92,8 +92,17 @@
     "linux": {
       "deb": {
         "depends": [
-          "libnotify-bin"
+          "libnotify-bin",
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1",
+          "libasound2",
+          "libssl3",
+          "ffmpeg"
         ]
+      },
+      "appimage": {
+        "bundleMediaFramework": true
       }
     }
   }
