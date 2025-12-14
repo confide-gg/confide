@@ -16,7 +16,7 @@ interface ActiveCallOverlayProps {
 }
 
 export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) {
-  const { callState, peerHasLeft, leaveCall, rejoinCall, setMuted, startScreenShare, stopScreenShare } = useCall();
+  const { callState, peerHasLeft, leaveCall, endCall, rejoinCall, setMuted, startScreenShare, stopScreenShare } = useCall();
   const { activeChat, openChat, friendsList, setSidebarView } = useChat();
   const [duration, setDuration] = useState(0);
   const [quality, setQuality] = useState<CallQuality>("good");
@@ -127,7 +127,11 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
 
   const handleLeave = async () => {
     try {
-      await leaveCall();
+      if (callState.status === "active") {
+        await leaveCall();
+      } else {
+        await endCall();
+      }
     } catch (e) {
       console.error("Failed to leave call:", e);
     }
