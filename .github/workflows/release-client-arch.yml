@@ -54,7 +54,8 @@ jobs:
             curl \
             unzip \
             xdg-utils \
-            patchelf
+            patchelf \
+            mesa
 
       - name: Setup Bun and install frontend dependencies
         working-directory: apps/client

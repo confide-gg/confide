@@ -67,7 +67,8 @@ jobs:
             libswscale-dev \
             libavfilter-dev \
             libavdevice-dev \
-            libswresample-dev
+            libswresample-dev \
+            libgbm-dev
 
       - name: Install frontend dependencies
         working-directory: apps/client
