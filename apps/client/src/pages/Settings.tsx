@@ -6,6 +6,7 @@ import { AppearanceSettings } from "../components/settings/AppearanceSettings";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Button } from "../components/ui/button";
 import { Mic, User, Palette, ArrowLeft, Shield } from "lucide-react";
+import { CLIENT_VERSION, CENTRAL_API_URL } from "../config";
 
 type Tab = "profile" | "account" | "voice" | "appearance";
 
@@ -44,6 +45,7 @@ const ALL_TABS = SETTINGS_CATEGORIES.flatMap(cat => cat.tabs);
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [centralVersion, setCentralVersion] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
@@ -56,6 +58,13 @@ export function Settings() {
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [handleEscape]);
+
+  useEffect(() => {
+    fetch(`${CENTRAL_API_URL}/version`)
+      .then(res => res.json())
+      .then(data => setCentralVersion(data.version))
+      .catch(() => setCentralVersion(null));
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex">
@@ -87,6 +96,11 @@ export function Settings() {
             ))}
           </nav>
         </ScrollArea>
+        <div className="px-4 py-3 border-t border-border">
+          <p className="text-[10px] text-muted-foreground/60">
+            Client v{CLIENT_VERSION}{centralVersion && ` · Central v${centralVersion}`}
+          </p>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden">

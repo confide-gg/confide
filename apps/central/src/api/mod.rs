@@ -15,13 +15,26 @@ mod recovery;
 mod servers;
 mod uploads;
 
-use axum::Router;
+use axum::{routing::get, Json, Router};
+use serde::Serialize;
 use std::sync::Arc;
 
 use crate::AppState;
 
+#[derive(Serialize)]
+struct VersionResponse {
+    version: &'static str,
+}
+
+async fn get_version() -> Json<VersionResponse> {
+    Json(VersionResponse {
+        version: env!("CARGO_PKG_VERSION"),
+    })
+}
+
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/version", get(get_version))
         .nest("/auth", auth::routes())
         .nest("/friends", friends::routes())
         .nest("/conversations", conversations::routes())
