@@ -116,20 +116,18 @@ export class FederatedWsClient extends BaseWebSocket<ServerMessage, ClientMessag
         }
     }
 
-    /**
-     * Subscribe to a channel for real-time updates
-     */
     subscribeChannel(channelId: string) {
         this.subscribedChannels.add(channelId);
-        this.send({ type: 'subscribe_channel', channel_id: channelId });
+        if (this.isConnected()) {
+            this.send({ type: 'subscribe_channel', channel_id: channelId });
+        }
     }
 
-    /**
-     * Unsubscribe from a channel
-     */
     unsubscribeChannel(channelId: string) {
         this.subscribedChannels.delete(channelId);
-        this.send({ type: 'unsubscribe_channel', channel_id: channelId });
+        if (this.isConnected()) {
+            this.send({ type: 'unsubscribe_channel', channel_id: channelId });
+        }
     }
 
     /**
