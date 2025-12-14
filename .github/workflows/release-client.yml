@@ -134,20 +134,9 @@ jobs:
             DOWNLOAD_URL="https://github.com/confide-gg/confide/releases/download/${GITHUB_REF_NAME}/${FILENAME}"
 
             VERSION=$(echo "${{ github.ref_name }}" | sed 's/.*v/v/')
+            PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
             echo "Creating latest.json with URL: $DOWNLOAD_URL, version: $VERSION"
-            cat > artifacts/latest.json << EOF
-{
-  "version": "${VERSION}",
-  "notes": "Update available",
-  "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "platforms": {
-    "darwin-aarch64": {
-      "signature": "${SIGNATURE}",
-      "url": "${DOWNLOAD_URL}"
-    }
-  }
-}
-EOF
+            printf '{\n  "version": "%s",\n  "notes": "Update available",\n  "pub_date": "%s",\n  "platforms": {\n    "darwin-aarch64": {\n      "signature": "%s",\n      "url": "%s"\n    }\n  }\n}\n' "$VERSION" "$PUB_DATE" "$SIGNATURE" "$DOWNLOAD_URL" > artifacts/latest.json
             cat artifacts/latest.json
           else
             echo "No updater artifacts found!"
