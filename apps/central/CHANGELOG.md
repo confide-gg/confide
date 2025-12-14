@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/confide-gg/confide/compare/confide-central-v0.4.0...confide-central-v0.4.1) (2025-12-14)
+
+
+### Bug Fixes
+
+* call events in chat now correctly show who called, declined, or cancelled ([b97a754](https://github.com/confide-gg/confide/commit/b97a754e19b45f92f221e8c7bbf18e18959a9a71))
+
 ## [0.4.0](https://github.com/confide-gg/confide/compare/confide-central-v0.3.0...confide-central-v0.4.0) (2025-12-14)
 
 
