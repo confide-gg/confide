@@ -24,9 +24,10 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const [userPresence, setUserPresence] = useState<Map<string, UserPresence>>(new Map());
   const [isWsConnected, setIsWsConnected] = useState(false);
   const subscribedUsersRef = useRef<Set<string>>(new Set());
+  const pendingSubscriptionsRef = useRef<Set<string>>(new Set());
+  const activeSubscriptionsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    // Only set up listeners and connect if we have a user
     if (!user) {
       wsService.disconnect();
       setIsWsConnected(false);
@@ -54,7 +55,6 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
         case "presence_sync":
           setUserPresence(() => {
             const next = new Map();
-            // Server sends 'presences' array, not 'online_users'
             const presences = (message.data as any).presences || message.data.online_users || [];
             presences.forEach((presenceInfo: any) => {
               next.set(presenceInfo.member_id || presenceInfo.user_id, {
@@ -71,11 +71,24 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
     const unsubscribeConnect = wsService.onConnect(() => {
       setIsWsConnected(true);
+      activeSubscriptionsRef.current.clear();
+      for (const userId of subscribedUsersRef.current) {
+        wsService.subscribeUser(userId);
+        activeSubscriptionsRef.current.add(userId);
+      }
+      for (const userId of pendingSubscriptionsRef.current) {
+        if (!activeSubscriptionsRef.current.has(userId)) {
+          wsService.subscribeUser(userId);
+          subscribedUsersRef.current.add(userId);
+          activeSubscriptionsRef.current.add(userId);
+        }
+      }
+      pendingSubscriptionsRef.current.clear();
     });
 
     const unsubscribeDisconnect = wsService.onDisconnect(() => {
       setIsWsConnected(false);
-      subscribedUsersRef.current.clear(); // Clear subscriptions so we re-subscribe on reconnect
+      activeSubscriptionsRef.current.clear();
     });
 
     wsService.connect();
@@ -104,12 +117,15 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   };
 
   const subscribeToUsers = useCallback((userIds: string[]) => {
-    if (!isWsConnected) return;
-
     for (const userId of userIds) {
-      if (!subscribedUsersRef.current.has(userId)) {
+      if (subscribedUsersRef.current.has(userId)) continue;
+
+      if (isWsConnected) {
         wsService.subscribeUser(userId);
         subscribedUsersRef.current.add(userId);
+        activeSubscriptionsRef.current.add(userId);
+      } else {
+        pendingSubscriptionsRef.current.add(userId);
       }
     }
   }, [isWsConnected]);
