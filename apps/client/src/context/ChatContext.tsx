@@ -51,6 +51,7 @@ interface ChatContextType {
   unreadCounts: Map<string, number>;
 
   // Connection / Status
+  isConnected: boolean;
   onlineUsers: Set<string>;
   typingUsers: Map<string, ReturnType<typeof setTimeout>>;
 
@@ -105,8 +106,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // --- Hooks ---
   const friendsLogic = useFriends();
   const chatLogic = useChatMessages(friendsLogic.friendsList);
-  
+
   // --- Local State ---
+  const [isConnected, setIsConnected] = useState(wsService.isConnected());
   const [typingUsers, setTypingUsers] = useState<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [sidebarView, setSidebarView] = useState<SidebarView>("friends");
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
@@ -142,6 +144,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // --- WebSocket Listener ---
   useEffect(() => {
+    const unsubConnect = wsService.onConnect(() => setIsConnected(true));
+    const unsubDisconnect = wsService.onDisconnect(() => setIsConnected(false));
+
+    // Initial check
+    setIsConnected(wsService.isConnected());
+
+    return () => {
+      unsubConnect();
+      unsubDisconnect();
+    };
+  }, []);
+
+  // --- WebSocket Listener ---
+  useEffect(() => {
     const initializeNotifications = async () => {
       try {
         await NotificationService.initialize();
@@ -151,7 +167,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
 
     initializeNotifications();
-    
+
     const unsubscribe = wsService.onMessage((message) => {
       switch (message.type) {
         case "friend_request":
@@ -321,6 +337,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     ...chatLogic,
 
     // Connection
+    isConnected,
     onlineUsers,
     typingUsers,
 

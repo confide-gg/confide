@@ -23,6 +23,7 @@ import { ServerList } from "../sidebar/ServerList";
 import { ChannelList } from "../servers/ChannelList";
 import { ChannelChat } from "../servers/ChannelChat";
 import { MemberList } from "../servers/MemberList";
+import { ServerOfflineOverlay } from "../common/ServerOfflineOverlay";
 
 export function MainLayout() {
   const { user, keys } = useAuth();
@@ -50,6 +51,7 @@ export function MainLayout() {
     setError,
     successMessage,
     setSuccessMessage,
+    isConnected,
   } = useChat();
 
   useEffect(() => {
@@ -117,6 +119,7 @@ export function MainLayout() {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
+      {!isConnected && <ServerOfflineOverlay />}
       <aside className="w-16 h-full bg-background flex flex-col items-center shrink-0 border-r border-border">
         <div className="h-14 w-full flex items-center justify-center border-b border-border shrink-0">
           <button
