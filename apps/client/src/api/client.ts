@@ -5,8 +5,13 @@ const API_BASE_URL = CENTRAL_API_URL;
 
 let authToken: string | null = null;
 
+let isLoggingOut = false;
+
 export function setAuthToken(token: string | null) {
   authToken = token;
+  if (token) {
+    isLoggingOut = false;
+  }
 }
 
 export function getAuthToken(): string | null {
@@ -26,7 +31,11 @@ export class ApiError extends Error {
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     if (response.status === 401) {
-      window.dispatchEvent(new Event("auth:unauthorized"));
+      if (!isLoggingOut) {
+        console.warn("[Client] Received 401 Unauthorized - triggering logout");
+        isLoggingOut = true;
+        window.dispatchEvent(new Event("auth:unauthorized"));
+      }
     }
     const text = await response.text();
     let message = text;
@@ -47,6 +56,8 @@ function getHeaders(): Record<string, string> {
   };
   if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
+  } else {
+    console.warn("[Client] No auth token available for request");
   }
   return headers;
 }
