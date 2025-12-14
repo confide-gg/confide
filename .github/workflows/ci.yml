@@ -9,14 +9,8 @@ on:
       - '.gitignore'
       - 'LICENSE'
       - '.github/**'
-  push:
-    branches: [main, develop, 'feature/**']
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'LICENSE'
-      - '.github/**'
+      - 'CHANGELOG.md'
+      - '.release-please-manifest.json'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
