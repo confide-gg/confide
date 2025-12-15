@@ -14,15 +14,16 @@ interface MessageProps {
 }
 
 export function Message({ message, showHeader }: MessageProps) {
-  const { setMessageContextMenu, addReaction, favoriteGifUrls, toggleFavoriteGif, setProfileView, editMessage } = useChat();
+  const { setMessageContextMenu, addReaction, favoriteGifUrls, toggleFavoriteGif, setProfileView, editMessage, editingMessageId, setEditingMessageId } = useChat();
   const { isOnline } = usePresence();
   const { user, profile } = useAuth();
   const [expandedGif, setExpandedGif] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const isEditing = editingMessageId === message.id;
 
   const handleProfileClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,12 +71,12 @@ export function Message({ message, showHeader }: MessageProps) {
   const handleStartEdit = () => {
     if (!message.isMine || message.isGif) return;
     setEditContent(message.content);
-    setIsEditing(true);
+    setEditingMessageId(message.id);
     setTimeout(() => editInputRef.current?.focus(), 0);
   };
 
   const handleCancelEdit = () => {
-    setIsEditing(false);
+    setEditingMessageId(null);
     setEditContent(message.content);
   };
 
@@ -87,7 +88,7 @@ export function Message({ message, showHeader }: MessageProps) {
     setIsSubmitting(true);
     try {
       await editMessage(message.id, editContent.trim());
-      setIsEditing(false);
+      setEditingMessageId(null);
     } catch {
       setEditContent(message.content);
     } finally {

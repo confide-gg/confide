@@ -60,6 +60,8 @@ interface ChatContextType {
   setContextMenu: (menu: ContextMenuData | null) => void;
   messageContextMenu: MessageContextMenuData | null;
   setMessageContextMenu: (menu: MessageContextMenuData | null) => void;
+  editingMessageId: string | null;
+  setEditingMessageId: (id: string | null) => void;
   dmContextMenu: DmContextMenuData | null;
   setDmContextMenu: (menu: DmContextMenuData | null) => void;
   profileView: ProfileViewData | null;
@@ -115,6 +117,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [sidebarView, setSidebarView] = useState<SidebarView>("friends");
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
   const [messageContextMenu, setMessageContextMenu] = useState<MessageContextMenuData | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [dmContextMenu, setDmContextMenu] = useState<DmContextMenuData | null>(null);
   const [profileView, setProfileView] = useState<ProfileViewData | null>(null);
   const [showProfilePanel, setShowProfilePanel] = useState(true);
@@ -364,6 +367,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     // UI
     contextMenu, setContextMenu,
     messageContextMenu, setMessageContextMenu,
+    editingMessageId, setEditingMessageId,
     dmContextMenu, setDmContextMenu,
     profileView, setProfileView,
     showProfilePanel, setShowProfilePanel,

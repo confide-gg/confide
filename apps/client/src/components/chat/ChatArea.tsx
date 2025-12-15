@@ -24,6 +24,7 @@ export function ChatArea() {
     chatMessages,
     showProfilePanel,
     setShowProfilePanel,
+    setEditingMessageId,
   } = useChat();
   const { callState } = useCall();
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -113,6 +114,9 @@ export function ChatArea() {
   };
 
   const handleEdit = () => {
+    if (messageContextMenu) {
+      setEditingMessageId(messageContextMenu.message.id);
+    }
     setMessageContextMenu(null);
   };
 
