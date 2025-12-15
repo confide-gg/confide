@@ -46,26 +46,65 @@ print_usage() {
     echo "Usage: ./setup-local.sh [command]"
     echo ""
     echo "Commands:"
-    echo "  up        - Start all services (Central + Server in Docker)"
-    echo "  down      - Stop all services"
-    echo "  build     - Build Docker images"
-    echo "  rebuild   - Rebuild and restart services"
-    echo "  logs      - Show logs from all services"
-    echo "  client    - Run the client (bun run tauri dev)"
-    echo "  clean     - Stop services and remove volumes"
-    echo "  status    - Show status of services"
-    echo "  help      - Show this message"
+    echo "  up            - Start all services (Central + Server)"
+    echo "  central       - Start Central services only"
+    echo "  server        - Start Server services only"
+    echo "  reset-server  - Rebuild and restart Server services only"
+    echo "  down          - Stop all services"
+    echo "  build         - Build Docker images"
+    echo "  rebuild       - Rebuild and restart services"
+    echo "  logs          - Show logs from all services"
+    echo "  client        - Run the client (bun run tauri dev)"
+    echo "  clean         - Stop services and remove volumes"
+    echo "  status        - Show status of services"
+    echo "  help          - Show this message"
     echo ""
 }
 
 start_services() {
-    log_info "Starting Confide services..."
+    log_info "Starting ALL Confide services..."
 
     cd "$DOCKER_DIR"
     docker compose up -d --build
 
     echo ""
     log_success "All services started!"
+    print_endpoints
+}
+
+start_central() {
+    log_info "Starting Confide Central services..."
+
+    cd "$DOCKER_DIR"
+    docker compose up -d --build central central-postgres central-redis
+
+    echo ""
+    log_success "Central services started!"
+    echo "Endpoint: http://localhost:3000"
+}
+
+start_server() {
+    log_info "Starting Confide Server services..."
+
+    cd "$DOCKER_DIR"
+    docker compose up -d --build server server-postgres server-redis
+
+    echo ""
+    log_success "Server services started!"
+    echo "Endpoint: http://localhost:8080"
+}
+
+reset_server() {
+    log_info "Resetting Confide Server services..."
+
+    cd "$DOCKER_DIR"
+    docker compose up -d --build --force-recreate server
+
+    echo ""
+    log_success "Server reset complete!"
+}
+
+print_endpoints() {
     echo ""
     echo "Endpoints:"
     echo "  Confide-Central: http://localhost:3000"
@@ -152,6 +191,18 @@ case "${1:-help}" in
     up|start)
         check_docker
         start_services
+        ;;
+    central)
+        check_docker
+        start_central
+        ;;
+    server)
+        check_docker
+        start_server
+        ;;
+    reset-server)
+        check_docker
+        reset_server
         ;;
     down|stop)
         stop_services

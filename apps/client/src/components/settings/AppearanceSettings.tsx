@@ -1,14 +1,22 @@
 import { useState, useEffect } from "react";
-import { Check } from "lucide-react";
+import { Check, Snowflake } from "lucide-react";
 import { preferences } from "../../api/preferences";
 import { THEMES, applyTheme, type Theme } from "../../lib/themes";
 import { toast } from "sonner";
+import { notifySnowEffectChange } from "../../components/common";
 
 export function AppearanceSettings() {
   const [currentTheme, setCurrentTheme] = useState<Theme>('dark');
+  const [snowEffectEnabled, setSnowEffectEnabled] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isHolidaySeason, setIsHolidaySeason] = useState(false);
 
   useEffect(() => {
+    // Check if it's December (holiday season)
+    const now = new Date();
+    const isDecember = now.getMonth() === 11;
+    setIsHolidaySeason(isDecember);
+    
     loadPreferences();
   }, []);
 
@@ -16,6 +24,7 @@ export function AppearanceSettings() {
     try {
       const prefs = await preferences.getPreferences();
       setCurrentTheme(prefs.theme as Theme);
+      setSnowEffectEnabled(prefs.enable_snow_effect ?? true);
       applyTheme(prefs.theme as Theme);
     } catch (error) {
       console.error('Failed to load preferences:', error);
@@ -33,6 +42,22 @@ export function AppearanceSettings() {
     } catch (error) {
       console.error('Failed to update theme:', error);
       toast.error('Failed to update theme');
+    }
+  };
+
+  const handleSnowEffectToggle = async () => {
+    try {
+      const newValue = !snowEffectEnabled;
+      setSnowEffectEnabled(newValue);
+      
+      await preferences.updateSnowEffect(newValue);
+      toast.success('Snow effect preference updated');
+      
+      // Notify all SnowEffect components to refresh
+      notifySnowEffectChange();
+    } catch (error) {
+      console.error('Failed to update snow effect preference:', error);
+      toast.error('Failed to update snow effect preference');
     }
   };
 
@@ -98,6 +123,38 @@ export function AppearanceSettings() {
           })}
         </div>
       </div>
+      
+      {isHolidaySeason && (
+        <div className="border-t border-border pt-6">
+          <h3 className="text-base font-semibold text-foreground mb-2">Festive Effects</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Seasonal visual enhancements
+          </p>
+          
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-secondary/50 transition-colors">
+            <div className="flex items-center gap-3">
+              <Snowflake className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <h4 className="font-semibold text-foreground">Snow Effect</h4>
+                <p className="text-sm text-muted-foreground">Festive snow particles (December only)</p>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleSnowEffectToggle}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                snowEffectEnabled ? 'bg-primary' : 'bg-input'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
+                  snowEffectEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

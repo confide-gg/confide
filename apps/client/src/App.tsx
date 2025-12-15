@@ -10,6 +10,7 @@ import { Settings } from "./pages/Settings";
 import { Toaster, toast } from "sonner";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { SnowEffect } from "./components/common";
 import "./App.css";
 
 function ProtectedRoute({ children, allowRecoverySetup = false }: { children: React.ReactNode; allowRecoverySetup?: boolean }) {
@@ -124,6 +125,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <SnowEffect />
         <Toaster
           position="bottom-right"
           toastOptions={{

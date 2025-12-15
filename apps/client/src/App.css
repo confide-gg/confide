@@ -161,3 +161,31 @@
   --sidebar-border: hsl(240 3.7% 15.9%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
+
+/* Snow Effect Styles */
+.snow-effect {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.snowflake {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.8);
+  user-select: none;
+  font-size: 12px;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
+  will-change: transform, opacity;
+  filter: blur(0.5px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.snowflake-shape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure snow effect doesn't interfere with other elements */
+.snow-effect {
+  isolation: isolate;
+}

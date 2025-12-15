@@ -8,6 +8,7 @@ import { CallProvider, ActiveCallOverlay, IncomingCallDialog } from "../calls";
 import { useIdleDetection } from "../../hooks/useIdleDetection";
 import { preferences } from "../../api/preferences";
 import { applyTheme, type Theme } from "../../lib/themes";
+import { SnowEffect } from "../common";
 
 function IdleDetector() {
   useIdleDetection();
@@ -39,6 +40,7 @@ function GlobalProviders({ children }: { children: React.ReactNode }) {
           <CallProvider currentUserId={user.id}>
             <IdleDetector />
             <PreferencesLoader />
+            <SnowEffect />
             {children}
             <ActiveCallOverlay />
             <IncomingCallDialog dsaSecretKey={keys.dsa_secret_key} />
