@@ -3,7 +3,7 @@ import { useServer } from "../../context/ServerContext";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
 import { UserAvatar } from "../ui/user-avatar";
-import type { Member } from "../../api/federatedServer";
+import type { FederatedMember as Member } from "../../features/servers/federatedClient";
 
 import { MemberProfileCard } from "./MemberProfileCard";
 
@@ -11,7 +11,7 @@ export function MemberList() {
   const { activeServer, federatedClient } = useServer();
   const { user } = useAuth();
   const { getUserPresence, subscribeToUsers, isWsConnected, isOnline: isUserOnline } = usePresence();
-  
+
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -24,8 +24,8 @@ export function MemberList() {
       const serverMembers = await federatedClient.getMembers();
       // Sort members: current user first, then alphabetical
       serverMembers.sort((a, b) => {
-        if (a.central_user_id === user?.id) return -1;
-        if (b.central_user_id === user?.id) return 1;
+        if (a.id === user?.id) return -1;
+        if (b.id === user?.id) return 1;
         return (a.display_name || a.username).localeCompare(b.display_name || b.username);
       });
       setMembers(serverMembers);
@@ -46,19 +46,19 @@ export function MemberList() {
 
   useEffect(() => {
     if (members.length > 0 && isWsConnected) {
-      const centralUserIds = members.map(m => m.central_user_id).filter(Boolean);
+      const centralUserIds = members.map(m => m.id).filter(Boolean);
       subscribeToUsers(centralUserIds);
     }
   }, [members, isWsConnected, subscribeToUsers]);
 
   const onlineMembers = members.filter(m => {
-      if (m.central_user_id === user?.id) return true;
-      return isUserOnline(m.central_user_id);
+    if (m.id === user?.id) return true;
+    return isUserOnline(m.id);
   });
 
   const offlineMembers = members.filter(m => {
-      if (m.central_user_id === user?.id) return false;
-      return !isUserOnline(m.central_user_id);
+    if (m.id === user?.id) return false;
+    return !isUserOnline(m.id);
   });
 
   const handleMemberClick = (memberId: string, event: React.MouseEvent) => {
@@ -79,9 +79,9 @@ export function MemberList() {
         </h3>
         <div className="space-y-0.5">
           {list.map((member) => {
-            const isCurrentUser = member.central_user_id === user?.id;
-            const presence = getUserPresence(member.central_user_id);
-            const memberIsOnline = isUserOnline(member.central_user_id);
+            const isCurrentUser = member.id === user?.id;
+            const presence = getUserPresence(member.id);
+            const memberIsOnline = isUserOnline(member.id);
             const status = memberIsOnline ? (presence?.status || "online") : "offline";
 
             return (
@@ -119,17 +119,17 @@ export function MemberList() {
       </div>
     );
   };
-  
+
   const selectedMember = members.find(m => m.id === selectedMemberId);
   const selectedMemberStatus = selectedMember
-    ? (getUserPresence(selectedMember.central_user_id)?.status || "offline")
+    ? (getUserPresence(selectedMember.id)?.status || "offline")
     : "offline";
 
   return (
     <>
       {selectedMemberId && selectedMember && (
         <MemberProfileCard
-          userId={selectedMember.central_user_id} // Profile card needs central user ID
+          userId={selectedMember.id} // Profile card needs central user ID
           username={selectedMember.username}
           status={selectedMemberStatus}
           roles={[]} // TODO: Fetch roles

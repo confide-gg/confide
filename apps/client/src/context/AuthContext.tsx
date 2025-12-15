@@ -1,10 +1,15 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { auth, crypto, profiles, recovery, keys, setAuthToken } from "../api";
-import { preferences as preferencesApi } from "../api/preferences";
-import type { PublicUser, LoginResponse } from "../api";
-import type { DecryptedKeys, SignedPrekey, OneTimePrekey } from "../api/crypto";
-import type { UserProfile } from "../types";
-import type { UserPreferences } from "../api/preferences";
+import { authService } from "../core/auth/AuthService";
+import { cryptoService } from "../core/crypto/crypto";
+import { profileService } from "../features/profiles/profiles";
+import { recoveryService } from "../core/auth/RecoveryService";
+import { keyService } from "../core/crypto/KeyService";
+import { httpClient } from "../core/network/HttpClient";
+import { preferenceService } from "../features/settings/preferences";
+import type { PublicUser, LoginResponse } from "../core/auth/types";
+import type { DecryptedKeys, SignedPrekey, OneTimePrekey } from "../core/crypto/crypto";
+import type { UserProfile } from "../features/profiles/types";
+import type { UserPreferences } from "../features/settings/preferences";
 
 interface AuthState {
   user: PublicUser | null;
@@ -50,8 +55,8 @@ function loadAuthFromStorage(): { user: PublicUser; keys: DecryptedKeys } | null
   try {
     const data = JSON.parse(stored);
 
-    if (data.keys?.kem_secret_key && Array.isArray(data.keys.kem_secret_key)) {
-      if (data.keys.kem_secret_key.length === 0) {
+    if (data.keys?.kem_secret_key && Array.isArray(data.keyService.kem_secret_key)) {
+      if (data.keyService.kem_secret_key.length === 0) {
         console.error(`[Auth] Invalid KEM secret key: empty array`);
         localStorage.removeItem(AUTH_STORAGE_KEY);
         return null;
@@ -73,8 +78,8 @@ async function savePrekeySecrets(userKeys: DecryptedKeys, signedPrekey: SignedPr
   for (const otpk of oneTimePrekeys) {
     data.oneTimePrekeys[otpk.prekey_id] = otpk.secret_key;
   }
-  const jsonBytes = crypto.stringToBytes(JSON.stringify(data));
-  const encrypted = await crypto.encryptData(userKeys.kem_secret_key, jsonBytes);
+  const jsonBytes = cryptoService.stringToBytes(JSON.stringify(data));
+  const encrypted = await cryptoService.encryptData(userKeys.kem_secret_key, jsonBytes);
   localStorage.setItem(PREKEY_STORAGE_KEY, JSON.stringify(encrypted));
 }
 
@@ -83,8 +88,8 @@ async function loadPrekeySecrets(userKeys: DecryptedKeys): Promise<StoredPrekeys
   if (!stored) return null;
   try {
     const encrypted = JSON.parse(stored) as number[];
-    const decrypted = await crypto.decryptData(userKeys.kem_secret_key, encrypted);
-    return JSON.parse(crypto.bytesToString(decrypted));
+    const decrypted = await cryptoService.decryptData(userKeys.kem_secret_key, encrypted);
+    return JSON.parse(cryptoService.bytesToString(decrypted));
   } catch {
     return null;
   }
@@ -96,8 +101,8 @@ async function addOneTimePrekeySecrets(userKeys: DecryptedKeys, newPrekeys: OneT
   for (const otpk of newPrekeys) {
     existing.oneTimePrekeys[otpk.prekey_id] = otpk.secret_key;
   }
-  const jsonBytes = crypto.stringToBytes(JSON.stringify(existing));
-  const encrypted = await crypto.encryptData(userKeys.kem_secret_key, jsonBytes);
+  const jsonBytes = cryptoService.stringToBytes(JSON.stringify(existing));
+  const encrypted = await cryptoService.encryptData(userKeys.kem_secret_key, jsonBytes);
   localStorage.setItem(PREKEY_STORAGE_KEY, JSON.stringify(encrypted));
 }
 
@@ -133,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const profile = await profiles.getMyProfile();
+      const profile = await profileService.getMyProfile();
       setState((prev) => ({ ...prev, profile }));
     } catch (err) {
       console.error("Failed to fetch profile:", err);
@@ -142,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchPreferences = useCallback(async () => {
     try {
-      const prefs = await preferencesApi.getPreferences();
+      const prefs = await preferenceService.getPreferences();
       setState((prev) => ({ ...prev, preferences: prefs }));
     } catch (err) {
       console.error("Failed to fetch preferences:", err);
@@ -154,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedAuth = loadAuthFromStorage();
 
     if (token && savedAuth) {
-      setAuthToken(token);
+      httpClient.setAuthToken(token);
       setState({
         user: savedAuth.user,
         keys: savedAuth.keys,
@@ -168,17 +173,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fetchPreferences();
     } else {
       clearAuthStorage();
-      setAuthToken(null);
+      httpClient.setAuthToken(null);
       setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
     }
   }, [fetchProfile]);
 
   const login = async (username: string, password: string) => {
-    const response = await auth.login({ username, password });
+    const response = await authService.login({ username, password });
     localStorage.setItem("auth_token", response.token);
-    setAuthToken(response.token);
+    httpClient.setAuthToken(response.token);
 
-    const decryptedKeys = await crypto.decryptKeys(
+    const decryptedKeys = await cryptoService.decryptKeys(
       password,
       response.user.kem_public_key,
       response.kem_encrypted_private,
@@ -202,13 +207,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchPreferences();
 
     try {
-      const { count } = await keys.getPrekeyCount();
+      const { count } = await keyService.getPrekeyCount();
       const storedPrekeys = await loadPrekeySecrets(decryptedKeys);
 
       if (count < 20 || !storedPrekeys) {
-        const signedPrekey = storedPrekeys?.signedPrekey || await crypto.generateSignedPrekey(decryptedKeys.dsa_secret_key);
+        const signedPrekey = storedPrekeys?.signedPrekey || await cryptoService.generateSignedPrekey(decryptedKeys.dsa_secret_key);
         const needed = Math.max(0, 100 - count);
-        const newPrekeys = needed > 0 ? await crypto.generateOneTimePrekeys(needed) : [];
+        const newPrekeys = needed > 0 ? await cryptoService.generateOneTimePrekeys(needed) : [];
 
         if (!storedPrekeys) {
           await savePrekeySecrets(decryptedKeys, signedPrekey, newPrekeys);
@@ -217,7 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (newPrekeys.length > 0) {
-          await keys.uploadPrekeys({
+          await keyService.uploadPrekeys({
             signed_prekey_public: signedPrekey.public_key,
             signed_prekey_signature: signedPrekey.signature,
             signed_prekey_id: signedPrekey.prekey_id,
@@ -236,9 +241,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (username: string, password: string): Promise<RegisterResult> => {
-    const encryptedKeys = await crypto.generateKeys(password);
+    const encryptedKeys = await cryptoService.generateKeys(password);
 
-    const response = await auth.register({
+    const response = await authService.register({
       username,
       password,
       kem_public_key: encryptedKeys.kem_public_key,
@@ -249,9 +254,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     localStorage.setItem("auth_token", response.token);
-    setAuthToken(response.token);
+    httpClient.setAuthToken(response.token);
 
-    const decryptedKeys = await crypto.decryptKeys(
+    const decryptedKeys = await cryptoService.decryptKeys(
       password,
       encryptedKeys.kem_public_key,
       encryptedKeys.kem_encrypted_private,
@@ -265,10 +270,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const testData = crypto.stringToBytes("test");
-      const testEncrypted = await crypto.encryptForRecipient(decryptedKeys.kem_public_key, testData);
-      const testDecrypted = await crypto.decryptFromSender(decryptedKeys.kem_secret_key, testEncrypted);
-      const testResult = crypto.bytesToString(testDecrypted);
+      const testData = cryptoService.stringToBytes("test");
+      const testEncrypted = await cryptoService.encryptForRecipient(decryptedKeys.kem_public_key, testData);
+      const testDecrypted = await cryptoService.decryptFromSender(decryptedKeys.kem_secret_key, testEncrypted);
+      const testResult = cryptoService.bytesToString(testDecrypted);
       if (testResult !== "test") {
         throw new Error("Key pair validation failed: roundtrip test mismatch");
       }
@@ -278,12 +283,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(`Key pair validation failed: ${err}`);
     }
 
-    const signedPrekey = await crypto.generateSignedPrekey(decryptedKeys.dsa_secret_key);
-    const oneTimePrekeys = await crypto.generateOneTimePrekeys(100);
+    const signedPrekey = await cryptoService.generateSignedPrekey(decryptedKeys.dsa_secret_key);
+    const oneTimePrekeys = await cryptoService.generateOneTimePrekeys(100);
 
     await savePrekeySecrets(decryptedKeys, signedPrekey, oneTimePrekeys);
 
-    await keys.uploadPrekeys({
+    await keyService.uploadPrekeys({
       signed_prekey_public: signedPrekey.public_key,
       signed_prekey_signature: signedPrekey.signature,
       signed_prekey_id: signedPrekey.prekey_id,
@@ -315,12 +320,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await auth.logout();
+      await authService.logout();
     } catch {
       // ignore
     }
     clearAuthStorage();
-    setAuthToken(null);
+    httpClient.setAuthToken(null);
     setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
   }, []);
 
@@ -345,7 +350,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkRecoveryStatus = useCallback(async () => {
     try {
-      const status = await recovery.getRecoveryStatus();
+      const status = await recoveryService.getRecoveryStatus();
       setState((prev) => ({ ...prev, needsRecoverySetup: !status.recovery_setup_completed }));
       return status.recovery_setup_completed;
     } catch {

@@ -1,16 +1,19 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
-import { wsService, federation, FederatedServerClient, servers as serversApi, crypto } from "../api";
-import { FederatedWsClient, type WsMember } from "../api/federatedWs";
-import type { Member } from "../api/federatedServer";
+import { centralWebSocketService } from "../core/network/CentralWebSocketService";
+import { federationService } from "../features/servers/federation";
+import { serverService } from "../features/servers/servers";
+import { cryptoService } from "../core/crypto/crypto";
 import type {
   DecryptedServer,
   DecryptedCategory,
   DecryptedChannel,
   FederatedServer,
   AnyServer,
-} from "../types/servers";
-import { isFederatedServer } from "../types/servers";
+} from "../features/servers/types";
+import { isFederatedServer } from "../features/servers/types";
+import { FederatedServerClient, type FederatedMember as Member } from "../features/servers/federatedClient";
+import { FederatedWebSocketService as FederatedWsClient, type WsMember } from "../features/servers/federatedWebSocket";
 
 type RoleEventCallback = (serverId: string) => void;
 
@@ -79,12 +82,12 @@ function saveLastChannelForServer(serverId: string, channelId: string): void {
 
 async function loadFederatedServersFromDB(kemSecretKey: number[]): Promise<FederatedServer[]> {
   try {
-    const response = await serversApi.getFederatedServers();
+    const response = await serverService.getFederatedServers();
     if (!response.encrypted_servers || response.encrypted_servers.length === 0) {
       return [];
     }
-    const decrypted = await crypto.decryptData(kemSecretKey, response.encrypted_servers);
-    const servers = JSON.parse(crypto.bytesToString(decrypted));
+    const decrypted = await cryptoService.decryptData(kemSecretKey, response.encrypted_servers);
+    const servers = JSON.parse(cryptoService.bytesToString(decrypted));
     return servers.map((server: FederatedServer) => ({
       ...server,
       isFederated: true as const,
@@ -97,9 +100,9 @@ async function loadFederatedServersFromDB(kemSecretKey: number[]): Promise<Feder
 
 async function saveFederatedServersToDB(servers: FederatedServer[], kemSecretKey: number[]): Promise<void> {
   try {
-    const jsonBytes = crypto.stringToBytes(JSON.stringify(servers));
-    const encrypted = await crypto.encryptData(kemSecretKey, jsonBytes);
-    await serversApi.updateFederatedServers(encrypted);
+    const jsonBytes = cryptoService.stringToBytes(JSON.stringify(servers));
+    const encrypted = await cryptoService.encryptData(kemSecretKey, jsonBytes);
+    await serverService.updateFederatedServers(encrypted);
   } catch (error) {
     console.error("Failed to save federated servers to DB:", error);
   }
@@ -170,12 +173,12 @@ export function ServerProvider({ children }: { children: ReactNode }) {
       if (!encryptedKey || encryptedKey.length === 0) continue;
 
       try {
-        const decryptedKey = await crypto.decryptFromSender(
+        const decryptedKey = await cryptoService.decryptFromSender(
           Array.from(keys.kem_secret_key),
           encryptedKey
         );
 
-        const reEncryptedKey = await crypto.encryptForRecipient(
+        const reEncryptedKey = await cryptoService.encryptForRecipient(
           newMember.kem_public_key,
           decryptedKey
         );
@@ -229,10 +232,10 @@ export function ServerProvider({ children }: { children: ReactNode }) {
 
       if (autoSelectChannel && decryptedChannels.length > 0) {
         const lastChannelId = getLastChannelForServer(server.id);
-        const lastChannel = lastChannelId 
-          ? decryptedChannels.find(ch => ch.id === lastChannelId) 
+        const lastChannel = lastChannelId
+          ? decryptedChannels.find(ch => ch.id === lastChannelId)
           : null;
-        
+
         if (lastChannel) {
           setActiveChannel(lastChannel);
         } else {
@@ -250,8 +253,8 @@ export function ServerProvider({ children }: { children: ReactNode }) {
         if (missingKeyChannels.length > 0) {
           const updatedKeys = { ...currentChannelKeys };
           for (const ch of missingKeyChannels) {
-            const channelKey = await crypto.generateChannelKey();
-            const encryptedChannelKey = await crypto.encryptForRecipient(
+            const channelKey = await cryptoService.generateChannelKey();
+            const encryptedChannelKey = await cryptoService.encryptForRecipient(
               Array.from(keys.kem_public_key),
               channelKey
             );
@@ -376,8 +379,8 @@ export function ServerProvider({ children }: { children: ReactNode }) {
         position,
       });
 
-      const channelKey = await crypto.generateChannelKey();
-      const encryptedChannelKey = await crypto.encryptForRecipient(
+      const channelKey = await cryptoService.generateChannelKey();
+      const encryptedChannelKey = await cryptoService.encryptForRecipient(
         Array.from(keys.kem_public_key),
         channelKey
       );
@@ -438,9 +441,9 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     if (!user || !keys) throw new Error("Not authenticated");
 
     try {
-      const tokenResponse = await federation.requestFederationToken(domain);
+      const tokenResponse = await federationService.requestFederationToken(domain);
 
-      const joinResponse = await federation.joinServerWithToken(
+      const joinResponse = await federationService.joinServerWithToken(
         domain,
         tokenResponse.token,
         {
@@ -477,7 +480,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     if (!user || !keys) throw new Error("Not authenticated");
 
     try {
-      const result = await federation.registerServer({
+      const result = await federationService.registerServer({
         ...data,
         user_id: user.id,
       });
@@ -517,8 +520,8 @@ export function ServerProvider({ children }: { children: ReactNode }) {
           });
 
           // 3. Generate and distribute keys
-          const channelKey = await crypto.generateChannelKey();
-          const encryptedChannelKey = await crypto.encryptForRecipient(
+          const channelKey = await cryptoService.generateChannelKey();
+          const encryptedChannelKey = await cryptoService.encryptForRecipient(
             Array.from(keys.kem_public_key),
             channelKey
           );
@@ -641,7 +644,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
   }, [keys, federatedServersLoaded]);
 
   useEffect(() => {
-    const unsubscribe = wsService.onMessage((message) => {
+    const unsubscribe = centralWebSocketService.onMessage((message) => {
       switch (message.type) {
         case "member_roles_updated":
         case "role_created":

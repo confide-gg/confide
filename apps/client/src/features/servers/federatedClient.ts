@@ -1,0 +1,180 @@
+import { fetch } from "@tauri-apps/plugin-http";
+
+export interface FederatedCategory {
+    id: string;
+    server_id: string;
+    name: string;
+    position: number;
+    created_at: string;
+}
+
+export interface FederatedChannel {
+    id: string;
+    server_id: string;
+    category_id: string | undefined;
+    name: string;
+    description: string;
+    position: number;
+    created_at: string;
+}
+
+export interface FederatedMember {
+    id: string;
+    username: string;
+    display_name?: string;
+    kem_public_key: number[];
+    encrypted_channel_keys?: Record<string, number[]>;
+}
+
+export class FederatedServerClient {
+    private baseUrl: string;
+    private token: string;
+
+    constructor(domain: string, token: string) {
+        this.baseUrl = this.resolveUrl(domain);
+        this.token = token;
+    }
+
+    private resolveUrl(domain: string): string {
+        return domain.startsWith("http") ? domain : domain.includes("localhost") ? `http://${domain}` : `https://${domain}`;
+    }
+
+    private async fetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+        const url = `${this.baseUrl}/api${path}`;
+        const headers = {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${this.token}`,
+            ...options.headers,
+        };
+
+        const response = await fetch(url, { ...options, headers });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Federated request failed: ${text}`);
+        }
+        return response.json();
+    }
+
+    async getCategories(): Promise<FederatedCategory[]> {
+        return this.fetch<FederatedCategory[]>("/categories");
+    }
+
+    async getChannels(): Promise<FederatedChannel[]> {
+        return this.fetch<FederatedChannel[]>("/channels");
+    }
+
+    async getMe(): Promise<FederatedMember> {
+        return this.fetch<FederatedMember>("/members/me");
+    }
+
+    async getMembers(): Promise<FederatedMember[]> {
+        return this.fetch<FederatedMember[]>("/members");
+    }
+
+    async createCategory(data: { name: string; position: number }): Promise<FederatedCategory> {
+        return this.fetch<FederatedCategory>("/categories", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    }
+
+    async createChannel(data: { name: string; category_id?: string; description?: string; position: number }): Promise<FederatedChannel> {
+        return this.fetch<FederatedChannel>("/channels", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    }
+
+    public async updateChannel(channelId: string, data: any): Promise<void> {
+        await this.fetch<void>(`/channels/${channelId}`, {
+            method: "POST", // Assuming POST for update based on original instruction's `this.post`
+            body: JSON.stringify(data),
+        });
+    }
+
+    public async updateCategory(categoryId: string, data: any): Promise<void> {
+        await this.fetch<void>(`/categories/${categoryId}`, {
+            method: "POST", // Assuming POST for update based on original instruction's `this.post`
+            body: JSON.stringify(data),
+        });
+    }
+
+    public async getServerInfo(): Promise<any> {
+        return this.fetch<any>("/");
+    }
+
+    public async getMyPermissions(): Promise<number> {
+        const response = await this.fetch<{ permissions: number }>("/permissions/me");
+        return response.permissions;
+    }
+
+    public async setServerPassword(password: string): Promise<void> {
+        await this.fetch<void>("/settings/password", {
+            method: "POST",
+            body: JSON.stringify({ password }),
+        });
+    }
+
+    public async removeServerPassword(): Promise<void> {
+        await this.fetch<void>("/settings/password/remove", {
+            method: "POST",
+            body: JSON.stringify({}),
+        });
+    }
+
+    public async deleteChannel(channelId: string): Promise<void> {
+        await this.fetch<void>(`/channels/${channelId}/delete`, {
+            method: "POST", // Assuming POST for delete based on original instruction's `this.post`
+            body: JSON.stringify({}),
+        });
+    }
+
+    public async deleteCategory(categoryId: string): Promise<void> {
+        await this.fetch<void>(`/categories/${categoryId}/delete`, {
+            method: "POST", // Assuming POST for delete based on original instruction's `this.post`
+            body: JSON.stringify({}),
+        });
+    }
+
+    async deleteServer(): Promise<void> {
+        return this.fetch<void>("/server", {
+            method: "DELETE",
+        });
+    }
+
+    async leaveServer(): Promise<void> {
+        return this.fetch<void>("/members/leave", {
+            method: "POST",
+        });
+    }
+
+    async updateMyChannelKeys(keys: Record<string, number[]>): Promise<void> {
+        return this.fetch<void>("/members/keys", {
+            method: "PUT",
+            body: JSON.stringify({ encrypted_channel_keys: keys }),
+        });
+    }
+
+    async distributeChannelKey(memberId: string, channelId: string, encryptedKey: number[]): Promise<void> {
+        return this.fetch<void>(`/members/${memberId}/keys`, {
+            method: "POST",
+            body: JSON.stringify({
+                channel_id: channelId,
+                encrypted_key: encryptedKey,
+            }),
+        });
+    }
+
+    async getMessages(channelId: string, limit = 50, before?: string): Promise<any[]> {
+        let url = `/channels/${channelId}/messages?limit=${limit}`;
+        if (before) url += `&before=${before}`;
+        return this.fetch<any[]>(url);
+    }
+
+    async sendMessage(channelId: string, data: any): Promise<any> {
+        return this.fetch<any>(`/channels/${channelId}/messages`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    }
+}

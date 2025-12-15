@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Check, Snowflake } from "lucide-react";
-import { preferences as preferencesApi } from "../../api/preferences";
+import { preferenceService } from "../../features/settings/preferences";
 import { THEMES, applyTheme, type Theme } from "../../lib/themes";
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
@@ -23,7 +23,7 @@ export function AppearanceSettings() {
 
   const loadPreferences = async () => {
     try {
-      const prefs = await preferencesApi.getPreferences();
+      const prefs = await preferenceService.getPreferences();
       setCurrentTheme(prefs.theme as Theme);
       applyTheme(prefs.theme as Theme);
     } catch (error) {
@@ -37,7 +37,7 @@ export function AppearanceSettings() {
     try {
       setCurrentTheme(theme);
       applyTheme(theme);
-      await preferencesApi.updateTheme(theme);
+      await preferenceService.updateTheme(theme);
       toast.success('Theme updated successfully');
     } catch (error) {
       console.error('Failed to update theme:', error);
@@ -50,7 +50,7 @@ export function AppearanceSettings() {
       const currentValue = preferences?.enable_snow_effect ?? true;
       const newValue = !currentValue;
       
-      await preferencesApi.updateSnowEffect(newValue);
+      await preferenceService.updateSnowEffect(newValue);
       toast.success('Snow effect preference updated');
       
       // Refresh preferences to update the context

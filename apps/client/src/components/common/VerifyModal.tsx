@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { crypto } from "../../api";
+import { cryptoService } from "../../core/crypto/crypto";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,7 @@ export function VerifyModal({
   useEffect(() => {
     if (isOpen && ourIdentityKey.length > 0 && theirIdentityKey.length > 0) {
       setLoading(true);
-      crypto.generateSafetyNumber(ourIdentityKey, theirIdentityKey)
+      cryptoService.generateSafetyNumber(ourIdentityKey, theirIdentityKey)
         .then((number) => {
           setSafetyNumber(number);
           setLoading(false);
@@ -85,7 +85,7 @@ export function VerifyModal({
               <strong className="text-foreground">Why does this work?</strong>
             </p>
             <p>
-              If an attacker tried to intercept your messages (a "man-in-the-middle" attack), they would need to use their own keys instead of your friend's real keys. This would produce a completely different safety number.
+              If an attacker tried to intercept your messages (a "man-in-the-middle" attack), they would need to use their own keys instead of your friend's real keyService. This would produce a completely different safety number.
             </p>
             <p>
               By comparing these numbers in person or through a trusted channel (like a phone call), you can confirm that no one is secretly intercepting your conversation.

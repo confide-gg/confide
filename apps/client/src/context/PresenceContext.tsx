@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
-import { wsService } from "../api";
+import { centralWebSocketService } from "../core/network/CentralWebSocketService";
 import { useAuth } from "./AuthContext";
 
 export interface UserPresence {
@@ -29,12 +29,12 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) {
-      wsService.disconnect();
+      centralWebSocketService.disconnect();
       setIsWsConnected(false);
       return;
     }
 
-    const unsubscribeMessage = wsService.onMessage((message) => {
+    const unsubscribeMessage = centralWebSocketService.onMessage((message) => {
       switch (message.type) {
         case "presence_update":
           setUserPresence((prev) => {
@@ -73,12 +73,12 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       setIsWsConnected(true);
       activeSubscriptionsRef.current.clear();
       for (const userId of subscribedUsersRef.current) {
-        wsService.subscribeUser(userId);
+        centralWebSocketService.subscribeUser(userId);
         activeSubscriptionsRef.current.add(userId);
       }
       for (const userId of pendingSubscriptionsRef.current) {
         if (!activeSubscriptionsRef.current.has(userId)) {
-          wsService.subscribeUser(userId);
+          centralWebSocketService.subscribeUser(userId);
           subscribedUsersRef.current.add(userId);
           activeSubscriptionsRef.current.add(userId);
         }
@@ -86,24 +86,24 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       pendingSubscriptionsRef.current.clear();
     };
 
-    const unsubscribeConnect = wsService.onConnect(handleConnect);
+    const unsubscribeConnect = centralWebSocketService.onConnect(handleConnect);
 
-    const unsubscribeDisconnect = wsService.onDisconnect(() => {
+    const unsubscribeDisconnect = centralWebSocketService.onDisconnect(() => {
       setIsWsConnected(false);
       activeSubscriptionsRef.current.clear();
     });
 
-    if (wsService.isConnected()) {
+    if (centralWebSocketService.isConnected()) {
       handleConnect();
     } else {
-      wsService.connect();
+      centralWebSocketService.connect();
     }
 
     return () => {
       unsubscribeMessage();
       unsubscribeConnect();
       unsubscribeDisconnect();
-      wsService.disconnect();
+      centralWebSocketService.disconnect();
     };
   }, [user?.id]);
 
@@ -118,7 +118,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
         next.set(user.id, { status, customStatus, isOnline: true });
         return next;
       });
-      wsService.updatePresence(status, customStatus);
+      centralWebSocketService.updatePresence(status, customStatus);
     }
   };
 
@@ -127,7 +127,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       if (subscribedUsersRef.current.has(userId)) continue;
 
       if (isWsConnected) {
-        wsService.subscribeUser(userId);
+        centralWebSocketService.subscribeUser(userId);
         subscribedUsersRef.current.add(userId);
         activeSubscriptionsRef.current.add(userId);
       } else {

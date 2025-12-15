@@ -1,6 +1,6 @@
 import { WifiOff } from "lucide-react";
 import { Button } from "../ui/button";
-import { wsService } from "../../api";
+import { centralWebSocketService } from "../../core/network/CentralWebSocketService";
 import { useState } from "react";
 
 export function ServerOfflineOverlay() {
@@ -9,7 +9,7 @@ export function ServerOfflineOverlay() {
     const handleRetry = async () => {
         setIsRetrying(true);
         try {
-            await wsService.connect();
+            await centralWebSocketService.connect();
         } catch (e) {
             console.error("Failed to reconnect manually", e);
         } finally {

@@ -24,7 +24,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useServer } from "../../context/ServerContext";
-import { Permissions, hasPermission, type FederatedServer } from "../../types/servers";
+import { Permissions, hasPermission } from "../../features/servers/permissions";
+import type { FederatedServer } from "../../features/servers/types";
 
 interface FederatedServerSettingsProps {
   server: FederatedServer;
@@ -99,7 +100,7 @@ export function FederatedServerSettings({ server, onClose }: FederatedServerSett
           federatedClient.getMyPermissions(),
         ]);
         setHasPassword(info.has_password);
-        setMyPermissions(perms.permissions);
+        setMyPermissions(perms);
       } catch (error) {
         console.error("Failed to load server info:", error);
       } finally {
@@ -171,11 +172,10 @@ export function FederatedServerSettings({ server, onClose }: FederatedServerSett
             <nav className="space-y-1 px-2">
               <button
                 onClick={() => setActiveTab("overview")}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === "overview"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "overview"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
               >
                 <Settings className="w-4 h-4" />
                 Overview
@@ -184,11 +184,10 @@ export function FederatedServerSettings({ server, onClose }: FederatedServerSett
               {canManageServer && (
                 <button
                   onClick={() => setActiveTab("security")}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === "security"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  }`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "security"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    }`}
                 >
                   <Shield className="w-4 h-4" />
                   Security

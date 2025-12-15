@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { audioSettings } from "../../api";
+import { audioSettingsService } from "../../features/calls/audioSettings";
 import type { AudioDevices, AudioSettings as TauriAudioSettings } from "../calls/types";
 import { InputLevelDetector } from "./InputLevelDetector";
 import {
@@ -78,7 +78,7 @@ export function VoiceSettings() {
       const [devicesData, tauriSettings, dbSettings] = await Promise.all([
         invoke<AudioDevices>("get_audio_devices"),
         invoke<TauriAudioSettings>("get_audio_settings"),
-        audioSettings.getAudioSettings().catch(() => null),
+        audioSettingsService.getAudioSettings().catch(() => null),
       ]);
 
       setDevices(devicesData);
@@ -131,7 +131,7 @@ export function VoiceSettings() {
 
       await Promise.all([
         invoke("update_audio_settings", { settings: fullSettings }),
-        audioSettings.updateAudioSettings({
+        audioSettingsService.updateAudioSettings({
           input_volume: synced.input_volume,
           output_volume: synced.output_volume,
           input_sensitivity: synced.input_sensitivity,

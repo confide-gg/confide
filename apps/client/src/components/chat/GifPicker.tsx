@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Search, Heart, Loader2 } from "lucide-react";
-import { tenor, TenorGif, TenorCategory } from "../../api/tenor";
+import { tenor, TenorGif, TenorCategory } from "../../features/chat/tenor";
 import { cn } from "../../lib/utils";
 
 interface GifPickerProps {

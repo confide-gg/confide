@@ -6,7 +6,7 @@ import { ChatProvider } from "../../context/ChatContext";
 import { ServerProvider } from "../../context/ServerContext";
 import { CallProvider, ActiveCallOverlay, IncomingCallDialog } from "../calls";
 import { useIdleDetection } from "../../hooks/useIdleDetection";
-import { preferences } from "../../api/preferences";
+import { preferenceService } from "../../features/settings/preferences";
 import { applyTheme, type Theme } from "../../lib/themes";
 import { SnowEffect } from "../common";
 
@@ -17,7 +17,7 @@ function IdleDetector() {
 
 function PreferencesLoader() {
   useEffect(() => {
-    preferences.getPreferences()
+    preferenceService.getPreferences()
       .then((prefs) => {
         applyTheme(prefs.theme as Theme);
       })

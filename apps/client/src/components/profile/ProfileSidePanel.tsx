@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { profiles, uploads } from "../../api";
+import { profileService } from "../../features/profiles/profiles";
+import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
 import type { PublicProfile, UserStatus } from "../../types";
 import { Avatar } from "../ui/avatar";
@@ -47,7 +48,7 @@ export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanel
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        const data = await profiles.getUserProfile(userId);
+        const data = await profileService.getUserProfile(userId);
         setProfile(data);
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -62,7 +63,7 @@ export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanel
 
   const getImageUrl = (path: string | undefined | null) => {
     if (!path) return "";
-    return uploads.getUploadUrl(path);
+    return uploadService.getUploadUrl(path);
   };
 
   const formatMemberSince = (dateStr: string) => {

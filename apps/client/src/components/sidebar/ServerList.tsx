@@ -6,7 +6,7 @@ import { JoinServerModal } from "./JoinServerModal";
 import { RegisterServerModal, type RegisterServerData } from "./RegisterServerModal";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
 import { cn } from "../../lib/utils";
-import type { AnyServer } from "../../types/servers";
+import type { AnyServer } from "../../features/servers/types";
 
 interface ServerListProps {
   onOpenDiscovery?: () => void;
@@ -69,24 +69,24 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
 
         {federatedServers.length > 0 && (
           <>
-        <div className="w-6 h-px bg-border" />
+            <div className="w-6 h-px bg-border" />
             {federatedServers.map((server) => (
               <Tooltip key={server.id}>
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => handleServerClick(server)}
-                      className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 text-sm font-medium relative",
-                        activeServer?.id === server.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary/30 hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
-                      )}
+                    className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 text-sm font-medium relative",
+                      activeServer?.id === server.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary/30 hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    )}
                   >
                     {server.icon_url ? (
                       <img
                         src={server.icon_url}
                         alt={server.name}
-                    className="w-full h-full object-cover rounded-lg"
+                        className="w-full h-full object-cover rounded-lg"
                       />
                     ) : (
                       <span className="text-lg">

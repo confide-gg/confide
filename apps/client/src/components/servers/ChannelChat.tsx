@@ -3,9 +3,10 @@ import { useServer } from "../../context/ServerContext";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
 import { Lock, AlertTriangle, Smile, Hash } from "lucide-react";
-import { crypto } from "../../api";
-import type { EncryptedMessage, Member } from "../../api/federatedServer";
-import type { ServerMessage } from "../../api/federatedWs";
+import { cryptoService } from "../../core/crypto/crypto";
+import type { FederatedMember as Member } from "../../features/servers/federatedClient";
+import type { WsMessage as ServerMessage } from "../../core/network/wsTypes";
+import type { EncryptedMessage } from "../../features/servers/types";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -48,7 +49,7 @@ function formatDate(dateStr: string): string {
   } else if (isYesterday) {
     return `Yesterday at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
   } else {
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + 
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
       ` at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
   }
 }
@@ -101,7 +102,7 @@ export function ChannelChat() {
 
   useEffect(() => {
     if (members.length > 0 && isWsConnected) {
-      const centralUserIds = members.map(m => m.central_user_id).filter(Boolean);
+      const centralUserIds = members.map(m => m.id).filter(Boolean);
       subscribeToUsers(centralUserIds);
     }
   }, [members, isWsConnected, subscribeToUsers]);
@@ -109,11 +110,11 @@ export function ChannelChat() {
   const getChannelKey = async (channelId: string): Promise<number[] | null> => {
     if (!keys || !myMember) return null;
 
-    const encryptedKey = myMember.encrypted_channel_keys[channelId];
+    const encryptedKey = myMember.encrypted_channel_keys?.[channelId];
     if (!encryptedKey || encryptedKey.length === 0) return null;
 
     try {
-      return await crypto.decryptFromSender(keys.kem_secret_key, encryptedKey);
+      return await cryptoService.decryptFromSender(keys.kem_secret_key, encryptedKey);
     } catch (err) {
       console.error("Failed to decrypt channel key:", err);
       return null;
@@ -149,18 +150,18 @@ export function ChannelChat() {
         };
       }
 
-      const decryptedContent = await crypto.decryptWithChannelKey(
+      const decryptedContent = await cryptoService.decryptWithChannelKey(
         channelKey,
         msg.encrypted_content
       );
 
-      const content = crypto.bytesToString(decryptedContent);
+      const content = cryptoService.bytesToString(decryptedContent);
 
       let verified = false;
-      if (msg.sender_dsa_public_key && msg.sender_dsa_public_key.length > 0) {
+      if (msg.sender_dsa_public_key && msg.sender_dsa_public_key.length > 0 && msg.signature) {
         try {
-          verified = await crypto.dsaVerify(
-            msg.sender_dsa_public_key,
+          verified = await cryptoService.dsaVerify(
+            msg.sender_dsa_public_key!,
             msg.encrypted_content,
             msg.signature
           );
@@ -241,18 +242,18 @@ export function ChannelChat() {
     const unsubscribe = federatedWs.onMessage(async (message: ServerMessage) => {
       switch (message.type) {
         case 'new_message': {
-          if (message.message.channel_id !== activeChannel.id) return;
+          if (message.data.channel_id !== activeChannel.id) return;
 
-          const wsMsg = message.message;
+          const wsMsg = message.data;
           const encryptedMsg: EncryptedMessage = {
             id: wsMsg.id,
-            channel_id: wsMsg.channel_id,
+            channel_id: wsMsg.channel_id!, // Checked above
             sender_id: wsMsg.sender_id,
             sender_username: wsMsg.sender_username,
             sender_dsa_public_key: wsMsg.sender_dsa_public_key,
             encrypted_content: wsMsg.encrypted_content,
             signature: wsMsg.signature,
-            reply_to_id: wsMsg.reply_to_id,
+            reply_to_id: wsMsg.reply_to_id || undefined,    // Convert null to undefined
             created_at: wsMsg.created_at,
           };
 
@@ -265,47 +266,47 @@ export function ChannelChat() {
         }
 
         case 'typing_start': {
-          if (message.channel_id !== activeChannel.id) return;
-          if (message.member_id === myMember.id) return;
+          if (message.data.channel_id !== activeChannel.id) return;
+          if (message.data.member_id === myMember.id) return;
           setTypingUsers((prev) => {
             const next = new Map(prev);
-            next.set(message.member_id, message.username);
+            next.set(message.data.member_id, message.data.username);
             return next;
           });
-          const existingTimeout = typingClearTimeoutsRef.current.get(message.member_id);
+          const existingTimeout = typingClearTimeoutsRef.current.get(message.data.member_id);
           if (existingTimeout) {
             clearTimeout(existingTimeout);
           }
           const timeoutId = window.setTimeout(() => {
             setTypingUsers((prev) => {
               const next = new Map(prev);
-              next.delete(message.member_id);
+              next.delete(message.data.member_id);
               return next;
             });
-            typingClearTimeoutsRef.current.delete(message.member_id);
+            typingClearTimeoutsRef.current.delete(message.data.member_id);
           }, 3000);
-          typingClearTimeoutsRef.current.set(message.member_id, timeoutId);
+          typingClearTimeoutsRef.current.set(message.data.member_id, timeoutId);
           break;
         }
 
         case 'typing_stop': {
-          if (message.channel_id !== activeChannel.id) return;
-          const existingTimeout = typingClearTimeoutsRef.current.get(message.member_id);
+          if (message.data.channel_id !== activeChannel.id) return;
+          const existingTimeout = typingClearTimeoutsRef.current.get(message.data.member_id);
           if (existingTimeout) {
             clearTimeout(existingTimeout);
-            typingClearTimeoutsRef.current.delete(message.member_id);
+            typingClearTimeoutsRef.current.delete(message.data.member_id);
           }
           setTypingUsers((prev) => {
             const next = new Map(prev);
-            next.delete(message.member_id);
+            next.delete(message.data.member_id);
             return next;
           });
           break;
         }
 
         case 'message_deleted': {
-          if (message.channel_id !== activeChannel.id) return;
-          setMessages((prev) => prev.filter((m) => m.id !== message.message_id));
+          if (message.data.channel_id !== activeChannel.id) return;
+          setMessages((prev) => prev.filter((m) => m.id !== message.data.message_id));
           break;
         }
       }
@@ -352,10 +353,10 @@ export function ChannelChat() {
         return;
       }
 
-      const contentBytes = crypto.stringToBytes(newMessage.trim());
-      const encryptedContent = await crypto.encryptWithChannelKey(channelKey, contentBytes);
+      const contentBytes = cryptoService.stringToBytes(newMessage.trim());
+      const encryptedContent = await cryptoService.encryptWithChannelKey(channelKey, contentBytes);
 
-      const signature = await crypto.dsaSign(keys.dsa_secret_key, encryptedContent);
+      const signature = await cryptoService.dsaSign(keys.dsa_secret_key, encryptedContent);
 
       await federatedClient.sendMessage(activeChannel.id, {
         encrypted_content: encryptedContent,
@@ -398,12 +399,12 @@ export function ChannelChat() {
     <div className="flex flex-col h-full bg-transparent relative">
       {selectedProfileId && (() => {
         const selectedMember = members.find(m => m.id === selectedProfileId);
-        const selectedPresence = selectedMember ? getUserPresence(selectedMember.central_user_id) : undefined;
+        const selectedPresence = selectedMember ? getUserPresence(selectedMember.id) : undefined;
         const memberIsOnline = selectedPresence !== undefined;
         const memberStatus = memberIsOnline ? (selectedPresence?.status || "online") : "offline";
         return (
           <MemberProfileCard
-            userId={selectedMember?.central_user_id || selectedProfileId}
+            userId={selectedMember?.id || selectedProfileId}
             username={selectedMember?.username || "?"}
             status={memberStatus}
             roles={[]}
@@ -417,7 +418,7 @@ export function ChannelChat() {
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-            <span className="text-sm font-medium">Loading messages...</span>
+            <span className="text-sm font-medium">Loading messageService...</span>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center text-muted-foreground p-8">
@@ -482,17 +483,17 @@ export function ChannelChat() {
                         <span className="text-destructive/80 italic">[Unable to decrypt message]</span>
                       ) : msg.content.startsWith("http") ? (
                         msg.content.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                          <img 
-                            src={msg.content} 
-                            alt="Content" 
-                            className="max-w-xs rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity" 
-                            loading="lazy" 
+                          <img
+                            src={msg.content}
+                            alt="Content"
+                            className="max-w-xs rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity"
+                            loading="lazy"
                           />
                         ) : (
-                          <a 
-                            href={msg.content} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                          <a
+                            href={msg.content}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-primary hover:underline"
                           >
                             {msg.content}

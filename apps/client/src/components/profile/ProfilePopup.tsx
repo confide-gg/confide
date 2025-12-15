@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { X, MessageCircle } from "lucide-react";
 import { Avatar } from "../ui/avatar";
 import { Button } from "../ui/button";
-import { profiles, uploads } from "../../api";
+import { profileService } from "../../features/profiles/profiles";
+import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
 import type { PublicProfile, UserStatus } from "../../types";
 
@@ -59,7 +60,7 @@ export function ProfilePopup({
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        const data = await profiles.getUserProfile(userId);
+        const data = await profileService.getUserProfile(userId);
         setProfile(data);
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -89,7 +90,7 @@ export function ProfilePopup({
 
   const getImageUrl = (path: string | undefined | null) => {
     if (!path) return undefined;
-    return uploads.getUploadUrl(path);
+    return uploadService.getUploadUrl(path);
   };
 
   const formatMemberSince = (dateStr: string) => {

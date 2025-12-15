@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useServer } from "../../context/ServerContext";
-import { discovery } from "../../api";
-import type { DiscoverableServer } from "../../api/discovery";
+import { discoveryService } from "../../features/discovery/DiscoveryService";
+import type { DiscoverableServer } from "../../features/discovery/DiscoveryService";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Compass, Search, Users, Globe, Loader2, ServerCrash, ArrowRight } from "lucide-react";
@@ -26,14 +26,14 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
     try {
       setIsLoading(true);
       setError("");
-      
+
       let response;
       if (query && query.trim()) {
-        response = await discovery.searchServers(query.trim(), limit, offset);
+        response = await discoveryService.searchServers(query.trim(), limit, offset);
       } else {
-        response = await discovery.listServers(limit, offset);
+        response = await discoveryService.listServers(limit, offset);
       }
-      
+
       setServers(response.servers);
       setTotal(response.total);
     } catch (err) {
@@ -69,7 +69,7 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
   const handleJoinServer = async (server: DiscoverableServer) => {
     setJoiningServer(server.id);
     setError("");
-    
+
     try {
       await joinServerByDomain(server.domain);
       if (onClose) onClose();
@@ -174,7 +174,7 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
                   {searchQuery ? `Search Results — ${total}` : `Community Servers — ${total}`}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {servers.map((server) => {
                     const joined = isAlreadyJoined(server);
                     const isJoining = joiningServer === server.id;

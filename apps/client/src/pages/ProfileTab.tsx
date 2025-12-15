@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
-import { profiles, uploads } from "../api";
+import { profileService } from "../features/profiles/profiles";
+import { uploadService } from "../features/uploads/UploadService";
 import { ImageCropper } from "../components/common/ImageCropper";
 import { Button } from "../components/ui/button";
 import { Loader2, X } from "lucide-react";
@@ -49,7 +50,7 @@ export function ProfileTab() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const profile = await profiles.getMyProfile();
+        const profile = await profileService.getMyProfile();
         if (profile) {
           setDisplayName(profile.display_name || "");
           setAvatarUrl(profile.avatar_url || "");
@@ -80,7 +81,7 @@ export function ProfileTab() {
         custom_status: customStatus || undefined,
         accent_color: accentColor,
       };
-      await profiles.updateProfile(data);
+      await profileService.updateProfile(data);
       await refreshProfile();
     } catch (err) {
       console.error("Failed to save profile:", err);
@@ -109,7 +110,7 @@ export function ProfileTab() {
     if (cropType === "avatar") setIsUploadingAvatar(true);
     else setIsUploadingBanner(true);
     try {
-      const result = await uploads.uploadFile(file, cropType);
+      const result = await uploadService.uploadFile(file, cropType);
       const urlWithCacheBust = `${result.url}?t=${timestamp}`;
       if (cropType === "avatar") setAvatarUrl(urlWithCacheBust);
       else setBannerUrl(urlWithCacheBust);
@@ -131,7 +132,7 @@ export function ProfileTab() {
 
   const handleRemoveAvatar = async () => {
     try {
-      await uploads.deleteFile("avatar");
+      await uploadService.deleteFile("avatar");
       setAvatarUrl("");
     } catch (err) {
       console.error("Failed to remove avatar:", err);
@@ -140,14 +141,14 @@ export function ProfileTab() {
 
   const handleRemoveBanner = async () => {
     try {
-      await uploads.deleteFile("banner");
+      await uploadService.deleteFile("banner");
       setBannerUrl("");
     } catch (err) {
       console.error("Failed to remove banner:", err);
     }
   };
 
-  const getImageUrl = (path: string) => uploads.getUploadUrl(path);
+  const getImageUrl = (path: string) => uploadService.getUploadUrl(path);
 
   if (isLoading) {
     return (

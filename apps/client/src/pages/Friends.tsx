@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { wsService } from "../api";
+import { centralWebSocketService } from "../core/network/CentralWebSocketService";
 import { useFriends } from "../hooks/useFriends";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -38,7 +38,7 @@ export function Friends() {
     loadFriends();
     loadFriendRequests();
 
-    const unsubscribe = wsService.onMessage((message) => {
+    const unsubscribe = centralWebSocketService.onMessage((message) => {
       if (message.type === "friend_request") {
         loadFriendRequests();
       } else if (message.type === "friend_accepted") {

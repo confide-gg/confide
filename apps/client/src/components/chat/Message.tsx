@@ -4,9 +4,9 @@ import { formatDate } from "../../utils/formatters";
 import { useChat } from "../../context/ChatContext";
 import { usePresence } from "../../context/PresenceContext";
 import { useAuth } from "../../context/AuthContext";
-import { uploads } from "../../api";
+import { uploadService } from "../../features/uploads/UploadService";
 import { GifModal } from "../common/GifModal";
-import type { DecryptedMessage } from "../../types";
+import type { DecryptedMessage } from "../../types/index";
 
 interface MessageProps {
   message: DecryptedMessage;
@@ -60,7 +60,11 @@ export function Message({ message, showHeader }: MessageProps) {
     setMessageContextMenu({
       x: e.clientX,
       y: e.clientY,
-      message,
+      messageId: message.id,
+      isMine: message.isMine,
+      content: message.content,
+      isPinned: !!message.pinnedAt,
+      isGif: !!message.isGif
     });
   };
 
@@ -119,11 +123,10 @@ export function Message({ message, showHeader }: MessageProps) {
             onClick={() => setExpandedGif(message.content)}
           />
           <button
-            className={`absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-md backdrop-blur-sm transition-all opacity-0 group-hover/gif:opacity-100 ${
-              isFavorite
-                ? "bg-primary/80 text-primary-foreground hover:bg-primary"
-                : "bg-black/50 text-white hover:bg-black/70"
-            }`}
+            className={`absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-md backdrop-blur-sm transition-all opacity-0 group-hover/gif:opacity-100 ${isFavorite
+              ? "bg-primary/80 text-primary-foreground hover:bg-primary"
+              : "bg-black/50 text-white hover:bg-black/70"
+              }`}
             onClick={(e) => {
               e.stopPropagation();
               toggleFavoriteGif(message.content);
@@ -186,7 +189,7 @@ export function Message({ message, showHeader }: MessageProps) {
           <>
             {message.isMine && profile?.avatar_url ? (
               <Avatar
-                src={uploads.getUploadUrl(profile.avatar_url)}
+                src={uploadService.getUploadUrl(profile.avatar_url)}
                 fallback={message.senderName}
                 size="sm"
                 className="cursor-pointer hover:opacity-80 transition-opacity"

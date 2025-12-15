@@ -19,7 +19,7 @@ import {
 } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { UserProfile } from "../sidebar/UserProfile";
-import { isFederatedServer } from "../../types/servers";
+import { isFederatedServer } from "../../features/servers/types";
 import { FederatedServerSettings } from "./FederatedServerSettings";
 
 export function ChannelList() {
@@ -270,77 +270,76 @@ export function ChannelList() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setNewChannelCategoryId(category.id);
-                      setShowCreateChannel(true);
-                    }}
-                    className="p-1 hover:text-primary transition-colors"
-                    title="Create Channel"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-
-              {expandedCategories.has(category.id) && (
-                <div className="mt-1 space-y-0.5">
-                  {categoryChannels.map((channel) => (
-                    <div
-                      key={channel.id}
-                      draggable
-                      onDragStart={(e) => {
-                        setDraggedItem({ type: 'channel', id: channel.id });
-                        e.currentTarget.style.opacity = '0.5';
+                        setShowCreateChannel(true);
                       }}
-                      onDragEnd={(e) => {
-                        e.currentTarget.style.opacity = '1';
-                        setDraggedItem(null);
-                        setDragOverItem(null);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        if (draggedItem?.type === 'channel' && draggedItem.id !== channel.id) {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const midpoint = rect.top + rect.height / 2;
-                          const position = e.clientY < midpoint ? 'above' : 'below';
-                          setDragOverItem({ type: 'channel', id: channel.id, position });
-                        }
-                      }}
-                      onDragLeave={() => {
-                        if (dragOverItem?.id === channel.id && draggedItem?.type === 'channel') {
-                          setDragOverItem(null);
-                        }
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (draggedItem?.type === 'channel') {
-                          handleDrop();
-                        }
-                      }}
-                      className={
-                        dragOverItem?.id === channel.id && draggedItem?.type === 'channel'
-                          ? dragOverItem.position === 'above'
-                            ? 'border-t-2 border-primary'
-                            : 'border-b-2 border-primary'
-                          : ''
-                      }
+                      className="p-1 hover:text-primary transition-colors"
+                      title="Create Channel"
                     >
-                      <button
-                        onClick={() => setActiveChannel(channel)}
-                        className={`flex items-center gap-2 px-3 py-1.5 ml-2 w-[calc(100%-8px)] text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${
-                          activeChannel?.id === channel.id
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        }`}
-                      >
-                        <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
-                        <span className="truncate text-sm">{channel.name}</span>
-                      </button>
-                    </div>
-                  ))}
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
+
+                {expandedCategories.has(category.id) && (
+                  <div className="mt-1 space-y-0.5">
+                    {categoryChannels.map((channel) => (
+                      <div
+                        key={channel.id}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedItem({ type: 'channel', id: channel.id });
+                          e.currentTarget.style.opacity = '0.5';
+                        }}
+                        onDragEnd={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                          setDraggedItem(null);
+                          setDragOverItem(null);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (draggedItem?.type === 'channel' && draggedItem.id !== channel.id) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const midpoint = rect.top + rect.height / 2;
+                            const position = e.clientY < midpoint ? 'above' : 'below';
+                            setDragOverItem({ type: 'channel', id: channel.id, position });
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverItem?.id === channel.id && draggedItem?.type === 'channel') {
+                            setDragOverItem(null);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedItem?.type === 'channel') {
+                            handleDrop();
+                          }
+                        }}
+                        className={
+                          dragOverItem?.id === channel.id && draggedItem?.type === 'channel'
+                            ? dragOverItem.position === 'above'
+                              ? 'border-t-2 border-primary'
+                              : 'border-b-2 border-primary'
+                            : ''
+                        }
+                      >
+                        <button
+                          onClick={() => setActiveChannel(channel)}
+                          className={`flex items-center gap-2 px-3 py-1.5 ml-2 w-[calc(100%-8px)] text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${activeChannel?.id === channel.id
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                            }`}
+                        >
+                          <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
+                          <span className="truncate text-sm">{channel.name}</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {uncategorizedChannels.length > 0 && (
             <div>
@@ -391,11 +390,10 @@ export function ChannelList() {
                   >
                     <button
                       onClick={() => setActiveChannel(channel)}
-                      className={`flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${
-                        activeChannel?.id === channel.id
+                      className={`flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${activeChannel?.id === channel.id
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
                       <span className="truncate text-sm">{channel.name}</span>
