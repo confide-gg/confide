@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { Check, Snowflake } from "lucide-react";
-import { preferences } from "../../api/preferences";
+import { preferences as preferencesApi } from "../../api/preferences";
 import { THEMES, applyTheme, type Theme } from "../../lib/themes";
 import { toast } from "sonner";
-import { notifySnowEffectChange } from "../../components/common";
+import { useAuth } from "../../context/AuthContext";
 
 export function AppearanceSettings() {
   const [currentTheme, setCurrentTheme] = useState<Theme>('dark');
-  const [snowEffectEnabled, setSnowEffectEnabled] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isHolidaySeason, setIsHolidaySeason] = useState(false);
+  
+  const { preferences, refreshPreferences } = useAuth();
 
   useEffect(() => {
     // Check if it's December (holiday season)
@@ -22,9 +23,8 @@ export function AppearanceSettings() {
 
   const loadPreferences = async () => {
     try {
-      const prefs = await preferences.getPreferences();
+      const prefs = await preferencesApi.getPreferences();
       setCurrentTheme(prefs.theme as Theme);
-      setSnowEffectEnabled(prefs.enable_snow_effect ?? true);
       applyTheme(prefs.theme as Theme);
     } catch (error) {
       console.error('Failed to load preferences:', error);
@@ -37,7 +37,7 @@ export function AppearanceSettings() {
     try {
       setCurrentTheme(theme);
       applyTheme(theme);
-      await preferences.updateTheme(theme);
+      await preferencesApi.updateTheme(theme);
       toast.success('Theme updated successfully');
     } catch (error) {
       console.error('Failed to update theme:', error);
@@ -47,14 +47,16 @@ export function AppearanceSettings() {
 
   const handleSnowEffectToggle = async () => {
     try {
-      const newValue = !snowEffectEnabled;
-      setSnowEffectEnabled(newValue);
+      const currentValue = preferences?.enable_snow_effect ?? true;
+      const newValue = !currentValue;
       
-      await preferences.updateSnowEffect(newValue);
+      await preferencesApi.updateSnowEffect(newValue);
       toast.success('Snow effect preference updated');
       
-      // Notify all SnowEffect components to refresh
-      notifySnowEffectChange();
+      // Refresh preferences to update the context
+      await refreshPreferences();
+      
+      // Note: SnowEffect now uses auth context, so no manual notification needed
     } catch (error) {
       console.error('Failed to update snow effect preference:', error);
       toast.error('Failed to update snow effect preference');
@@ -143,12 +145,12 @@ export function AppearanceSettings() {
             <button
               onClick={handleSnowEffectToggle}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                snowEffectEnabled ? 'bg-primary' : 'bg-input'
+                preferences?.enable_snow_effect ? 'bg-primary' : 'bg-input'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-background transition-transform ${
-                  snowEffectEnabled ? 'translate-x-6' : 'translate-x-1'
+                  preferences?.enable_snow_effect ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>

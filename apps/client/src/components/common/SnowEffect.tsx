@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { preferences } from "../../api/preferences";
+import { useAuth } from "../../context/AuthContext";
 
 interface Snowflake {
   id: number;
@@ -12,22 +12,12 @@ interface Snowflake {
   isMelting: boolean;
 }
 
-// Simple event bus for snow effect preference changes
-let preferenceUpdateCounter = 0;
-
-export function notifySnowEffectChange() {
-  preferenceUpdateCounter++;
-}
-
-export function getPreferenceUpdateCount() {
-  return preferenceUpdateCounter;
-}
-
 export function SnowEffect() {
   const [snowflakes, setSnowflakes] = useState<Snowflake[]>([]);
   const [isEnabled, setIsEnabled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
-  const [userPrefEnabled, setUserPrefEnabled] = useState<boolean | null>(null);
+  
+  const { preferences } = useAuth();
 
   useEffect(() => {
     const now = new Date();
@@ -35,38 +25,12 @@ export function SnowEffect() {
     setIsEnabled(isHolidaySeason);
   }, []);
 
-  const [updateTrigger, setUpdateTrigger] = useState(0);
-
   useEffect(() => {
-    const loadPreferences = async () => {
-      try {
-        const prefs = await preferences.getPreferences();
-        const enabled = prefs.enable_snow_effect ?? true;
-        setUserPrefEnabled(enabled);
-        
-        // If disabling, clear existing snowflakes immediately
-        if (!enabled) {
-          setSnowflakes([]);
-        }
-      } catch (error) {
-        console.error('Failed to load snow effect preference:', error);
-        setUserPrefEnabled(true);
-      }
-    };
-    
-    loadPreferences();
-    
-    // Check for preference updates
-    const interval = setInterval(() => {
-      const currentCount = getPreferenceUpdateCount();
-      if (currentCount > updateTrigger) {
-        loadPreferences();
-        setUpdateTrigger(currentCount);
-      }
-    }, 200);
-    
-    return () => clearInterval(interval);
-  }, [updateTrigger]);
+    // If preferences are loaded and snow effect is disabled, clear snowflakes
+    if (preferences && preferences.enable_snow_effect === false) {
+      setSnowflakes([]);
+    }
+  }, [preferences]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -160,6 +124,8 @@ export function SnowEffect() {
 
     return () => cancelAnimationFrame(animationFrameId);
   }, [isEnabled, isVisible, snowflakes]);
+
+  const userPrefEnabled = preferences ? preferences.enable_snow_effect ?? true : true;
 
   if (!isEnabled || userPrefEnabled === false) return null;
 

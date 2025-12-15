@@ -1,13 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { auth, crypto, profiles, recovery, keys, setAuthToken } from "../api";
+import { preferences as preferencesApi } from "../api/preferences";
 import type { PublicUser, LoginResponse } from "../api";
 import type { DecryptedKeys, SignedPrekey, OneTimePrekey } from "../api/crypto";
 import type { UserProfile } from "../types";
+import type { UserPreferences } from "../api/preferences";
 
 interface AuthState {
   user: PublicUser | null;
   keys: DecryptedKeys | null;
   profile: UserProfile | null;
+  preferences: UserPreferences | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   needsRecoverySetup: boolean;
@@ -23,6 +26,7 @@ interface AuthContextType extends AuthState {
   register: (username: string, password: string) => Promise<RegisterResult>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshPreferences: () => Promise<void>;
   checkRecoveryStatus: () => Promise<boolean>;
   completeRecoverySetup: () => void;
 }
@@ -121,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     keys: null,
     profile: null,
+    preferences: null,
     isLoading: true,
     isAuthenticated: false,
     needsRecoverySetup: false,
@@ -135,6 +140,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const fetchPreferences = useCallback(async () => {
+    try {
+      const prefs = await preferencesApi.getPreferences();
+      setState((prev) => ({ ...prev, preferences: prefs }));
+    } catch (err) {
+      console.error("Failed to fetch preferences:", err);
+    }
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
     const savedAuth = loadAuthFromStorage();
@@ -145,15 +159,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: savedAuth.user,
         keys: savedAuth.keys,
         profile: null,
+        preferences: null,
         isLoading: false,
         isAuthenticated: true,
         needsRecoverySetup: false,
       });
       fetchProfile();
+      fetchPreferences();
     } else {
       clearAuthStorage();
       setAuthToken(null);
-      setState({ user: null, keys: null, profile: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
+      setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
     }
   }, [fetchProfile]);
 
@@ -177,11 +193,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: response.user,
       keys: decryptedKeys,
       profile: null,
+      preferences: null,
       isLoading: false,
       isAuthenticated: true,
       needsRecoverySetup: false,
     });
     fetchProfile();
+    fetchPreferences();
 
     try {
       const { count } = await keys.getPrekeyCount();
@@ -281,6 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: response.user,
       keys: decryptedKeys,
       profile: null,
+      preferences: null,
       isLoading: false,
       isAuthenticated: true,
       needsRecoverySetup: true,
@@ -302,7 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearAuthStorage();
     setAuthToken(null);
-    setState({ user: null, keys: null, profile: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
+    setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
   }, []);
 
   useEffect(() => {
@@ -320,6 +339,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchProfile();
   }, [fetchProfile]);
 
+  const refreshPreferences = useCallback(async () => {
+    await fetchPreferences();
+  }, [fetchPreferences]);
+
   const checkRecoveryStatus = useCallback(async () => {
     try {
       const status = await recovery.getRecoveryStatus();
@@ -335,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, refreshProfile, checkRecoveryStatus, completeRecoverySetup }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, refreshProfile, refreshPreferences, checkRecoveryStatus, completeRecoverySetup }}>
       {children}
     </AuthContext.Provider>
   );
