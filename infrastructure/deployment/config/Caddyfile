@@ -1,4 +1,9 @@
-{$DOMAIN} {
+{
+	# Disable auto-redirects so HTTP works for those without valid certs (IPs)
+	auto_https disable_redirects
+}
+
+http://{$DOMAIN}, https://{$DOMAIN} {
     # Optional: ACME Email for Let's Encrypt / ZeroSSL
     # email {$EMAIL}
 
