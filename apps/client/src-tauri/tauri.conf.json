@@ -70,6 +70,10 @@
       "digestAlgorithm": "sha256",
       "timestampUrl": null,
       "tsp": false,
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
       "wix": {
         "language": "en-US",
         "template": null,
@@ -86,7 +90,10 @@
           "English"
         ],
         "displayLanguageSelector": false,
-        "compression": "lzma"
+        "compression": "lzma",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": null,
+        "sidebarImage": null
       }
     },
     "linux": {

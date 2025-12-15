@@ -323,15 +323,7 @@ impl NotificationService {
                 // macOS notification using osascript
                 self.send_macos_native_notification(options).await
             }
-            Platform::Windows => {
-                // Windows notification using WinRT APIs (would need additional dependencies)
-                log::info!(
-                    "Windows native notification: {} - {}",
-                    options.title,
-                    options.body
-                );
-                Ok(())
-            }
+            Platform::Windows => self.send_windows_native_notification(options).await,
             Platform::Linux => {
                 // Linux notification using libnotify
                 #[cfg(target_os = "linux")]
@@ -518,6 +510,58 @@ impl NotificationService {
 
         #[cfg(not(target_os = "linux"))]
         false
+    }
+
+    #[cfg(target_os = "windows")]
+    async fn send_windows_native_notification(
+        &self,
+        options: &NotificationOptions,
+    ) -> Result<(), NotificationError> {
+        use winrt_notification::{Duration, Sound, Toast};
+
+        let mut toast = Toast::new(Toast::POWERSHELL_APP_ID);
+        toast = toast.title(&options.title);
+        toast = toast.text1(&options.body);
+
+        // Map priority to notification duration
+        toast = match options.priority {
+            NotificationPriority::Low => toast.duration(Duration::Short),
+            NotificationPriority::Normal => toast.duration(Duration::Short),
+            NotificationPriority::High => toast.duration(Duration::Long),
+            NotificationPriority::Critical => toast.duration(Duration::Long),
+        };
+
+        // Add sound for high/critical priority
+        if matches!(
+            options.priority,
+            NotificationPriority::High | NotificationPriority::Critical
+        ) {
+            toast = toast.sound(Some(Sound::Default));
+        }
+
+        match toast.show() {
+            Ok(_) => {
+                log::info!("Windows native notification sent successfully");
+                Ok(())
+            }
+            Err(e) => {
+                log::error!("Failed to send Windows native notification: {:?}", e);
+                Err(NotificationError::SystemError(format!("{:?}", e)))
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    async fn send_windows_native_notification(
+        &self,
+        options: &NotificationOptions,
+    ) -> Result<(), NotificationError> {
+        log::info!(
+            "Windows notification (simulated): {} - {}",
+            options.title,
+            options.body
+        );
+        Ok(())
     }
 
     #[cfg(target_os = "windows")]

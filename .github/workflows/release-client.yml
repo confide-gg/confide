@@ -30,9 +30,18 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+  build-windows:
+    name: Build Windows
+    uses: ./.github/workflows/release-client-windows.yml
+    with:
+      tag_name: ${{ github.ref_name }}
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
   publish:
     name: Publish Release
-    needs: [build-macos, build-ubuntu]
+    needs: [build-macos, build-ubuntu, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -49,6 +58,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: confide-ubuntu
+          path: artifacts/
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: confide-windows
           path: artifacts/
 
       - name: Create latest.json for updater
@@ -79,6 +94,15 @@ jobs:
             rm update-linux-x86_64.json
           fi
 
+          if [ -f "update-windows-x86_64.json" ]; then
+            DATA=$(cat update-windows-x86_64.json)
+            SIG=$(echo "$DATA" | jq -r '.signature')
+            URL=$(echo "$DATA" | jq -r '.url')
+            if [ -n "$PLATFORMS" ]; then PLATFORMS="$PLATFORMS,"; fi
+            PLATFORMS="${PLATFORMS}\"windows-x86_64\":{\"signature\":\"${SIG}\",\"url\":\"${URL}\"}"
+            rm update-windows-x86_64.json
+          fi
+
           if [ -n "$PLATFORMS" ]; then
             echo "{\"version\":\"${VERSION}\",\"notes\":\"See release notes for details.\",\"pub_date\":\"${PUB_DATE}\",\"platforms\":{${PLATFORMS}}}" | jq '.' > latest.json
             echo "=== latest.json ==="
@@ -97,3 +121,4 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
