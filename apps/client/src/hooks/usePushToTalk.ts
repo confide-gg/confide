@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { audioSettings } from "../api";
+import { audioSettingsService } from "../features/calls/audioSettings";
 
 interface UsePushToTalkOptions {
   onPTTStart?: () => void;
@@ -70,7 +70,7 @@ export function usePushToTalk({ onPTTStart, onPTTEnd, enabled = true }: UsePushT
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const dbSettings = await audioSettings.getAudioSettings().catch(() => null);
+        const dbSettings = await audioSettingsService.getAudioSettings().catch(() => null);
         if (dbSettings) {
           setState(prev => ({
             ...prev,
@@ -149,7 +149,7 @@ export function usePushToTalk({ onPTTStart, onPTTEnd, enabled = true }: UsePushT
 
   const refreshSettings = useCallback(async () => {
     try {
-      const dbSettings = await audioSettings.getAudioSettings().catch(() => null);
+      const dbSettings = await audioSettingsService.getAudioSettings().catch(() => null);
       if (dbSettings) {
         setState(prev => ({
           ...prev,

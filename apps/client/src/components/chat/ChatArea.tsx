@@ -76,7 +76,7 @@ export function ChatArea() {
 
   const handleReply = () => {
     if (messageContextMenu) {
-      const msg = chatMessages.find((m) => m.id === messageContextMenu.message.id);
+      const msg = chatMessages.find((m) => m.id === messageContextMenu.messageId);
       if (msg) {
         setReplyTo({
           id: msg.id,
@@ -94,35 +94,35 @@ export function ChatArea() {
 
   const handleDelete = () => {
     if (messageContextMenu) {
-      deleteMessage(messageContextMenu.message.id);
+      deleteMessage(messageContextMenu.messageId);
     }
     setMessageContextMenu(null);
   };
 
   const handlePin = () => {
     if (messageContextMenu) {
-      pinMessage(messageContextMenu.message.id);
+      pinMessage(messageContextMenu.messageId);
     }
     setMessageContextMenu(null);
   };
 
   const handleUnpin = () => {
     if (messageContextMenu) {
-      unpinMessage(messageContextMenu.message.id);
+      unpinMessage(messageContextMenu.messageId);
     }
     setMessageContextMenu(null);
   };
 
   const handleEdit = () => {
     if (messageContextMenu) {
-      setEditingMessageId(messageContextMenu.message.id);
+      setEditingMessageId(messageContextMenu.messageId);
     }
     setMessageContextMenu(null);
   };
 
   const handleEmojiSelect = (emoji: { native: string }) => {
     if (messageContextMenu) {
-      addReaction(messageContextMenu.message.id, emoji.native);
+      addReaction(messageContextMenu.messageId, emoji.native);
     }
     setShowReactionPicker(false);
     setMessageContextMenu(null);

@@ -2,10 +2,11 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, Re
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CallState, IncomingCallInfo, CallOfferResult, CallAnswerResult, KeyCompleteResult, AudioSettings, ScreenCaptureSource } from "./types";
-import { wsService } from "@/api/websocket";
-import * as callsApi from "@/api/calls";
-import { audioSettings } from "@/api";
-import type { WsMessage, WsCallOffer, WsCallAnswer, WsCallKeyComplete, WsCallReject, WsCallCancel, WsCallEnd, WsCallMediaReady, WsCallLeave, WsCallRejoin, WsCallMuteUpdate } from "@/api/types";
+import { centralWebSocketService } from "../../core/network/CentralWebSocketService";
+import { callService as callsApi } from "../../features/calls/calls";
+import { audioSettingsService } from "../../features/calls/audioSettings";
+import type { WsMessage } from "../../core/network/wsTypes";
+import type { WsCallOffer, WsCallAnswer, WsCallKeyComplete, WsCallReject, WsCallCancel, WsCallEnd, WsCallMediaReady, WsCallLeave, WsCallRejoin, WsCallMuteUpdate } from "../../features/calls/types";
 
 const MAX_INCOMING_CALL_QUEUE = 3;
 const RING_TIMEOUT_MS = 30000;
@@ -301,7 +302,7 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
 
       const newState = callStateRef.current;
       if (newState.is_screen_sharing && currentUserId && newState.call_id && newState.peer_id) {
-        wsService.send({
+        centralWebSocketService.send({
           type: "screen_share_start",
           data: {
             call_id: newState.call_id,
@@ -328,7 +329,7 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
 
     const currentState = callStateRef.current;
     if (currentState.call_id && currentState.peer_id && currentUserId) {
-      wsService.send({
+      centralWebSocketService.send({
         type: "call_mute_update",
         data: {
           call_id: currentState.call_id,
@@ -373,7 +374,7 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
 
   const refreshAudioSettings = useCallback(async () => {
     try {
-      const dbSettings = await audioSettings.getAudioSettings().catch(() => null);
+      const dbSettings = await audioSettingsService.getAudioSettings().catch(() => null);
       if (dbSettings) {
         setIsPTTEnabled(dbSettings.push_to_talk_enabled);
         setPttKey(dbSettings.push_to_talk_key);
@@ -396,7 +397,7 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
     await refreshState();
 
     if (callState.call_id && callState.peer_id && currentUserId) {
-      wsService.send({
+      centralWebSocketService.send({
         type: "screen_share_start",
         data: {
           call_id: callState.call_id,
@@ -413,7 +414,7 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
     await refreshState();
 
     if (callState.call_id && callState.peer_id && currentUserId) {
-      wsService.send({
+      centralWebSocketService.send({
         type: "screen_share_stop",
         data: {
           call_id: callState.call_id,
@@ -713,7 +714,7 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
 
                 const currentState = callStateRef.current;
                 if (currentState.is_screen_sharing && currentUserId) {
-                  wsService.send({
+                  centralWebSocketService.send({
                     type: "screen_share_start",
                     data: {
                       call_id: currentState.call_id!,
@@ -760,7 +761,7 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
       }
     };
 
-    const unsubscribe = wsService.onMessage(handleWsMessage);
+    const unsubscribe = centralWebSocketService.onMessage(handleWsMessage);
     return () => {
       unsubscribe();
     };
@@ -871,14 +872,14 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
   }, [refreshState]);
 
   useEffect(() => {
-    const unsubscribeConnect = wsService.onConnect(() => {
+    const unsubscribeConnect = centralWebSocketService.onConnect(() => {
       const currentState = callStateRef.current;
       if (currentState.status === "active" || currentState.status === "left") {
         refreshState();
       }
     });
 
-    const unsubscribeDisconnect = wsService.onDisconnect(() => {
+    const unsubscribeDisconnect = centralWebSocketService.onDisconnect(() => {
     });
 
     return () => {

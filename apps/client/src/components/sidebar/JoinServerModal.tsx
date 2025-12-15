@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Server, Loader2, AlertCircle, Lock, ArrowLeft } from "lucide-react";
-import { getFederatedServerInfo } from "../../api/federation";
+import { federationService } from "../../features/servers/federation";
 
 interface JoinServerModalProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
     setError("");
 
     try {
-      const info = await getFederatedServerInfo(domain.trim());
+      const info = await federationService.getFederatedServerInfo(domain.trim());
       setServerInfo(info);
 
       if (info.has_password) {

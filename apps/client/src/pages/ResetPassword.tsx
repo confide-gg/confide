@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { crypto, recovery } from "../api";
-import { setAuthToken } from "../api/client";
+import { cryptoService } from "../core/crypto/crypto";
+import { recoveryService } from "../core/auth/RecoveryService";
+import { httpClient } from "../core/network/HttpClient";
 
 export function ResetPassword() {
   const [step, setStep] = useState<"username" | "recovery" | "newPassword">("username");
@@ -33,7 +34,7 @@ export function ResetPassword() {
     setIsLoading(true);
 
     try {
-      const data = await recovery.getRecoveryData(username);
+      const data = await recoveryService.getRecoveryData(username);
       setRecoveryData({
         userId: data.user_id,
         kemEncrypted: data.recovery_kem_encrypted_private,
@@ -67,9 +68,9 @@ export function ResetPassword() {
         throw new Error("Invalid recovery key format. Expected 64 hex characters.");
       }
 
-      const recoveryKeyBytes = crypto.hexToBytes(cleanedKey);
+      const recoveryKeyBytes = cryptoService.hexToBytes(cleanedKey);
 
-      const keys = await crypto.decryptKeysWithRecovery(
+      const keys = await cryptoService.decryptKeysWithRecovery(
         recoveryKeyBytes,
         recoveryData.kemEncrypted,
         recoveryData.dsaEncrypted,
@@ -111,11 +112,11 @@ export function ResetPassword() {
 
     try {
       const cleanedKey = recoveryKeyInput.trim().replace(/\s/g, "");
-      const recoveryKeyBytes = crypto.hexToBytes(cleanedKey);
+      const recoveryKeyBytes = cryptoService.hexToBytes(cleanedKey);
 
-      const encryptedKeys = await crypto.generateKeys(newPassword);
+      const encryptedKeys = await cryptoService.generateKeys(newPassword);
 
-      const newDecryptedKeys = await crypto.decryptKeys(
+      const newDecryptedKeys = await cryptoService.decryptKeys(
         newPassword,
         encryptedKeys.kem_public_key,
         encryptedKeys.kem_encrypted_private,
@@ -124,13 +125,13 @@ export function ResetPassword() {
         encryptedKeys.key_salt
       );
 
-      const newRecoveryData = await crypto.encryptKeysWithRecovery(
+      const newRecoveryData = await cryptoService.encryptKeysWithRecovery(
         recoveryKeyBytes,
         newDecryptedKeys.kem_secret_key,
         newDecryptedKeys.dsa_secret_key
       );
 
-      const response = await recovery.resetPassword({
+      const response = await recoveryService.resetPassword({
         username,
         new_password: newPassword,
         kem_public_key: encryptedKeys.kem_public_key,
@@ -144,7 +145,7 @@ export function ResetPassword() {
       });
 
       localStorage.setItem("auth_token", response.token);
-      setAuthToken(response.token);
+      httpClient.setAuthToken(response.token);
 
       navigate("/login", {
         replace: true,

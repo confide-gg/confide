@@ -2,13 +2,18 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useAuth, getPrekeySecrets } from "./AuthContext";
 import { usePresence } from "./PresenceContext";
-import { wsService, crypto, keys as keysApi } from "../api";
+import { centralWebSocketService } from "../core/network/CentralWebSocketService";
+import { cryptoService } from "../core/crypto/crypto";
+import { keyService } from "../core/crypto/KeyService";
 import { initNotifications, playFriendRequestSound, NotificationService } from "../utils/notifications";
 import type {
   Friend, FriendRequestResponse, ActiveChat, DecryptedMessage, SidebarView,
   ContextMenuData, MessageContextMenuData, DmContextMenuData, ReplyTo,
-  TimedMessageDuration, ProfileViewData, DmPreview, SystemMessageType
-} from "../types";
+  TimedMessageDuration, ProfileViewData, DmPreview, SystemMessageType,
+} from "../types/index";
+import type {
+  Reaction,
+} from "../features/chat/types";
 
 import { useFriends } from "../hooks/useFriends";
 import { useChatMessages } from "../hooks/useChatMessages";
@@ -112,7 +117,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const chatLogic = useChatMessages(friendsLogic.friendsList);
 
   // --- Local State ---
-  const [isConnected, setIsConnected] = useState(wsService.isConnected());
+  const [isConnected, setIsConnected] = useState(centralWebSocketService.isConnected());
   const [typingUsers, setTypingUsers] = useState<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [sidebarView, setSidebarView] = useState<SidebarView>("friends");
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
@@ -128,7 +133,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Typing logic
   const handleTyping = () => {
     if (chatLogic.activeChat) {
-      wsService.sendTyping(chatLogic.activeChat.conversationId, true);
+      centralWebSocketService.sendTyping(chatLogic.activeChat.conversationId, true);
     }
   };
 
@@ -149,11 +154,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // --- WebSocket Listener ---
   useEffect(() => {
-    const unsubConnect = wsService.onConnect(() => setIsConnected(true));
-    const unsubDisconnect = wsService.onDisconnect(() => setIsConnected(false));
+    const unsubConnect = centralWebSocketService.onConnect(() => setIsConnected(true));
+    const unsubDisconnect = centralWebSocketService.onDisconnect(() => setIsConnected(false));
 
     // Initial check
-    setIsConnected(wsService.isConnected());
+    setIsConnected(centralWebSocketService.isConnected());
 
     return () => {
       unsubConnect();
@@ -173,7 +178,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     initializeNotifications();
 
-    const unsubscribe = wsService.onMessage((message) => {
+    const unsubscribe = centralWebSocketService.onMessage((message) => {
       switch (message.type) {
         case "friend_request":
           friendsLogic.loadFriendRequests();
@@ -198,7 +203,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           }));
           break;
         case "new_message":
-          chatLogic.handleIncomingMessage(message.data);
+          if (message.data.conversation_id) {
+            chatLogic.handleIncomingMessage({
+              ...message.data,
+              conversation_id: message.data.conversation_id // ensure string
+            });
+          }
           break;
         case "message_deleted":
           if (chatLogic.activeChat && chatLogic.activeChat.conversationId === message.data.conversation_id) {
@@ -210,33 +220,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             (async () => {
               try {
                 const msgData = message.data;
-                const msgJson = crypto.bytesToString(msgData.encrypted_content);
+                const msgJson = cryptoService.bytesToString(msgData.encrypted_content);
                 const parsedMsg = JSON.parse(msgJson);
 
-                const keyResponse = await import("../api").then(api =>
-                  api.messages.getMessageKey(msgData.conversation_id, msgData.message_id)
+                const keyResponse = await import("../features/chat/messages").then(api =>
+                  api.messageService.getMessageKey(msgData.conversation_id, msgData.message_id)
                 );
 
                 let content: string;
 
                 if (parsedMsg.chain_id !== undefined && parsedMsg.iteration !== undefined) {
                   if (keyResponse.encrypted_key) {
-                    const senderKeyState = await crypto.decryptFromSender(keys.kem_secret_key, keyResponse.encrypted_key);
-                    const contentBytes = await crypto.decryptGroupMessage(
+                    const senderKeyState = await cryptoService.decryptFromSender(keys.kem_secret_key, keyResponse.encrypted_key);
+                    const contentBytes = await cryptoService.decryptGroupMessage(
                       senderKeyState,
                       parsedMsg.chain_id,
                       parsedMsg.iteration,
                       parsedMsg.ciphertext
                     );
-                    content = crypto.bytesToString(contentBytes);
+                    content = cryptoService.bytesToString(contentBytes);
                   } else {
                     throw new Error("No key for group message");
                   }
                 } else {
                   if (keyResponse.encrypted_key) {
-                    const messageKey = await crypto.decryptFromSender(keys.kem_secret_key, keyResponse.encrypted_key);
-                    const contentBytes = await crypto.decryptWithKey(messageKey, parsedMsg.ciphertext);
-                    content = crypto.bytesToString(contentBytes);
+                    const messageKey = await cryptoService.decryptFromSender(keys.kem_secret_key, keyResponse.encrypted_key);
+                    const contentBytes = await cryptoService.decryptWithKey(messageKey, parsedMsg.ciphertext);
+                    content = cryptoService.bytesToString(contentBytes);
                   } else {
                     throw new Error("No key for DM message");
                   }
@@ -264,7 +274,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           break;
         case "message_unpinned":
           if (chatLogic.activeChat && chatLogic.activeChat.conversationId === message.data.conversation_id) {
-            chatLogic.setChatMessages(prev => prev.map(m =>
+            chatLogic.setChatMessages(prev => prev.map((m: DecryptedMessage) =>
               m.id === message.data.message_id
                 ? { ...m, pinnedAt: null }
                 : m
@@ -273,16 +283,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           break;
         case "reaction_added":
           if (chatLogic.activeChat && chatLogic.activeChat.conversationId === message.data.conversation_id) {
-            chatLogic.setChatMessages(prev => prev.map(m => {
+            chatLogic.setChatMessages(prev => prev.map((m: DecryptedMessage) => {
               if (m.id !== message.data.message_id) return m;
-              if (m.reactions.some(r => r.userId === message.data.user_id && r.emoji === message.data.emoji)) return m;
-              return { ...m, reactions: [...m.reactions, { id: message.data.id, userId: message.data.user_id, emoji: message.data.emoji }] };
+              if (m.reactions.some((r: Reaction) => r.userId === message.data.user_id && r.emoji === message.data.emoji)) return m;
+              return { ...m, reactions: [...m.reactions, { id: message.data.id, userId: message.data.user_id, messageId: message.data.message_id, emoji: message.data.emoji, createdAt: new Date().toISOString() }] };
             }));
           }
           break;
         case "reaction_removed":
           if (chatLogic.activeChat && chatLogic.activeChat.conversationId === message.data.conversation_id) {
-            chatLogic.setChatMessages(prev => prev.map(m => {
+            chatLogic.setChatMessages(prev => prev.map((m: DecryptedMessage) => {
               if (m.id !== message.data.message_id) return m;
               return { ...m, reactions: m.reactions.filter(r => !(r.userId === message.data.user_id && r.emoji === message.data.emoji)) };
             }));
@@ -326,17 +336,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                   const prekeySecrets = await getPrekeySecrets();
                   if (!prekeySecrets) return;
 
-                  const ratchetState = await crypto.acceptRatchetSession(
+                  const ratchetState = await cryptoService.acceptRatchetSession(
                     keys.kem_secret_key,
                     prekeySecrets.signedPrekey.secret_key,
                     null,
                     key_bundle
                   );
 
-                  chatLogic.setActiveChat(prev => prev ? { ...prev, ratchetState } : null);
+                  chatLogic.setActiveChat((prev: ActiveChat | null) => prev ? { ...prev, ratchetState } : null);
 
-                  const encryptedState = await crypto.encryptData(keys.kem_secret_key, ratchetState);
-                  await keysApi.saveSession(conversation_id, from_user_id, { encrypted_state: encryptedState });
+                  const encryptedState = await cryptoService.encryptData(keys.kem_secret_key, ratchetState);
+                  await keyService.saveSession(conversation_id, from_user_id, { encrypted_state: encryptedState });
                 } catch (err) {
                   console.error("Failed to accept key exchange:", err);
                 }

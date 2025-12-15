@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Download, CheckCircle, AlertTriangle, Copy, Check } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { crypto, recovery } from "../api";
+import { cryptoService, type RecoveryKeyData } from "../core/crypto/crypto";
+import { recoveryService } from "../core/auth/RecoveryService";
 
 interface LocationState {
   keys?: {
@@ -19,7 +20,7 @@ export function RecoveryKit() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [recoveryData, setRecoveryData] = useState<crypto.RecoveryKeyData | null>(null);
+  const [recoveryData, setRecoveryData] = useState<RecoveryKeyData | null>(null);
 
   const { user, keys, completeRecoverySetup } = useAuth();
   const navigate = useNavigate();
@@ -36,14 +37,14 @@ export function RecoveryKit() {
           return;
         }
 
-        const newRecoveryKey = await crypto.generateRecoveryKey();
-        const data = await crypto.encryptKeysWithRecovery(
+        const newRecoveryKey = await cryptoService.generateRecoveryKey();
+        const data = await cryptoService.encryptKeysWithRecovery(
           newRecoveryKey,
           secretKeys.kem_secret_key,
           secretKeys.dsa_secret_key
         );
 
-        setRecoveryKey(crypto.bytesToHex(newRecoveryKey));
+        setRecoveryKey(cryptoService.bytesToHex(newRecoveryKey));
         setRecoveryData(data);
         setIsLoading(false);
       } catch (err) {
@@ -105,7 +106,7 @@ Generated: ${new Date().toISOString()}
     setError("");
 
     try {
-      await recovery.setupRecovery({
+      await recoveryService.setupRecovery({
         recovery_kem_encrypted_private: recoveryData.recovery_kem_encrypted_private,
         recovery_dsa_encrypted_private: recoveryData.recovery_dsa_encrypted_private,
         recovery_key_salt: recoveryData.recovery_key_salt,

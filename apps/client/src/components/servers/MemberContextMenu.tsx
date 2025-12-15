@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { UserMinus, Ban, Shield, Check } from "lucide-react";
-import { servers as serversApi, crypto } from "../../api";
+import { Permissions } from "../../features/servers/permissions";
+import { DecryptedRole } from "../../features/servers/types";
+import { serverService } from "../../features/servers/servers";
+import { cryptoService } from "../../core/crypto/crypto";
 import { useAuth } from "../../context/AuthContext";
-import { hasPermission, Permissions, DecryptedRole } from "../../types/servers";
+import { hasPermission } from "../../features/servers/permissions";
 import {
   Dialog,
   DialogContent,
@@ -69,7 +72,7 @@ export function MemberContextMenu({
 
     setIsProcessing(true);
     try {
-      await serversApi.kickMember(serverId, userId);
+      await serverService.kickMember(serverId, userId);
       onAction();
       onClose();
     } catch (error) {
@@ -88,13 +91,13 @@ export function MemberContextMenu({
       let encryptedReason: number[] | undefined;
       if (banReason.trim() && keys) {
         const reasonBytes = new TextEncoder().encode(banReason);
-        encryptedReason = await crypto.encryptData(
+        encryptedReason = await cryptoService.encryptData(
           keys.kem_secret_key,
           Array.from(reasonBytes)
         );
       }
 
-      await serversApi.banMember(serverId, userId, {
+      await serverService.banMember(serverId, userId, {
         encrypted_reason: encryptedReason,
       });
 
@@ -112,9 +115,9 @@ export function MemberContextMenu({
     setIsProcessing(true);
     try {
       if (hasRole) {
-        await serversApi.removeRole(serverId, userId, roleId);
+        await serverService.removeRole(serverId, userId, roleId);
       } else {
-        await serversApi.assignRole(serverId, userId, roleId);
+        await serverService.assignRole(serverId, userId, roleId);
       }
       await onAction();
     } catch (error) {
@@ -130,7 +133,7 @@ export function MemberContextMenu({
 
     setIsProcessing(true);
     try {
-      await serversApi.leaveServer(serverId);
+      await serverService.leaveServer(serverId);
       onAction();
       onClose();
     } catch (error) {
@@ -172,25 +175,25 @@ export function MemberContextMenu({
                   availableRoles
                     .sort((a, b) => b.position - a.position)
                     .map((role) => {
-                    const hasRole = memberRoles.some(r => r.id === role.id);
-                    return (
-                      <DropdownMenuItem
-                        key={role.id}
-                        onClick={() => handleToggleRole(role.id, hasRole)}
-                        disabled={isProcessing}
-                        className="gap-2"
-                      >
-                        <div
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: role.color || "#71717a" }}
-                        />
-                        <span className="flex-1" style={{ color: hasRole ? role.color : undefined }}>
-                          {role.name}
-                        </span>
-                        {hasRole && <Check className="w-4 h-4 shrink-0" />}
-                      </DropdownMenuItem>
-                    );
-                  })
+                      const hasRole = memberRoles.some(r => r.id === role.id);
+                      return (
+                        <DropdownMenuItem
+                          key={role.id}
+                          onClick={() => handleToggleRole(role.id, hasRole)}
+                          disabled={isProcessing}
+                          className="gap-2"
+                        >
+                          <div
+                            className="w-3 h-3 rounded-full shrink-0"
+                            style={{ backgroundColor: role.color || "#71717a" }}
+                          />
+                          <span className="flex-1" style={{ color: hasRole ? role.color : undefined }}>
+                            {role.name}
+                          </span>
+                          {hasRole && <Check className="w-4 h-4 shrink-0" />}
+                        </DropdownMenuItem>
+                      );
+                    })
                 )}
               </DropdownMenuSubContent>
             </DropdownMenuSub>

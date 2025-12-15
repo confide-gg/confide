@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { Avatar } from "../ui/avatar";
-import { profiles, uploads } from "../../api";
+import { profileService } from "../../features/profiles/profiles";
+import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
 import type { PublicProfile, UserStatus } from "../../types";
-import type { DecryptedRole } from "../../types/servers";
+import type { DecryptedRole } from "../../features/servers/types";
 
 interface MemberProfileCardProps {
   userId: string;
@@ -59,7 +60,7 @@ export function MemberProfileCard({
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        const data = await profiles.getUserProfile(userId);
+        const data = await profileService.getUserProfile(userId);
         setProfile(data);
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -80,7 +81,7 @@ export function MemberProfileCard({
 
   const getImageUrl = (path: string | undefined | null) => {
     if (!path) return undefined;
-    return uploads.getUploadUrl(path);
+    return uploadService.getUploadUrl(path);
   };
 
   const formatMemberSince = (dateStr: string) => {
@@ -94,26 +95,26 @@ export function MemberProfileCard({
     const popupWidth = 320;
     const popupHeight = 450;
     const padding = 16;
-    
+
     let left = position.x - popupWidth - padding;
     let top = position.y;
-    
+
     if (left < padding) {
       left = position.x + padding;
     }
-    
+
     if (left + popupWidth > window.innerWidth - padding) {
       left = window.innerWidth - popupWidth - padding;
     }
-    
+
     if (top + popupHeight > window.innerHeight - padding) {
       top = window.innerHeight - popupHeight - padding;
     }
-    
+
     if (top < padding) {
       top = padding;
     }
-    
+
     return { left, top };
   };
 
@@ -122,7 +123,7 @@ export function MemberProfileCard({
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      
+
       <div
         ref={popupRef}
         className="fixed z-50 w-80 bg-card rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-150"
@@ -161,7 +162,7 @@ export function MemberProfileCard({
                     status={displayStatus}
                   />
                 </div>
-                
+
                 {customStatus && (
                   <div className="relative mb-2 flex-1 min-w-0">
                     <div className="relative bg-secondary/80 backdrop-blur-sm rounded-xl px-3 py-2 text-sm">
@@ -182,7 +183,7 @@ export function MemberProfileCard({
                   </h3>
                   <p className="text-sm text-muted-foreground">@{username}</p>
                 </div>
-                
+
                 <div
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0"
                   style={{

@@ -22,11 +22,12 @@ import {
   AlertTriangle,
   ArrowLeft,
 } from "lucide-react";
-import { servers as serversApi, crypto } from "../../api";
+import { serverService } from "../../features/servers/servers";
+import { cryptoService } from "../../core/crypto/crypto";
+import { Permissions } from "../../features/servers/permissions";
 import { useAuth } from "../../context/AuthContext";
 import { useServer } from "../../context/ServerContext";
-import { DecryptedRole, Permissions } from "../../types/servers";
-import type { ServerRole, ServerBan } from "../../types/servers";
+import type { ServerRole, ServerBan, DecryptedRole } from "../../features/servers/types";
 
 interface ServerSettingsProps {
   serverId: string;
@@ -121,14 +122,14 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
   const loadRoles = async () => {
     setIsLoading(true);
     try {
-      const serverRoles = await serversApi.getServerRoles(serverId);
+      const serverRoles = await serverService.getServerRoles(serverId);
       setRoles(serverRoles || []);
 
       if (keys && serverRoles) {
         const decrypted = await Promise.all(
           serverRoles.map(async (role) => {
             try {
-              const nameBytes = await crypto.decryptData(
+              const nameBytes = await cryptoService.decryptData(
                 keys.kem_secret_key,
                 role.encrypted_name
               );
@@ -156,7 +157,7 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
   const loadBans = async () => {
     setIsLoading(true);
     try {
-      const serverBans = await serversApi.getServerBans(serverId);
+      const serverBans = await serverService.getServerBans(serverId);
       setBans(serverBans);
     } catch (error) {
       console.error("Failed to load bans:", error);
@@ -172,9 +173,9 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
     setIsLoading(true);
     try {
       const nameBytes = new TextEncoder().encode(newRoleName);
-      const encryptedName = await crypto.encryptData(keys.kem_secret_key, Array.from(nameBytes));
+      const encryptedName = await cryptoService.encryptData(keys.kem_secret_key, Array.from(nameBytes));
 
-      await serversApi.createRole(serverId, {
+      await serverService.createRole(serverId, {
         encrypted_name: encryptedName,
         permissions: newRolePermissions,
         color: newRoleColor,
@@ -195,7 +196,7 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
 
   const handleUpdateRole = async (roleId: string, updates: { permissions?: number; color?: string }) => {
     try {
-      await serversApi.updateRole(serverId, roleId, updates);
+      await serverService.updateRole(serverId, roleId, updates);
       loadRoles();
     } catch (error) {
       console.error("Failed to update role:", error);
@@ -207,7 +208,7 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
 
     setIsLoading(true);
     try {
-      await serversApi.deleteRole(serverId, roleToDelete.id);
+      await serverService.deleteRole(serverId, roleToDelete.id);
       setSelectedRole(null);
       setShowDeleteConfirm(false);
       setRoleToDelete(null);
@@ -222,7 +223,7 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
   const handleUnban = async (userId: string) => {
     setIsLoading(true);
     try {
-      await serversApi.unbanMember(serverId, userId);
+      await serverService.unbanMember(serverId, userId);
       loadBans();
     } catch (error) {
       console.error("Failed to unban member:", error);
@@ -391,11 +392,10 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
             <nav className="space-y-1 px-2">
               <button
                 onClick={() => setActiveTab("overview")}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === "overview"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "overview"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
               >
                 <Settings className="w-4 h-4" />
                 Overview
@@ -403,11 +403,10 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
 
               <button
                 onClick={() => setActiveTab("roles")}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === "roles"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "roles"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
               >
                 <Shield className="w-4 h-4" />
                 Roles
@@ -415,11 +414,10 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
 
               <button
                 onClick={() => setActiveTab("bans")}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === "bans"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "bans"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  }`}
               >
                 <Ban className="w-4 h-4" />
                 Bans
@@ -525,26 +523,26 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
                       decryptedRoles
                         .sort((a, b) => b.position - a.position)
                         .map((role, index) => (
-                        <button
-                          key={role.id}
-                          onClick={() => setSelectedRole(role)}
-                          className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors text-left group"
-                        >
-                          <div
-                            className="w-4 h-4 rounded-full shrink-0"
-                            style={{ backgroundColor: role.color || "#71717a" }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate" style={{ color: role.color || 'inherit' }}>
-                              {role.name}
+                          <button
+                            key={role.id}
+                            onClick={() => setSelectedRole(role)}
+                            className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors text-left group"
+                          >
+                            <div
+                              className="w-4 h-4 rounded-full shrink-0"
+                              style={{ backgroundColor: role.color || "#71717a" }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate" style={{ color: role.color || 'inherit' }}>
+                                {role.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Position {decryptedRoles.length - index} • Click to edit
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              Position {decryptedRoles.length - index} • Click to edit
-                            </div>
-                          </div>
-                          <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      ))
+                            <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ))
                     )}
                   </div>
                 </div>

@@ -4,7 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
 import { useCall } from "../calls/CallContext";
 import { AvatarRoot, AvatarImage, AvatarFallback } from "../ui/avatar";
-import { profiles, uploads } from "../../api";
+import { profileService } from "../../features/profiles/profiles";
+import { uploadService } from "../../features/uploads/UploadService";
 import type { UserStatus, UserProfile as UserProfileType } from "../../types";
 import {
   DropdownMenu,
@@ -36,7 +37,7 @@ export function UserProfile() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const data = await profiles.getMyProfile();
+        const data = await profileService.getMyProfile();
         if (data) {
           setProfile(data);
           setStatus(data.status || "online");
@@ -56,7 +57,7 @@ export function UserProfile() {
     setStatus(newStatus);
     updateMyPresence(newStatus);
     try {
-      await profiles.updateProfile({ status: newStatus });
+      await profileService.updateProfile({ status: newStatus });
       await refreshProfile();
     } catch (err) {
       console.error("Failed to update status:", err);
@@ -128,7 +129,7 @@ export function UserProfile() {
             <div className="relative shrink-0">
               <AvatarRoot className="h-9 w-9">
                 {profile?.avatar_url ? (
-                  <AvatarImage src={uploads.getUploadUrl(profile.avatar_url)} />
+                  <AvatarImage src={uploadService.getUploadUrl(profile.avatar_url)} />
                 ) : null}
                 <AvatarFallback className="bg-gradient-to-br from-primary to-[#a8d15a] text-primary-foreground text-xs font-medium">
                   {getInitials(profile?.display_name || user.username)}

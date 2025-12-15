@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { type Friend, type FriendRequestResponse } from "../types";
-import { friends, crypto } from "../api";
+import { friendService } from "../features/friends/friends";
+import { cryptoService } from "../core/crypto/crypto";
 import { useAuth } from "../context/AuthContext";
 import { usePresence } from "../context/PresenceContext";
 
@@ -24,10 +25,10 @@ export function useFriends() {
     const loadFriends = useCallback(async () => {
         if (!keys) return;
         try {
-            const response = await friends.getFriends();
+            const response = await friendService.getFriends();
             if (response.encrypted_friends.length > 0) {
-                const decrypted = await crypto.decryptData(keys.kem_secret_key, response.encrypted_friends);
-                const friendsData = JSON.parse(crypto.bytesToString(decrypted)) as Friend[];
+                const decrypted = await cryptoService.decryptData(keys.kem_secret_key, response.encrypted_friends);
+                const friendsData = JSON.parse(cryptoService.bytesToString(decrypted)) as Friend[];
                 const seen = new Set<string>();
                 const deduped = friendsData.filter((f) => {
                     if (seen.has(f.id)) return false;
@@ -45,7 +46,7 @@ export function useFriends() {
 
     const loadFriendRequests = useCallback(async () => {
         try {
-            const requests = await friends.getFriendRequests();
+            const requests = await friendService.getFriendRequests();
             setFriendRequests(requests);
         } catch (err) {
             console.error("Failed to load friend requests:", err);
@@ -59,7 +60,7 @@ export function useFriends() {
         }
         setIsSearching(true);
         try {
-            const results = await friends.searchUsers(query);
+            const results = await friendService.searchUsers(query);
             setSearchResults(results);
         } catch (err) {
             console.error("Failed to search users:", err);
@@ -70,7 +71,7 @@ export function useFriends() {
 
     const handleSendFriendRequest = useCallback(async (toUser: { id: string; username: string }) => {
         try {
-            await friends.sendFriendRequest({ to_user_id: toUser.id, encrypted_message: null });
+            await friendService.sendFriendRequest({ to_user_id: toUser.id, encrypted_message: null });
             setSentRequests((prev) => new Set([...prev, toUser.id]));
             // Success handling usually done in UI via toast/result
         } catch (err) {
@@ -102,9 +103,9 @@ export function useFriends() {
             const currentFriends = friendsListRef.current.filter((f) => f.id !== newFriend.id);
             const updatedFriends = [...currentFriends, newFriend];
             const jsonData = JSON.stringify(updatedFriends);
-            const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
+            const encryptedFriends = await cryptoService.encryptData(keys.kem_secret_key, cryptoService.stringToBytes(jsonData));
 
-            await friends.acceptFriendRequest(request.id, { encrypted_friends: encryptedFriends });
+            await friendService.acceptFriendRequest(request.id, { encrypted_friends: encryptedFriends });
 
             setFriendsList(updatedFriends);
             setFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
@@ -117,7 +118,7 @@ export function useFriends() {
 
     const handleRejectRequest = useCallback(async (requestId: string) => {
         try {
-            await friends.rejectFriendRequest(requestId);
+            await friendService.rejectFriendRequest(requestId);
             setFriendRequests((prev) => prev.filter((r) => r.id !== requestId));
         } catch (err) {
             console.error("Failed to reject friend request:", err);
@@ -130,9 +131,9 @@ export function useFriends() {
         try {
             const updatedFriends = friendsListRef.current.filter((f) => f.id !== friendToRemove.id);
             const jsonData = JSON.stringify(updatedFriends);
-            const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
+            const encryptedFriends = await cryptoService.encryptData(keys.kem_secret_key, cryptoService.stringToBytes(jsonData));
 
-            await friends.updateFriends({
+            await friendService.updateFriends({
                 encrypted_friends: encryptedFriends,
                 removed_friend_id: friendToRemove.id
             });
@@ -174,7 +175,7 @@ export function useFriends() {
         subscribeToUsers([userId]);
 
         try {
-            const searchResults = await friends.searchUsers(username, 1);
+            const searchResults = await friendService.searchUsers(username, 1);
             const userResult = searchResults.find((u) => u.id === userId);
 
             if (!userResult) {
@@ -191,9 +192,9 @@ export function useFriends() {
             const currentFriends = friendsListRef.current.filter((f) => f.id !== userId);
             const updatedFriends = [...currentFriends, newFriend];
             const jsonData = JSON.stringify(updatedFriends);
-            const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
+            const encryptedFriends = await cryptoService.encryptData(keys.kem_secret_key, cryptoService.stringToBytes(jsonData));
 
-            await friends.updateFriends({ encrypted_friends: encryptedFriends });
+            await friendService.updateFriends({ encrypted_friends: encryptedFriends });
 
             setFriendsList(updatedFriends);
             setSentRequests((prev) => {
@@ -216,8 +217,8 @@ export function useFriends() {
 
         try {
             const jsonData = JSON.stringify(updatedFriends);
-            const encryptedFriends = await crypto.encryptData(keys.kem_secret_key, crypto.stringToBytes(jsonData));
-            await friends.updateFriends({ encrypted_friends: encryptedFriends });
+            const encryptedFriends = await cryptoService.encryptData(keys.kem_secret_key, cryptoService.stringToBytes(jsonData));
+            await friendService.updateFriends({ encrypted_friends: encryptedFriends });
         } catch (err) {
             console.error("Failed to sync friend removal:", err);
         }
