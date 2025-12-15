@@ -6,10 +6,12 @@ interface MessageContextMenuProps {
   onReact: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onPin: () => void;
+  onUnpin: () => void;
   onClose: () => void;
 }
 
-export function MessageContextMenu({ data, onReply, onReact, onEdit, onDelete }: MessageContextMenuProps) {
+export function MessageContextMenu({ data, onReply, onReact, onEdit, onDelete, onPin, onUnpin }: MessageContextMenuProps) {
   const { message } = data;
 
   return (
@@ -17,6 +19,16 @@ export function MessageContextMenu({ data, onReply, onReact, onEdit, onDelete }:
       className="fixed z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
       style={{ top: data.y, left: data.x }}
     >
+      <button
+        onClick={message.pinnedAt ? onUnpin : onPin}
+        className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-secondary transition-colors text-foreground"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-70">
+          <line x1="12" y1="17" x2="12" y2="22" />
+          <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+        </svg>
+        {message.pinnedAt ? "Unpin Message" : "Pin Message"}
+      </button>
       <button
         onClick={onReply}
         className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-secondary transition-colors text-foreground"

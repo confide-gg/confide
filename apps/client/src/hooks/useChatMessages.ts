@@ -124,6 +124,7 @@ export function useChatMessages(friendsList: Friend[]) {
         created_at: string;
         message_type?: string;
         call_duration_seconds?: number | null;
+        pinned_at?: string | null;
     }) => {
         const currentChat = activeChatRef.current;
 
@@ -219,6 +220,7 @@ export function useChatMessages(friendsList: Friend[]) {
                 replyToId: msgData.reply_to_id,
                 replyTo: replyToMsg,
                 reactions: [],
+                pinnedAt: msgData.pinned_at,
             };
 
             setChatMessages((prev) => {
@@ -512,6 +514,7 @@ export function useChatMessages(friendsList: Friend[]) {
                         emoji: r.emoji,
                     })),
                     editedAt: msg.edited_at,
+                    pinnedAt: msg.pinned_at,
                 });
             }
             setChatMessages(decryptedMsgs.reverse());
@@ -681,6 +684,24 @@ export function useChatMessages(friendsList: Friend[]) {
             setChatMessages((prev) => prev.filter((m) => m.id !== messageId));
         } catch (err) {
             console.error("Failed to delete message:", err);
+        }
+    }, [activeChat]);
+
+    const pinMessage = useCallback(async (messageId: string) => {
+        if (!activeChat) return;
+        try {
+            await messages.pinMessage(activeChat.conversationId, messageId);
+        } catch (err) {
+            console.error("Failed to pin message:", err);
+        }
+    }, [activeChat]);
+
+    const unpinMessage = useCallback(async (messageId: string) => {
+        if (!activeChat) return;
+        try {
+            await messages.unpinMessage(activeChat.conversationId, messageId);
+        } catch (err) {
+            console.error("Failed to unpin message:", err);
         }
     }, [activeChat]);
 
@@ -869,6 +890,8 @@ export function useChatMessages(friendsList: Friend[]) {
         sendMessage,
         editMessage,
         deleteMessage,
+        pinMessage,
+        unpinMessage,
         addReaction,
         handleIncomingMessage,
         addSystemMessage,

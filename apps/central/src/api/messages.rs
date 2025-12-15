@@ -13,8 +13,8 @@ use uuid::Uuid;
 use crate::error::{AppError, Result};
 use crate::models::{Message, MessageKey, MessageReaction};
 use crate::ws::{
-    MessageDeletedData, MessageEditedData, NewMessageData, ReactionAddedData, ReactionRemovedData,
-    WsMessage,
+    MessageDeletedData, MessageEditedData, MessagePinnedData, MessageUnpinnedData, NewMessageData,
+    ReactionAddedData, ReactionRemovedData, WsMessage,
 };
 use crate::AppState;
 
@@ -35,6 +35,9 @@ pub fn routes() -> Router<Arc<AppState>> {
             "/{conversation_id}/{message_id}/reactions/{emoji}",
             delete(remove_reaction),
         )
+        .route("/{conversation_id}/{message_id}/pin", post(pin_message))
+        .route("/{conversation_id}/{message_id}/unpin", post(unpin_message))
+        .route("/{conversation_id}/pinned", get(get_pinned_messages))
 }
 
 #[derive(Debug, Deserialize)]
@@ -223,6 +226,7 @@ pub async fn send_message(
         message_type: "text".to_string(),
         call_id: None,
         call_duration_seconds: None,
+        pinned_at: None,
         created_at: message.created_at,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
@@ -463,6 +467,151 @@ pub async fn remove_reaction(
     }
 
     Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn pin_message(
+    State(state): State<Arc<AppState>>,
+    auth: AuthUser,
+    Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<SuccessResponse>> {
+    state
+        .db
+        .get_conversation_routing(conversation_id, auth.user_id)
+        .await?
+        .ok_or(AppError::NotConversationMember)?;
+
+    let message = state
+        .db
+        .get_message(message_id)
+        .await?
+        .ok_or(AppError::NotFound("Message not found".into()))?;
+
+    if message.conversation_id != conversation_id {
+        return Err(AppError::NotFound("Message not found".into()));
+    }
+
+    let pinned_at = state.db.pin_message(message_id).await?;
+
+    let ws_msg = WsMessage::MessagePinned(MessagePinnedData {
+        message_id,
+        conversation_id,
+        pinner_id: auth.user_id,
+        pinned_at,
+    });
+    if let Ok(json) = serde_json::to_string(&ws_msg) {
+        let channel = format!("conversation:{}", conversation_id);
+        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+    }
+
+    // Create system message for pin
+    let sys_msg = state
+        .db
+        .create_system_message(conversation_id, auth.user_id, "channel_pin", Some(message_id))
+        .await?;
+
+    let sys_ws_msg = WsMessage::NewMessage(NewMessageData {
+        id: sys_msg.id,
+        conversation_id,
+        sender_id: auth.user_id,
+        encrypted_content: vec![],
+        signature: vec![],
+        reply_to_id: Some(message_id),
+        expires_at: None,
+        sender_chain_id: None,
+        sender_chain_iteration: None,
+        message_type: "channel_pin".to_string(),
+        call_id: None,
+        call_duration_seconds: None,
+        pinned_at: None,
+        created_at: sys_msg.created_at,
+    });
+
+    if let Ok(json) = serde_json::to_string(&sys_ws_msg) {
+        let channel = format!("conversation:{}", conversation_id);
+        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+
+        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+            for member in members {
+                if member.user_id != auth.user_id {
+                    let user_channel = format!("user:{}", member.user_id);
+                    let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
+                }
+            }
+        }
+    }
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn unpin_message(
+    State(state): State<Arc<AppState>>,
+    auth: AuthUser,
+    Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<SuccessResponse>> {
+    state
+        .db
+        .get_conversation_routing(conversation_id, auth.user_id)
+        .await?
+        .ok_or(AppError::NotConversationMember)?;
+
+    let message = state
+        .db
+        .get_message(message_id)
+        .await?
+        .ok_or(AppError::NotFound("Message not found".into()))?;
+
+    if message.conversation_id != conversation_id {
+        return Err(AppError::NotFound("Message not found".into()));
+    }
+
+    state.db.unpin_message(message_id).await?;
+
+    let ws_msg = WsMessage::MessageUnpinned(MessageUnpinnedData {
+        message_id,
+        conversation_id,
+        unpinner_id: auth.user_id,
+    });
+    if let Ok(json) = serde_json::to_string(&ws_msg) {
+        let channel = format!("conversation:{}", conversation_id);
+        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+    }
+
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn get_pinned_messages(
+    State(state): State<Arc<AppState>>,
+    auth: AuthUser,
+    Path(conversation_id): Path<Uuid>,
+) -> Result<Json<Vec<MessageWithKey>>> {
+    state
+        .db
+        .get_conversation_routing(conversation_id, auth.user_id)
+        .await?
+        .ok_or(AppError::NotConversationMember)?;
+
+    let messages = state.db.get_pinned_messages(conversation_id).await?;
+
+    let message_ids: Vec<Uuid> = messages.iter().map(|m| m.id).collect();
+    let keys = state
+        .db
+        .get_message_keys_for_user(&message_ids, auth.user_id)
+        .await?;
+
+    let key_map: HashMap<Uuid, &MessageKey> = keys.iter().map(|k| (k.message_id, k)).collect();
+
+    let messages_with_keys: Vec<MessageWithKey> = messages
+        .into_iter()
+        .map(|m| {
+            let key = key_map.get(&m.id);
+            MessageWithKey {
+                message: m,
+                encrypted_key: key.map(|k| k.encrypted_key.clone()),
+            }
+        })
+        .collect();
+
+    Ok(Json(messages_with_keys))
 }
 
 async fn publish_to_redis(

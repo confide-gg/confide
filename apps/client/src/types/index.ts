@@ -56,7 +56,7 @@ export interface ReplyTo {
   senderName: string;
 }
 
-export type SystemMessageType = 'call_started' | 'call_ended' | 'call_missed' | 'call_rejected';
+export type SystemMessageType = 'call_started' | 'call_ended' | 'call_missed' | 'call_rejected' | 'channel_pin';
 
 export interface DecryptedMessage {
   id: string;
@@ -74,6 +74,7 @@ export interface DecryptedMessage {
   isSystem?: boolean;
   systemType?: SystemMessageType;
   callDurationSeconds?: number | null;
+  pinnedAt?: string | null;
 }
 
 export interface ActiveChat {

@@ -1,10 +1,11 @@
-import { useEffect } from "react";
-import { Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Phone, Pin } from "lucide-react";
 import { useChat } from "../../context/ChatContext";
 import { usePresence } from "../../context/PresenceContext";
 import { useAuth } from "../../context/AuthContext";
 import { useCall } from "../calls/CallContext";
 import { Avatar } from "../ui/avatar";
+import { PinnedMessages } from "./PinnedMessages";
 
 const STATUS_LABELS: Record<string, string> = {
   online: "Online",
@@ -19,6 +20,7 @@ export function ChatHeader() {
   const { getUserPresence, subscribeToUsers, isWsConnected, isOnline } = usePresence();
   const { user, keys } = useAuth();
   const { callState, initiateCall } = useCall();
+  const [showPinned, setShowPinned] = useState(false);
 
   useEffect(() => {
     if (activeChat && isWsConnected) {
@@ -58,8 +60,21 @@ export function ChatHeader() {
     }
   };
 
+  const handleJump = (messageId: string) => {
+    const element = document.getElementById(messageId);
+    if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        element.style.transition = "background-color 0.5s ease";
+        element.style.backgroundColor = "#1a1a1a";
+        setTimeout(() => {
+            element.style.backgroundColor = "";
+        }, 2000);
+    }
+    setShowPinned(false);
+  };
+
   return (
-    <div className="shrink-0 z-10 border-b border-border">
+    <div className="shrink-0 z-10 border-b border-border relative">
       <div className="flex items-center justify-between px-6 h-14">
         <div className="flex items-center gap-3">
           <Avatar
@@ -92,6 +107,17 @@ export function ChatHeader() {
               <Phone className="w-5 h-5" />
             </button>
           )}
+          <button
+            onClick={() => setShowPinned(!showPinned)}
+            className={`p-2 rounded-lg transition-colors ${
+              showPinned
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+            title="Pinned Messages"
+          >
+            <Pin className="w-5 h-5" />
+          </button>
           {canVerify && (
             <button
               onClick={handleVerify}
@@ -120,6 +146,14 @@ export function ChatHeader() {
         </div>
       </div>
       <div className="mx-8 border-b border-border/50" />
+      {showPinned && (
+        <PinnedMessages
+          conversationId={activeChat.conversationId}
+          onClose={() => setShowPinned(false)}
+          onJump={handleJump}
+        />
+      )}
     </div>
   );
 }
+

@@ -145,6 +145,7 @@ export interface Message {
   message_type?: string;
   call_id?: string | null;
   call_duration_seconds?: number | null;
+  pinned_at?: string | null;
 }
 
 export interface MessageKeyData {
@@ -263,6 +264,8 @@ export type WsMessageType =
   | "new_message"
   | "message_deleted"
   | "message_edited"
+  | "message_pinned"
+  | "message_unpinned"
   | "reaction_added"
   | "reaction_removed"
   | "friend_request"
@@ -310,6 +313,7 @@ export interface WsNewMessage {
     message_type?: string;
     call_id?: string | null;
     call_duration_seconds?: number | null;
+    pinned_at?: string | null;
   };
 }
 
@@ -329,6 +333,25 @@ export interface WsMessageEdited {
     encrypted_content: number[];
     signature: number[];
     edited_at: string;
+  };
+}
+
+export interface WsMessagePinned {
+  type: "message_pinned";
+  data: {
+    message_id: string;
+    conversation_id: string;
+    pinner_id: string;
+    pinned_at: string;
+  };
+}
+
+export interface WsMessageUnpinned {
+  type: "message_unpinned";
+  data: {
+    message_id: string;
+    conversation_id: string;
+    unpinner_id: string;
   };
 }
 
@@ -623,6 +646,8 @@ export type WsMessage =
   | WsNewMessage
   | WsMessageDeleted
   | WsMessageEdited
+  | WsMessagePinned
+  | WsMessageUnpinned
   | WsReactionAdded
   | WsReactionRemoved
   | WsFriendRequest

@@ -73,3 +73,23 @@ export async function getMessageKey(
 ): Promise<MessageKeyResponse> {
   return get<MessageKeyResponse>(`/messages/${conversationId}/${messageId}/key`);
 }
+
+export async function pinMessage(
+  conversationId: string,
+  messageId: string
+): Promise<SuccessResponse> {
+  return post<SuccessResponse>(`/messages/${conversationId}/${messageId}/pin`, {});
+}
+
+export async function unpinMessage(
+  conversationId: string,
+  messageId: string
+): Promise<SuccessResponse> {
+  return post<SuccessResponse>(`/messages/${conversationId}/${messageId}/unpin`, {});
+}
+
+export async function getPinnedMessages(
+  conversationId: string
+): Promise<Message[]> {
+  return get<Message[]>(`/messages/${conversationId}/pinned`);
+}

@@ -16,6 +16,10 @@ pub enum WsMessage {
     MessageDeleted(MessageDeletedData),
     #[serde(rename = "message_edited")]
     MessageEdited(MessageEditedData),
+    #[serde(rename = "message_pinned")]
+    MessagePinned(MessagePinnedData),
+    #[serde(rename = "message_unpinned")]
+    MessageUnpinned(MessageUnpinnedData),
     #[serde(rename = "reaction_added")]
     ReactionAdded(ReactionAddedData),
     #[serde(rename = "reaction_removed")]
@@ -110,6 +114,7 @@ pub struct NewMessageData {
     pub message_type: String,
     pub call_id: Option<Uuid>,
     pub call_duration_seconds: Option<i32>,
+    pub pinned_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -126,6 +131,21 @@ pub struct MessageEditedData {
     pub encrypted_content: Vec<u8>,
     pub signature: Vec<u8>,
     pub edited_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessagePinnedData {
+    pub message_id: Uuid,
+    pub conversation_id: Uuid,
+    pub pinner_id: Uuid,
+    pub pinned_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageUnpinnedData {
+    pub message_id: Uuid,
+    pub conversation_id: Uuid,
+    pub unpinner_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

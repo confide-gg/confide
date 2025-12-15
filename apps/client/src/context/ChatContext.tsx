@@ -80,6 +80,8 @@ interface ChatContextType {
   sendMessage: (content?: string) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => Promise<void>;
   deleteMessage: (messageId: string) => void;
+  pinMessage: (messageId: string) => Promise<void>;
+  unpinMessage: (messageId: string) => Promise<void>;
   addReaction: (messageId: string, emoji: string) => void;
   handleTyping: () => void;
   loadFriendRequests: () => Promise<void>;
@@ -246,6 +248,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 console.error("Failed to decrypt edited message:", err);
               }
             })();
+          }
+          break;
+        case "message_pinned":
+          if (chatLogic.activeChat && chatLogic.activeChat.conversationId === message.data.conversation_id) {
+            chatLogic.setChatMessages(prev => prev.map(m =>
+              m.id === message.data.message_id
+                ? { ...m, pinnedAt: message.data.pinned_at }
+                : m
+            ));
+          }
+          break;
+        case "message_unpinned":
+          if (chatLogic.activeChat && chatLogic.activeChat.conversationId === message.data.conversation_id) {
+            chatLogic.setChatMessages(prev => prev.map(m =>
+              m.id === message.data.message_id
+                ? { ...m, pinnedAt: null }
+                : m
+            ));
           }
           break;
         case "reaction_added":

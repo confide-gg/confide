@@ -158,8 +158,9 @@ export function Message({ message, showHeader }: MessageProps) {
 
   return (
     <div
+      id={message.id}
       className={`
-        group relative flex gap-3 hover:bg-secondary/20 px-6 py-1
+        group relative flex gap-3 hover:bg-secondary/20 px-6 py-1 transition-colors duration-500
         ${showHeader ? "mt-2" : "mt-0"}
         ${message.expiresAt ? "opacity-90" : ""}
       `}

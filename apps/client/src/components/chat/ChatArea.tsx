@@ -18,6 +18,8 @@ export function ChatArea() {
     setMessageContextMenu,
     deleteMessage,
     addReaction,
+    pinMessage,
+    unpinMessage,
     setReplyTo,
     chatMessages,
     showProfilePanel,
@@ -93,6 +95,21 @@ export function ChatArea() {
     if (messageContextMenu) {
       deleteMessage(messageContextMenu.message.id);
     }
+    setMessageContextMenu(null);
+  };
+
+  const handlePin = () => {
+    if (messageContextMenu) {
+      pinMessage(messageContextMenu.message.id);
+    }
+    setMessageContextMenu(null);
+  };
+
+  const handleUnpin = () => {
+    if (messageContextMenu) {
+      unpinMessage(messageContextMenu.message.id);
+    }
+    setMessageContextMenu(null);
   };
 
   const handleEdit = () => {
@@ -131,6 +148,8 @@ export function ChatArea() {
             onReact={handleReact}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onPin={handlePin}
+            onUnpin={handleUnpin}
             onClose={() => setMessageContextMenu(null)}
           />
         </div>

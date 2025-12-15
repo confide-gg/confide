@@ -12,6 +12,7 @@ pub enum MessageType {
     CallEnded,
     CallMissed,
     CallRejected,
+    ChannelPin,
 }
 
 impl std::fmt::Display for MessageType {
@@ -21,6 +22,7 @@ impl std::fmt::Display for MessageType {
             MessageType::CallEnded => write!(f, "call_ended"),
             MessageType::CallMissed => write!(f, "call_missed"),
             MessageType::CallRejected => write!(f, "call_rejected"),
+            MessageType::ChannelPin => write!(f, "channel_pin"),
         }
     }
 }
@@ -33,6 +35,7 @@ impl std::str::FromStr for MessageType {
             "call_ended" => Ok(MessageType::CallEnded),
             "call_missed" => Ok(MessageType::CallMissed),
             "call_rejected" => Ok(MessageType::CallRejected),
+            "channel_pin" => Ok(MessageType::ChannelPin),
             _ => Err(format!("Unknown message type: {}", s)),
         }
     }
@@ -53,6 +56,7 @@ pub struct MessageRow {
     pub message_type: String,
     pub call_id: Option<Uuid>,
     pub call_duration_seconds: Option<i32>,
+    pub pinned_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -71,6 +75,7 @@ pub struct Message {
     pub message_type: String,
     pub call_id: Option<Uuid>,
     pub call_duration_seconds: Option<i32>,
+    pub pinned_at: Option<DateTime<Utc>>,
     pub reactions: Vec<MessageReaction>,
     pub created_at: DateTime<Utc>,
 }

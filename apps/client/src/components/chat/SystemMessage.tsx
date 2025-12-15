@@ -1,10 +1,11 @@
-import { Phone, PhoneOff, PhoneMissed, PhoneIncoming } from "lucide-react";
+import { Phone, PhoneOff, PhoneMissed, PhoneIncoming, Pin } from "lucide-react";
 import { formatDate } from "../../utils/formatters";
 import type { DecryptedMessage } from "../../types";
 
 interface SystemMessageProps {
   message: DecryptedMessage;
   peerName?: string;
+  pinnedMessage?: DecryptedMessage;
 }
 
 function formatDuration(seconds: number): string {
@@ -32,6 +33,8 @@ export function SystemMessage({ message, peerName }: SystemMessageProps) {
         return <PhoneMissed className="w-4 h-4" />;
       case "call_rejected":
         return <PhoneOff className="w-4 h-4" />;
+      case "channel_pin":
+        return <Pin className="w-4 h-4" />;
       default:
         return <Phone className="w-4 h-4" />;
     }
@@ -46,6 +49,8 @@ export function SystemMessage({ message, peerName }: SystemMessageProps) {
         return "text-yellow-500";
       case "call_rejected":
         return "text-red-400";
+      case "channel_pin":
+        return "text-muted-foreground";
       default:
         return "text-muted-foreground";
     }
@@ -71,6 +76,8 @@ export function SystemMessage({ message, peerName }: SystemMessageProps) {
         return message.isMine ? "You cancelled the call" : `Missed call from ${actor}`;
       case "call_rejected":
         return `${actor} declined`;
+      case "channel_pin":
+        return `${actor} pinned a message to this channel.`;
       default:
         return "";
     }
