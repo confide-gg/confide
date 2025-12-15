@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/confide-gg/confide/compare/confide-central-v0.4.1...confide-central-v0.5.0) (2025-12-15)
+
+
+### Features
+
+* add snow effects for december ([45a7aed](https://github.com/confide-gg/confide/commit/45a7aeda5e7d68bec22e8de806e34b6ba168e101))
+* implement pinned messages ([e86460e](https://github.com/confide-gg/confide/commit/e86460e32fada40e2564a9ef6c451daa987f7cc1))
+
 ## [0.4.1](https://github.com/confide-gg/confide/compare/confide-central-v0.4.0...confide-central-v0.4.1) (2025-12-14)
 
 

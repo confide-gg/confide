@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.0](https://github.com/confide-gg/confide/compare/confide-client-v0.11.1...confide-client-v0.12.0) (2025-12-15)
+
+
+### Features
+
+* add snow effects for december ([45a7aed](https://github.com/confide-gg/confide/commit/45a7aeda5e7d68bec22e8de806e34b6ba168e101))
+* implement pinned messages ([e86460e](https://github.com/confide-gg/confide/commit/e86460e32fada40e2564a9ef6c451daa987f7cc1))
+
+
+### Bug Fixes
+
+* improve message context menu positioning ([6a57f2d](https://github.com/confide-gg/confide/commit/6a57f2d796f1823a49efc88c084c934d6ea6653b))
+* properly wire up message context menu "Edit" action ([d20c258](https://github.com/confide-gg/confide/commit/d20c2584e31e881bfddd893075779c382ca6788e))
+
 ## [0.11.1](https://github.com/confide-gg/confide/compare/confide-client-v0.11.0...confide-client-v0.11.1) (2025-12-14)
 
 
