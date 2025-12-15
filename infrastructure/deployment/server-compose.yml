@@ -1,0 +1,70 @@
+version: '3.8'
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - EMAIL=${EMAIL}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./config/Caddyfile:/etc/caddy/Caddyfile
+    networks:
+      - confide-server
+
+  server:
+    image: ghcr.io/confide-gg/confide/server:${SERVER_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgres://confide:${POSTGRES_PASSWORD}@postgres:5432/confide_server
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - RUST_LOG=${RUST_LOG:-info,confide_server=info}
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - SERVER_PUBLIC_DOMAIN=${DOMAIN}
+      - LIMITS_MAX_USERS=${LIMITS_MAX_USERS:-100}
+      - LIMITS_MAX_UPLOAD_SIZE_MB=${LIMITS_MAX_UPLOAD_SIZE_MB:-100}
+      - MESSAGES_RETENTION=${MESSAGES_RETENTION:-30d}
+      - DISCOVERY_ENABLED=${DISCOVERY_ENABLED:-false}
+      - DISCOVERY_DISPLAY_NAME=${DISCOVERY_DISPLAY_NAME:-Confide Server}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - confide-server
+
+  postgres:
+    image: postgres:17.2-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: confide
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: confide_server
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - confide-server
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - confide-server
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  confide-server:
+    driver: bridge

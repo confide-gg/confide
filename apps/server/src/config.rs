@@ -58,8 +58,33 @@ fn default_max_connections() -> u32 {
 
 impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
-        let contents = fs::read_to_string(path)?;
-        let mut config: Config = toml::from_str(&contents)?;
+        let mut config = match fs::read_to_string(path) {
+            Ok(contents) => toml::from_str(&contents)?,
+            Err(_) => {
+                // Return default config if file missing, to be overridden by env vars
+                Config {
+                    server: ServerConfig {
+                        host: "0.0.0.0".to_string(),
+                        port: 8080,
+                        public_domain: "localhost:8080".to_string(),
+                    },
+                    database: DatabaseConfig::default(),
+                    redis: RedisConfig::default(),
+                    limits: LimitsConfig {
+                        max_users: 100,
+                        max_upload_size_mb: 100,
+                    },
+                    messages: MessagesConfig {
+                        retention: "30d".to_string(),
+                    },
+                    discovery: DiscoveryConfig {
+                        enabled: false,
+                        display_name: "Confide Server".to_string(),
+                        description: None,
+                    },
+                }
+            }
+        };
 
         if let Ok(url) = env::var("DATABASE_URL") {
             config.database.url = url;
@@ -83,6 +108,40 @@ impl Config {
             if let Ok(p) = port.parse() {
                 config.server.port = p;
             }
+        }
+
+        if let Ok(domain) = env::var("SERVER_PUBLIC_DOMAIN") {
+            config.server.public_domain = domain;
+        }
+
+        // Limits overrides
+        if let Ok(max_users) = env::var("LIMITS_MAX_USERS") {
+            if let Ok(n) = max_users.parse() {
+                config.limits.max_users = n;
+            }
+        }
+        if let Ok(max_size) = env::var("LIMITS_MAX_UPLOAD_SIZE_MB") {
+            if let Ok(n) = max_size.parse() {
+                config.limits.max_upload_size_mb = n;
+            }
+        }
+
+        // Messages overrides
+        if let Ok(retention) = env::var("MESSAGES_RETENTION") {
+            config.messages.retention = retention;
+        }
+
+        // Discovery overrides
+        if let Ok(enabled) = env::var("DISCOVERY_ENABLED") {
+            if let Ok(b) = enabled.parse() {
+                config.discovery.enabled = b;
+            }
+        }
+        if let Ok(name) = env::var("DISCOVERY_DISPLAY_NAME") {
+            config.discovery.display_name = name;
+        }
+        if let Ok(desc) = env::var("DISCOVERY_DESCRIPTION") {
+            config.discovery.description = Some(desc);
         }
 
         if config.database.url.is_empty() {
