@@ -27,7 +27,10 @@ pub async fn update_snow_effect(
         theme: None,
         enable_snow_effect: Some(req.enabled),
     };
-    let prefs = state.db.update_preferences(auth.user_id, &update_req).await?;
+    let prefs = state
+        .db
+        .update_preferences(auth.user_id, &update_req)
+        .await?;
     Ok(Json(PreferencesResponse {
         theme: prefs.theme,
         enable_snow_effect: prefs.enable_snow_effect,
