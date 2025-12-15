@@ -506,7 +506,12 @@ pub async fn pin_message(
     // Create system message for pin
     let sys_msg = state
         .db
-        .create_system_message(conversation_id, auth.user_id, "channel_pin", Some(message_id))
+        .create_system_message(
+            conversation_id,
+            auth.user_id,
+            "channel_pin",
+            Some(message_id),
+        )
         .await?;
 
     let sys_ws_msg = WsMessage::NewMessage(NewMessageData {
