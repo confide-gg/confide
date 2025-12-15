@@ -32,6 +32,8 @@ services:
       - MESSAGES_RETENTION=${MESSAGES_RETENTION:-30d}
       - DISCOVERY_ENABLED=${DISCOVERY_ENABLED:-false}
       - DISCOVERY_DISPLAY_NAME=${DISCOVERY_DISPLAY_NAME:-Confide Server}
+    volumes:
+      - ./config/config.toml:/app/config.toml
     depends_on:
       - postgres
       - redis
