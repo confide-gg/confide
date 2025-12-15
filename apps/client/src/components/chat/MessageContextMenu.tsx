@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import type { MessageContextMenuData } from "../../types";
 
 interface MessageContextMenuProps {
@@ -13,11 +14,35 @@ interface MessageContextMenuProps {
 
 export function MessageContextMenu({ data, onReply, onReact, onEdit, onDelete, onPin, onUnpin }: MessageContextMenuProps) {
   const { message } = data;
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: data.y, left: data.x });
+
+  useLayoutEffect(() => {
+    if (menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+
+      let top = data.y;
+      let left = data.x;
+
+      if (data.y + rect.height > viewportHeight) {
+        top = data.y - rect.height;
+      }
+
+      if (data.x + rect.width > viewportWidth) {
+        left = data.x - rect.width;
+      }
+
+      setPosition({ top, left });
+    }
+  }, [data.x, data.y]);
 
   return (
     <div
-      className="fixed z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
-      style={{ top: data.y, left: data.x }}
+      ref={menuRef}
+      className="fixed z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
+      style={{ top: position.top, left: position.left }}
     >
       <button
         onClick={message.pinnedAt ? onUnpin : onPin}
