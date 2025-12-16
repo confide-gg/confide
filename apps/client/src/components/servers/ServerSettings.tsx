@@ -21,8 +21,7 @@ import {
   Users,
   AlertTriangle,
   ArrowLeft,
-  ChevronUp,
-  ChevronDown,
+  GripVertical,
 } from "lucide-react";
 import { serverService } from "../../features/servers/servers";
 import { Permissions } from "../../features/servers/permissions";
@@ -76,6 +75,10 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
   const [bans, setBans] = useState<ServerBan[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<ServerRole | null>(null);
+  const [selectedRoleName, setSelectedRoleName] = useState("");
+  const [dragRoleId, setDragRoleId] = useState<string | null>(null);
+  const [dragOverRoleId, setDragOverRoleId] = useState<string | null>(null);
+  const [dragPointerId, setDragPointerId] = useState<number | null>(null);
   const [name, setName] = useState(serverName);
   const [description, setDescription] = useState("");
   const [isDiscoverable, setIsDiscoverable] = useState(false);
@@ -280,6 +283,28 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
     }
   };
 
+  const handleUpdateRoleName = async () => {
+    if (!selectedRole) return;
+    const trimmed = selectedRoleName.trim();
+    if (!trimmed || trimmed === selectedRole.name) return;
+    setIsLoading(true);
+    try {
+      if (federatedClient) {
+        const updated = await federatedClient.updateRole(selectedRole.id, { name: trimmed });
+        setSelectedRole(updated);
+      } else {
+        const updated = await serverService.updateRole(serverId, selectedRole.id, { name: trimmed });
+        setSelectedRole(updated);
+      }
+      loadRoles();
+    } catch (error) {
+      console.error("Failed to update role name:", error);
+      setSelectedRoleName(selectedRole.name);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDeleteRole = async () => {
     if (!roleToDelete) return;
 
@@ -301,44 +326,80 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
     }
   };
 
-  const handleMoveRole = async (role: ServerRole, direction: "up" | "down") => {
+  const handleReorderRoles = async (fromId: string, toId: string) => {
     const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
-    const currentIndex = sortedRoles.findIndex(r => r.id === role.id);
+    const fromIndex = sortedRoles.findIndex(r => r.id === fromId);
+    const toIndex = sortedRoles.findIndex(r => r.id === toId);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
 
-    if (
-      (direction === "up" && currentIndex === 0) ||
-      (direction === "down" && currentIndex === sortedRoles.length - 1)
-    ) {
-      return;
-    }
+    const next = [...sortedRoles];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
 
-    const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    const swapRole = sortedRoles[swapIndex];
+    const updatedPositions = next.map((r, idx) => ({
+      ...r,
+      position: next.length - 1 - idx,
+    }));
+    setRoles(updatedPositions);
 
-    // Optimistic update
-    const newRoles = [...sortedRoles];
-    newRoles[currentIndex] = { ...role, position: swapRole.position };
-    newRoles[swapIndex] = { ...swapRole, position: role.position };
-    setRoles(newRoles);
-
+    const roleIds = next.map(r => r.id);
     try {
       if (federatedClient) {
-        await Promise.all([
-          federatedClient.updateRole(role.id, { position: swapRole.position }),
-          federatedClient.updateRole(swapRole.id, { position: role.position })
-        ]);
+        await federatedClient.reorderRoles(roleIds);
       } else {
-        await Promise.all([
-          serverService.updateRole(serverId, role.id, { position: swapRole.position }),
-          serverService.updateRole(serverId, swapRole.id, { position: role.position })
-        ]);
+        await serverService.reorderRoles(serverId, roleIds);
       }
       loadRoles();
     } catch (error) {
-      console.error("Failed to move role:", error);
-      loadRoles(); // Revert on error
+      console.error("Failed to reorder roles:", error);
+      setRoles(sortedRoles);
     }
   };
+
+  useEffect(() => {
+    if (!dragRoleId || dragPointerId === null) return;
+
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+
+    const findRoleId = (el: Element | null): string | null => {
+      let node: Element | null = el;
+      while (node) {
+        const id = (node as HTMLElement).dataset?.roleId;
+        if (id) return id;
+        node = node.parentElement;
+      }
+      return null;
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId !== dragPointerId) return;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const id = findRoleId(el);
+      setDragOverRoleId(id);
+    };
+
+    const end = (e: PointerEvent) => {
+      if (e.pointerId !== dragPointerId) return;
+      if (dragOverRoleId && dragOverRoleId !== dragRoleId) {
+        handleReorderRoles(dragRoleId, dragOverRoleId);
+      }
+      setDragRoleId(null);
+      setDragOverRoleId(null);
+      setDragPointerId(null);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", end, { once: true });
+    window.addEventListener("pointercancel", end, { once: true });
+
+    return () => {
+      document.body.style.userSelect = prevUserSelect;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", end as any);
+      window.removeEventListener("pointercancel", end as any);
+    };
+  }, [dragRoleId, dragPointerId, dragOverRoleId]);
 
   const handleUnban = async (userId: string) => {
     setIsLoading(true);
@@ -381,9 +442,19 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
                 style={{ backgroundColor: selectedRole.color || "#71717a" }}
               />
               <div>
-                <h2 className="font-semibold" style={{ color: selectedRole.color || 'inherit' }}>
-                  {selectedRole.name}
-                </h2>
+                <Input
+                  value={selectedRoleName}
+                  onChange={(e) => setSelectedRoleName(e.target.value)}
+                  onBlur={handleUpdateRoleName}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="h-8 px-2 bg-secondary/30 border-0 font-semibold"
+                  style={{ color: selectedRole.color || 'inherit' }}
+                  disabled={isLoading}
+                />
                 <p className="text-xs text-muted-foreground">Edit role permissions</p>
               </div>
             </div>
@@ -773,35 +844,28 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
                     ) : (
                       roles
                         .sort((a, b) => b.position - a.position)
-                        .map((role, index, array) => (
+                        .map((role) => (
                           <div
                             key={role.id}
-                            className="w-full flex items-center gap-2 p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors group"
+                            className={`w-full flex items-center gap-3 p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors group ${dragOverRoleId === role.id ? "ring-2 ring-primary/50" : ""}`}
+                            data-role-id={role.id}
                           >
-                            <div className="flex flex-col gap-1 mr-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMoveRole(role, "up");
-                                }}
-                                disabled={index === 0}
-                                className="p-1 hover:bg-background/50 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-                              >
-                                <ChevronUp className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMoveRole(role, "down");
-                                }}
-                                disabled={index === array.length - 1}
-                                className="p-1 hover:bg-background/50 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-                              >
-                                <ChevronDown className="w-3 h-3" />
-                              </button>
-                            </div>
                             <button
-                              onClick={() => setSelectedRole(role)}
+                              type="button"
+                              onPointerDown={(e) => {
+                                setDragRoleId(role.id);
+                                setDragOverRoleId(role.id);
+                                setDragPointerId(e.pointerId);
+                              }}
+                              className="text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedRole(role);
+                                setSelectedRoleName(role.name);
+                              }}
                               className="flex-1 flex items-center gap-4 text-left min-w-0"
                             >
                               <div
@@ -813,7 +877,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
                                   {role.name}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  Position {role.position} • Click to edit
+                                  Drag to reorder • Click to edit
                                 </div>
                               </div>
                               <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -158,6 +158,13 @@ export class FederatedServerClient {
         });
     }
 
+    public async reorderRoles(roleIds: string[]): Promise<any[]> {
+        return this.fetch<any[]>("/roles/reorder", {
+            method: "PATCH",
+            body: JSON.stringify({ role_ids: roleIds }),
+        });
+    }
+
     public async deleteRole(roleId: string): Promise<void> {
         await this.fetch<void>(`/roles/${roleId}`, {
             method: "DELETE",

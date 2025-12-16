@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::error::{AppError, Result};
 use crate::models::{permissions, Role};
+use crate::ws::types::ServerMessage;
 use crate::AppState;
 
 use super::middleware::AuthMember;
@@ -17,6 +18,7 @@ pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_role))
         .route("/", get(get_roles))
+        .route("/reorder", patch(reorder_roles))
         .route("/{id}", patch(update_role))
         .route("/{id}", delete(delete_role))
         .route(
@@ -78,6 +80,11 @@ pub async fn create_role(
         .create_role(name_str, req.permissions, req.color, req.position)
         .await?;
 
+    state
+        .ws
+        .broadcast_all(ServerMessage::RoleCreated { role: role.clone() })
+        .await;
+
     Ok(Json(ApiRole::from(role)))
 }
 
@@ -127,6 +134,11 @@ pub async fn update_role(
         .await?
         .ok_or(AppError::NotFound("Role not found".into()))?;
 
+    state
+        .ws
+        .broadcast_all(ServerMessage::RoleUpdated { role: role.clone() })
+        .await;
+
     Ok(Json(ApiRole::from(role)))
 }
 
@@ -141,6 +153,10 @@ pub async fn delete_role(
     }
 
     state.db.delete_role(id).await?;
+    state
+        .ws
+        .broadcast_all(ServerMessage::RoleDeleted { role_id: id })
+        .await;
     Ok(Json(()))
 }
 
@@ -155,6 +171,11 @@ pub async fn assign_role_to_member(
     }
 
     let _ = state.db.assign_role(member_id, role_id).await?;
+    let role_ids = state.db.get_member_role_ids(member_id).await?;
+    state
+        .ws
+        .broadcast_all(ServerMessage::MemberRolesUpdated { member_id, role_ids })
+        .await;
     Ok(Json(()))
 }
 
@@ -169,5 +190,44 @@ pub async fn remove_role_from_member(
     }
 
     state.db.remove_role(member_id, role_id).await?;
+    let role_ids = state.db.get_member_role_ids(member_id).await?;
+    state
+        .ws
+        .broadcast_all(ServerMessage::MemberRolesUpdated { member_id, role_ids })
+        .await;
     Ok(Json(()))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReorderRolesRequest {
+    pub role_ids: Vec<Uuid>,
+}
+
+pub async fn reorder_roles(
+    State(state): State<Arc<AppState>>,
+    auth: AuthMember,
+    Json(req): Json<ReorderRolesRequest>,
+) -> Result<Json<Vec<ApiRole>>> {
+    let perms = state.db.get_member_permissions(auth.member_id).await?;
+    if !permissions::has_permission(perms, permissions::MANAGE_ROLES) {
+        return Err(AppError::Forbidden);
+    }
+
+    let roles = state.db.get_all_roles().await?;
+    let expected: std::collections::HashSet<Uuid> = roles.iter().map(|r| r.id).collect();
+    let provided: std::collections::HashSet<Uuid> = req.role_ids.iter().copied().collect();
+
+    if expected.len() != req.role_ids.len() || expected != provided {
+        return Err(AppError::BadRequest("Invalid role_ids".into()));
+    }
+
+    let roles = state.db.reorder_roles(req.role_ids).await?;
+    for role in roles.iter().cloned() {
+        state
+            .ws
+            .broadcast_all(ServerMessage::RoleUpdated { role })
+            .await;
+    }
+
+    Ok(Json(roles.into_iter().map(ApiRole::from).collect()))
 }
