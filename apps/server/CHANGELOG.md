@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/confide-gg/confide/compare/confide-server-v0.3.1...confide-server-v0.3.2) (2025-12-16)
+
+
+### Bug Fixes
+
+* enforce server-side permissions, add rate limiting, and harden websocket/message handling ([135e785](https://github.com/confide-gg/confide/commit/135e78586bb3ddeed2bfbc493c6285ca4dba1e89))
+
 ## [0.3.1](https://github.com/confide-gg/confide/compare/confide-server-v0.3.0...confide-server-v0.3.1) (2025-12-16)
 
 
