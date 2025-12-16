@@ -20,9 +20,18 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+  build-windows:
+    name: Build Windows
+    uses: ./.github/workflows/release-client-windows.yml
+    with:
+      tag_name: ${{ github.ref_name }}
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
   publish:
     name: Publish Release
-    needs: [build-macos]
+    needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,6 +42,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: confide-macos
+          path: artifacts/
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: confide-windows
           path: artifacts/
 
       - name: Create latest.json for updater
@@ -46,13 +61,24 @@ jobs:
 
           PLATFORMS=""
 
-          if [ -f "update-darwin-aarch64.json" ]; then
-            DATA=$(cat update-darwin-aarch64.json)
-            SIG=$(echo "$DATA" | jq -r '.signature')
-            URL=$(echo "$DATA" | jq -r '.url')
-            PLATFORMS="\"darwin-aarch64\":{\"signature\":\"${SIG}\",\"url\":\"${URL}\"}"
-            rm update-darwin-aarch64.json
-          fi
+          add_platform() {
+            KEY="$1"
+            FILE="$2"
+            if [ -f "$FILE" ]; then
+              SIG=$(jq -r '.signature' "$FILE")
+              URL=$(jq -r '.url' "$FILE")
+              ENTRY="\"${KEY}\":{\"signature\":\"${SIG}\",\"url\":\"${URL}\"}"
+              if [ -n "$PLATFORMS" ]; then
+                PLATFORMS="${PLATFORMS},${ENTRY}"
+              else
+                PLATFORMS="${ENTRY}"
+              fi
+              rm "$FILE"
+            fi
+          }
+
+          add_platform "darwin-aarch64" "update-darwin-aarch64.json"
+          add_platform "windows-x86_64" "update-windows-x86_64.json"
 
           if [ -n "$PLATFORMS" ]; then
             echo "{\"version\":\"${VERSION}\",\"notes\":\"See release notes for details.\",\"pub_date\":\"${PUB_DATE}\",\"platforms\":{${PLATFORMS}}}" | jq '.' > latest.json
