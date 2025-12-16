@@ -9,6 +9,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::error::{AppError, Result};
 use crate::models::permissions;
@@ -25,6 +26,34 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/password/remove", post(remove_password))
         .route("/info", get(get_server_info))
         .route("/", delete(delete_server))
+}
+
+async fn check_server_admin_or_owner(
+    state: &Arc<AppState>,
+    member_id: Uuid,
+) -> Result<()> {
+    let perms = state.db.get_member_permissions(member_id).await?;
+    if permissions::has_permission(perms, permissions::ADMINISTRATOR) {
+        return Ok(());
+    }
+
+    let identity = state.db.get_server_identity().await?;
+    let member = state
+        .db
+        .get_member(member_id)
+        .await?
+        .ok_or(AppError::NotFound("Member not found".into()))?;
+
+    let is_owner = identity
+        .and_then(|i| i.owner_user_id)
+        .map(|owner_id| member.central_user_id == owner_id)
+        .unwrap_or(false);
+
+    if !is_owner {
+        return Err(AppError::Forbidden);
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Serialize)]
@@ -76,27 +105,7 @@ pub async fn update_server_settings(
     auth: AuthMember,
     Json(req): Json<UpdateServerSettingsRequest>,
 ) -> Result<Json<ServerInfoResponse>> {
-    let perms = state.db.get_member_permissions(auth.member_id).await?;
-    if !permissions::has_permission(perms, permissions::ADMINISTRATOR) {
-        // Check ownership (duplicate logic from set_password, should probably refactor but keeping inline for now)
-        let identity = state.db.get_server_identity().await?;
-        let is_owner = identity
-            .as_ref()
-            .and_then(|i| i.owner_user_id)
-            .map(|owner_id| {
-                let member = futures::executor::block_on(state.db.get_member(auth.member_id));
-                member
-                    .ok()
-                    .flatten()
-                    .map(|m| m.central_user_id == owner_id)
-                    .unwrap_or(false)
-            })
-            .unwrap_or(false);
-
-        if !is_owner {
-            return Err(AppError::Forbidden);
-        }
-    }
+    check_server_admin_or_owner(&state, auth.member_id).await?;
 
     let identity = state
         .db
@@ -133,25 +142,7 @@ pub async fn set_password(
     auth: AuthMember,
     Json(req): Json<SetPasswordRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    let perms = state.db.get_member_permissions(auth.member_id).await?;
-    if !permissions::has_permission(perms, permissions::ADMINISTRATOR) {
-        let identity = state.db.get_server_identity().await?;
-        let is_owner = identity
-            .and_then(|i| i.owner_user_id)
-            .map(|owner_id| {
-                let member = futures::executor::block_on(state.db.get_member(auth.member_id));
-                member
-                    .ok()
-                    .flatten()
-                    .map(|m| m.central_user_id == owner_id)
-                    .unwrap_or(false)
-            })
-            .unwrap_or(false);
-
-        if !is_owner {
-            return Err(AppError::Forbidden);
-        }
-    }
+    check_server_admin_or_owner(&state, auth.member_id).await?;
 
     if req.password.len() < 4 {
         return Err(AppError::BadRequest(
@@ -175,25 +166,7 @@ pub async fn remove_password(
     State(state): State<Arc<AppState>>,
     auth: AuthMember,
 ) -> Result<Json<serde_json::Value>> {
-    let perms = state.db.get_member_permissions(auth.member_id).await?;
-    if !permissions::has_permission(perms, permissions::ADMINISTRATOR) {
-        let identity = state.db.get_server_identity().await?;
-        let is_owner = identity
-            .and_then(|i| i.owner_user_id)
-            .map(|owner_id| {
-                let member = futures::executor::block_on(state.db.get_member(auth.member_id));
-                member
-                    .ok()
-                    .flatten()
-                    .map(|m| m.central_user_id == owner_id)
-                    .unwrap_or(false)
-            })
-            .unwrap_or(false);
-
-        if !is_owner {
-            return Err(AppError::Forbidden);
-        }
-    }
+    check_server_admin_or_owner(&state, auth.member_id).await?;
 
     state.db.set_server_password(None).await?;
 
