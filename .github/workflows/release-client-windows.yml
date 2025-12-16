@@ -18,7 +18,8 @@ jobs:
     runs-on: windows-latest
     env:
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
-      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_DEFAULT_TRIPLET: x64-windows-release
+      VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\vcpkg-triplets
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-binary-cache,readwrite
       LIBCLANG_PATH: C:\Program Files\LLVM\bin
     steps:
@@ -45,7 +46,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vcpkg-binary-cache
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('apps/client/src-tauri/Cargo.lock') }}
           restore-keys: |
             vcpkg-${{ runner.os }}-
 
@@ -61,7 +62,7 @@ jobs:
             git clone --depth 1 https://github.com/microsoft/vcpkg "$env:VCPKG_ROOT"
           }
           & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
-          & "$env:VCPKG_ROOT\vcpkg.exe" install ffmpeg:x64-windows opus:x64-windows --clean-after-build
+          & "$env:VCPKG_ROOT\vcpkg.exe" install ffmpeg:x64-windows-release opus:x64-windows-release --clean-after-build
 
       - name: Install frontend dependencies
         working-directory: apps/client
