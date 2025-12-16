@@ -54,15 +54,14 @@ jobs:
         run: |
           choco install -y llvm nasm nsis wixtoolset
 
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: ${{ env.VCPKG_ROOT }}
-
-      - name: Install vcpkg dependencies
+      - name: Install vcpkg + native deps
         shell: pwsh
         run: |
-          & "$env:VCPKG_ROOT\vcpkg.exe" install ffmpeg:x64-windows opus:x64-windows
+          if (!(Test-Path "$env:VCPKG_ROOT\.git")) {
+            git clone --depth 1 https://github.com/microsoft/vcpkg "$env:VCPKG_ROOT"
+          }
+          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
+          & "$env:VCPKG_ROOT\vcpkg.exe" install ffmpeg:x64-windows opus:x64-windows --clean-after-build
 
       - name: Install frontend dependencies
         working-directory: apps/client
