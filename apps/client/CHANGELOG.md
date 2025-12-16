@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.15.0](https://github.com/confide-gg/confide/compare/confide-client-v0.14.0...confide-client-v0.15.0) (2025-12-16)
+
+
+### Features
+
+* optimize imports and improve Vite build config ([c72dcd2](https://github.com/confide-gg/confide/commit/c72dcd28d808737b9e4e43b22875bc069a352e76))
+
+
+### Bug Fixes
+
+* rename username prop in FederatedMemberContextMenu ([19bc3c3](https://github.com/confide-gg/confide/commit/19bc3c31208e3ed51808c68bae7d3542ae356549))
+
 ## [0.14.0](https://github.com/confide-gg/confide/compare/confide-client-v0.13.0...confide-client-v0.14.0) (2025-12-16)
 
 
