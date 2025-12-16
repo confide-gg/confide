@@ -42,8 +42,8 @@ jobs:
               - 'Cargo.lock'
               - 'infrastructure/docker/Dockerfile.server'
 
-  build-central-amd64:
-    name: Build Central (AMD64)
+  build-central:
+    name: Build Central (Multi-Arch)
     needs: changes
     if: startsWith(github.ref, 'refs/tags/confide-central-v') || needs.changes.outputs.central == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -58,50 +58,8 @@ jobs:
       - name: Setup Blacksmith Builder
         uses: useblacksmith/setup-docker-builder@v1
 
-      - name: Log in to Container Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}-amd64
-            type=semver,pattern={{major}}.{{minor}}-amd64
-            type=raw,value=latest-amd64
-
-      - name: Build and push AMD64
-        uses: useblacksmith/build-push-action@v2
-        with:
-          context: .
-          file: infrastructure/docker/Dockerfile.central
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-
-  build-central-arm64:
-    name: Build Central (ARM64)
-    needs: changes
-    if: startsWith(github.ref, 'refs/tags/confide-central-v') || needs.changes.outputs.central == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Setup Blacksmith Builder
-        uses: useblacksmith/setup-docker-builder@v1
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Log in to Container Registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -116,57 +74,24 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}-arm64
-            type=semver,pattern={{major}}.{{minor}}-arm64
-            type=raw,value=latest-arm64
+            type=semver,pattern={{version}},prefix=confide-central-v
+            type=semver,pattern={{major}}.{{minor}},prefix=confide-central-v
+            type=raw,value=latest
 
-      - name: Build and push ARM64
+      - name: Build and push multi-arch
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
           file: infrastructure/docker/Dockerfile.central
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
-  manifest-central:
-    name: Create Central Manifest
-    needs: [build-central-amd64, build-central-arm64]
-    if: always() && needs.build-central-amd64.result == 'success' && needs.build-central-arm64.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    steps:
-      - name: Log in to Container Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract version
-        if: startsWith(github.ref, 'refs/tags/confide-central-v')
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/confide-central-v}" >> $GITHUB_OUTPUT
-
-      - name: Create versioned manifest
-        if: startsWith(github.ref, 'refs/tags/confide-central-v')
-        run: |
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:${{ steps.version.outputs.version }} \
-            ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:${{ steps.version.outputs.version }}-amd64 \
-            ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:${{ steps.version.outputs.version }}-arm64
-
-      - name: Create latest manifest
-        run: |
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:latest \
-            ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:latest-amd64 \
-            ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:latest-arm64
-
-  build-server-amd64:
-    name: Build Server (AMD64)
+  build-server:
+    name: Build Server (Multi-Arch)
     needs: changes
     if: startsWith(github.ref, 'refs/tags/confide-server-v') || needs.changes.outputs.server == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -181,50 +106,8 @@ jobs:
       - name: Setup Blacksmith Builder
         uses: useblacksmith/setup-docker-builder@v1
 
-      - name: Log in to Container Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}-amd64
-            type=semver,pattern={{major}}.{{minor}}-amd64
-            type=raw,value=latest-amd64
-
-      - name: Build and push AMD64
-        uses: useblacksmith/build-push-action@v2
-        with:
-          context: .
-          file: infrastructure/docker/Dockerfile.server
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-
-  build-server-arm64:
-    name: Build Server (ARM64)
-    needs: changes
-    if: startsWith(github.ref, 'refs/tags/confide-server-v') || needs.changes.outputs.server == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Setup Blacksmith Builder
-        uses: useblacksmith/setup-docker-builder@v1
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Log in to Container Registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -239,51 +122,18 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}-arm64
-            type=semver,pattern={{major}}.{{minor}}-arm64
-            type=raw,value=latest-arm64
+            type=semver,pattern={{version}},prefix=confide-server-v
+            type=semver,pattern={{major}}.{{minor}},prefix=confide-server-v
+            type=raw,value=latest
 
-      - name: Build and push ARM64
+      - name: Build and push multi-arch
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
           file: infrastructure/docker/Dockerfile.server
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDKIT_INLINE_CACHE=1
-
-  manifest-server:
-    name: Create Server Manifest
-    needs: [build-server-amd64, build-server-arm64]
-    if: always() && needs.build-server-amd64.result == 'success' && needs.build-server-arm64.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    steps:
-      - name: Log in to Container Registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract version
-        if: startsWith(github.ref, 'refs/tags/confide-server-v')
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/confide-server-v}" >> $GITHUB_OUTPUT
-
-      - name: Create versioned manifest
-        if: startsWith(github.ref, 'refs/tags/confide-server-v')
-        run: |
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ steps.version.outputs.version }} \
-            ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ steps.version.outputs.version }}-amd64 \
-            ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ steps.version.outputs.version }}-arm64
-
-      - name: Create latest manifest
-        run: |
-          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:latest \
-            ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:latest-amd64 \
-            ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:latest-arm64
