@@ -29,7 +29,7 @@ interface FederatedMemberContextMenuProps {
 export function FederatedMemberContextMenu({
   federatedClient,
   memberId,
-  username,
+  username: _username,
   memberRoleIds,
   availableRoles,
   userPermissions,
