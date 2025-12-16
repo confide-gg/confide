@@ -490,6 +490,10 @@ pub async fn pin_message(
         return Err(AppError::NotFound("Message not found".into()));
     }
 
+    if message.sender_id != auth.user_id {
+        return Err(AppError::Forbidden);
+    }
+
     let pinned_at = state.db.pin_message(message_id).await?;
 
     let ws_msg = WsMessage::MessagePinned(MessagePinnedData {
@@ -567,6 +571,10 @@ pub async fn unpin_message(
 
     if message.conversation_id != conversation_id {
         return Err(AppError::NotFound("Message not found".into()));
+    }
+
+    if message.sender_id != auth.user_id {
+        return Err(AppError::Forbidden);
     }
 
     state.db.unpin_message(message_id).await?;
