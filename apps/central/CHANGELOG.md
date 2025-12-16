@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/confide-gg/confide/compare/confide-central-v0.5.0...confide-central-v0.5.1) (2025-12-16)
+
+
+### Bug Fixes
+
+* align federation role and ws behavior ([877ec13](https://github.com/confide-gg/confide/commit/877ec137a7fd219bff47e47b2b131d5561def9fe))
+
 ## [0.5.0](https://github.com/confide-gg/confide/compare/confide-central-v0.4.1...confide-central-v0.5.0) (2025-12-15)
 
 
