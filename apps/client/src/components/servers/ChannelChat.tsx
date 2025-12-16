@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useServer } from "../../context/ServerContext";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
-import { Lock, AlertTriangle, Smile, Hash } from "lucide-react";
+import { AlertTriangle, Smile, Hash } from "lucide-react";
 import { cryptoService } from "../../core/crypto/crypto";
 import type { FederatedMember as Member } from "../../features/servers/federatedClient";
 import type { WsMessage as ServerMessage } from "../../core/network/wsTypes";
@@ -479,11 +479,6 @@ export function ChannelChat() {
                         <span className="text-xs text-muted-foreground">
                           {formatDate(msg.createdAt)}
                         </span>
-                        {msg.verified && (
-                          <span title="Verified signature">
-                            <Lock className="w-3 h-3 text-primary" />
-                          </span>
-                        )}
                         {msg.decryptionFailed && (
                           <span title="Decryption failed">
                             <AlertTriangle className="w-3 h-3 text-destructive" />
