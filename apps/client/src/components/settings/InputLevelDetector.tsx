@@ -81,7 +81,8 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
       setError(null);
       setPermissionDenied(false);
 
-      if (platform() === "macos") {
+      const currentPlatform = await platform();
+      if (currentPlatform === "macos") {
         try {
           const hasPermission = await checkMicrophonePermission();
           if (!hasPermission) {

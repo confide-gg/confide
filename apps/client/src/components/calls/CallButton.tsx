@@ -23,7 +23,8 @@ export function CallButton({ callerId, calleeId, calleeIdentityKey, dsaSecretKey
 
   const handleClick = async () => {
     try {
-      if (platform() === "macos") {
+      const currentPlatform = await platform();
+      if (currentPlatform === "macos") {
         const hasPermission = await checkMicrophonePermission();
         if (!hasPermission) {
           const granted = await requestMicrophonePermission();

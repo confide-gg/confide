@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vcpkg-binary-cache
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('apps/client/src-tauri/Cargo.lock') }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             vcpkg-${{ runner.os }}-
 
