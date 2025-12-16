@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use super::CENTRAL_API_URL;
-
 #[derive(Debug, Serialize)]
 struct VerifyTokenRequest {
     server_id: Uuid,
@@ -31,6 +29,7 @@ pub async fn verify_federation_token(
     server_id: Uuid,
     token: &str,
     user_id: Uuid,
+    central_url: &str,
 ) -> Result<Option<FederationUserInfo>, String> {
     let token_bytes = hex::decode(token).map_err(|e| format!("Invalid token format: {}", e))?;
     let token_hash = Sha256::digest(&token_bytes).to_vec();
@@ -42,7 +41,7 @@ pub async fn verify_federation_token(
     };
 
     let response = client
-        .post(format!("{}/federation/verify-token", CENTRAL_API_URL))
+        .post(format!("{}/federation/verify-token", central_url))
         .json(&request)
         .send()
         .await

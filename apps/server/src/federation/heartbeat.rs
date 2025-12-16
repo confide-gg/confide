@@ -7,7 +7,6 @@ use std::time::Duration;
 use tokio::time::interval;
 use uuid::Uuid;
 
-use super::CENTRAL_API_URL;
 use crate::db::Database;
 
 #[derive(Debug, Serialize)]
@@ -27,13 +26,15 @@ struct HeartbeatResponse {
 pub struct HeartbeatService {
     client: Client,
     db: Database,
+    central_url: String,
 }
 
 impl HeartbeatService {
-    pub fn new(db: Database) -> Self {
+    pub fn new(db: Database, central_url: String) -> Self {
         Self {
             client: Client::new(),
             db,
+            central_url,
         }
     }
 
@@ -81,7 +82,7 @@ impl HeartbeatService {
 
         let response = self
             .client
-            .post(format!("{}/federation/heartbeat", CENTRAL_API_URL))
+            .post(format!("{}/federation/heartbeat", self.central_url))
             .json(&request)
             .send()
             .await

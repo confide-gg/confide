@@ -9,6 +9,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::error::{AppError, Result};
 use crate::models::permissions;
@@ -20,15 +21,47 @@ use axum::routing::delete;
 
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/settings", axum::routing::patch(update_server_settings))
         .route("/password", post(set_password))
         .route("/password/remove", post(remove_password))
         .route("/info", get(get_server_info))
         .route("/", delete(delete_server))
 }
 
+async fn check_server_admin_or_owner(state: &Arc<AppState>, member_id: Uuid) -> Result<()> {
+    let perms = state.db.get_member_permissions(member_id).await?;
+    if permissions::has_permission(perms, permissions::ADMINISTRATOR) {
+        return Ok(());
+    }
+
+    let identity = state.db.get_server_identity().await?;
+    let member = state
+        .db
+        .get_member(member_id)
+        .await?
+        .ok_or(AppError::NotFound("Member not found".into()))?;
+
+    let is_owner = identity
+        .and_then(|i| i.owner_user_id)
+        .map(|owner_id| member.central_user_id == owner_id)
+        .unwrap_or(false);
+
+    if !is_owner {
+        return Err(AppError::Forbidden);
+    }
+
+    Ok(())
+}
+
 #[derive(Debug, Serialize)]
 pub struct ServerInfoResponse {
     pub name: String,
+    pub description: Option<String>,
+    pub is_discoverable: bool,
+    pub icon_url: Option<String>,
+    pub max_users: i32,
+    pub max_upload_size_mb: i32,
+    pub message_retention: String,
     pub has_password: bool,
 }
 
@@ -43,6 +76,55 @@ pub async fn get_server_info(
 
     Ok(Json(ServerInfoResponse {
         name: identity.server_name,
+        description: identity.description,
+        is_discoverable: identity.is_discoverable,
+        icon_url: identity.icon_url,
+        max_users: identity.max_users,
+        max_upload_size_mb: identity.max_upload_size_mb,
+        message_retention: identity.message_retention,
+        has_password: identity.password_hash.is_some(),
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateServerSettingsRequest {
+    pub server_name: Option<String>,
+    pub description: Option<Option<String>>,
+    pub is_discoverable: Option<bool>,
+    pub icon_url: Option<Option<String>>,
+    pub max_users: Option<i32>,
+    pub max_upload_size_mb: Option<i32>,
+    pub message_retention: Option<String>,
+}
+
+pub async fn update_server_settings(
+    State(state): State<Arc<AppState>>,
+    auth: AuthMember,
+    Json(req): Json<UpdateServerSettingsRequest>,
+) -> Result<Json<ServerInfoResponse>> {
+    check_server_admin_or_owner(&state, auth.member_id).await?;
+
+    let identity = state
+        .db
+        .update_server_settings(
+            req.server_name,
+            req.description,
+            req.is_discoverable,
+            req.icon_url,
+            req.max_users,
+            req.max_upload_size_mb,
+            req.message_retention,
+        )
+        .await?;
+
+    Ok(Json(ServerInfoResponse {
+        name: identity.server_name,
+        description: identity.description,
+        is_discoverable: identity.is_discoverable,
+        icon_url: identity.icon_url,
+        max_users: identity.max_users,
+        max_upload_size_mb: identity.max_upload_size_mb,
+        message_retention: identity.message_retention,
         has_password: identity.password_hash.is_some(),
     }))
 }
@@ -57,25 +139,7 @@ pub async fn set_password(
     auth: AuthMember,
     Json(req): Json<SetPasswordRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    let perms = state.db.get_member_permissions(auth.member_id).await?;
-    if !permissions::has_permission(perms, permissions::ADMINISTRATOR) {
-        let identity = state.db.get_server_identity().await?;
-        let is_owner = identity
-            .and_then(|i| i.owner_user_id)
-            .map(|owner_id| {
-                let member = futures::executor::block_on(state.db.get_member(auth.member_id));
-                member
-                    .ok()
-                    .flatten()
-                    .map(|m| m.central_user_id == owner_id)
-                    .unwrap_or(false)
-            })
-            .unwrap_or(false);
-
-        if !is_owner {
-            return Err(AppError::Forbidden);
-        }
-    }
+    check_server_admin_or_owner(&state, auth.member_id).await?;
 
     if req.password.len() < 4 {
         return Err(AppError::BadRequest(
@@ -99,25 +163,7 @@ pub async fn remove_password(
     State(state): State<Arc<AppState>>,
     auth: AuthMember,
 ) -> Result<Json<serde_json::Value>> {
-    let perms = state.db.get_member_permissions(auth.member_id).await?;
-    if !permissions::has_permission(perms, permissions::ADMINISTRATOR) {
-        let identity = state.db.get_server_identity().await?;
-        let is_owner = identity
-            .and_then(|i| i.owner_user_id)
-            .map(|owner_id| {
-                let member = futures::executor::block_on(state.db.get_member(auth.member_id));
-                member
-                    .ok()
-                    .flatten()
-                    .map(|m| m.central_user_id == owner_id)
-                    .unwrap_or(false)
-            })
-            .unwrap_or(false);
-
-        if !is_owner {
-            return Err(AppError::Forbidden);
-        }
-    }
+    check_server_admin_or_owner(&state, auth.member_id).await?;
 
     state.db.set_server_password(None).await?;
 

@@ -8,9 +8,6 @@ pub struct Config {
     pub database: DatabaseConfig,
     #[serde(default)]
     pub redis: RedisConfig,
-    pub limits: LimitsConfig,
-    pub messages: MessagesConfig,
-    pub discovery: DiscoveryConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -18,6 +15,16 @@ pub struct ServerConfig {
     pub host: String,
     pub port: u16,
     pub public_domain: String,
+    #[serde(default = "default_central_url")]
+    pub central_url: String,
+}
+
+fn default_central_url() -> String {
+    if cfg!(debug_assertions) {
+        "http://localhost:3000/api".to_string()
+    } else {
+        "https://central.confide.gg/api".to_string()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -34,32 +41,33 @@ pub struct RedisConfig {
     pub url: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct LimitsConfig {
-    pub max_users: u32,
-    pub max_upload_size_mb: u32,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct MessagesConfig {
-    pub retention: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct DiscoveryConfig {
-    pub enabled: bool,
-    pub display_name: String,
-    pub description: Option<String>,
-}
-
 fn default_max_connections() -> u32 {
     50
 }
 
 impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
-        let contents = fs::read_to_string(path)?;
-        let mut config: Config = toml::from_str(&contents)?;
+        let mut config = match fs::read_to_string(path) {
+            Ok(contents) => toml::from_str(&contents)?,
+            Err(_) => {
+                // Return default config if file missing, to be overridden by env vars
+                Config {
+                    server: ServerConfig {
+                        host: "0.0.0.0".to_string(),
+                        port: 8080,
+                        public_domain: "localhost:8080".to_string(),
+                        central_url: default_central_url(),
+                    },
+                    database: DatabaseConfig::default(),
+                    redis: RedisConfig::default(),
+                }
+            }
+        };
+
+        // Override central_url from environment if set
+        if let Ok(url) = env::var("CENTRAL_API_URL") {
+            config.server.central_url = url;
+        }
 
         if let Ok(url) = env::var("DATABASE_URL") {
             config.database.url = url;
@@ -83,6 +91,10 @@ impl Config {
             if let Ok(p) = port.parse() {
                 config.server.port = p;
             }
+        }
+
+        if let Ok(domain) = env::var("SERVER_PUBLIC_DOMAIN") {
+            config.server.public_domain = domain;
         }
 
         if config.database.url.is_empty() {
