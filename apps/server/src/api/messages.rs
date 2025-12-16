@@ -86,17 +86,7 @@ pub async fn send_message(
         .db
         .get_member(auth.member_id)
         .await?
-        .unwrap_or_else(|| crate::models::Member {
-            id: auth.member_id,
-            central_user_id: Uuid::nil(),
-            username: "Unknown".to_string(),
-            kem_public_key: vec![],
-            dsa_public_key: vec![],
-            display_name: None,
-            avatar_url: None,
-            joined_at: chrono::Utc::now(),
-            encrypted_channel_keys: serde_json::json!({}),
-        });
+        .ok_or(AppError::NotFound("Member not found".into()))?;
 
     let broadcast_message = MessageWithKey {
         id: message.id,
