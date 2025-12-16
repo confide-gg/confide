@@ -5,13 +5,13 @@ import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
 import type { PublicProfile, UserStatus } from "../../types";
-import type { DecryptedRole } from "../../features/servers/types";
+import type { ServerRole } from "../../features/servers/types";
 
 interface MemberProfileCardProps {
   userId: string;
   username: string;
   status: string;
-  roles: DecryptedRole[];
+  roles: ServerRole[];
   position: { x: number; y: number };
   onClose: () => void;
 }

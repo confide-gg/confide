@@ -3,7 +3,7 @@ use axum::{
     routing::{delete, get, patch, post},
     Json, Router,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -29,6 +29,27 @@ pub fn routes() -> Router<Arc<AppState>> {
         )
 }
 
+#[derive(Debug, Serialize)]
+pub struct ApiRole {
+    pub id: Uuid,
+    pub name: String,
+    pub permissions: i64,
+    pub color: Option<String>,
+    pub position: i32,
+}
+
+impl From<Role> for ApiRole {
+    fn from(role: Role) -> Self {
+        Self {
+            id: role.id,
+            name: role.name,
+            permissions: role.permissions,
+            color: role.color,
+            position: role.position,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateRoleRequest {
     pub name: String,
@@ -41,26 +62,32 @@ pub async fn create_role(
     State(state): State<Arc<AppState>>,
     auth: AuthMember,
     Json(req): Json<CreateRoleRequest>,
-) -> Result<Json<Role>> {
+) -> Result<Json<ApiRole>> {
     let perms = state.db.get_member_permissions(auth.member_id).await?;
     if !permissions::has_permission(perms, permissions::MANAGE_ROLES) {
         return Err(AppError::Forbidden);
     }
 
+    let name_str = req.name.trim().to_string();
+    if name_str.is_empty() {
+        return Err(AppError::BadRequest("Role name cannot be empty".into()));
+    }
+
     let role = state
         .db
-        .create_role(req.name, req.permissions, req.color, req.position)
+        .create_role(name_str, req.permissions, req.color, req.position)
         .await?;
 
-    Ok(Json(role))
+    Ok(Json(ApiRole::from(role)))
 }
 
 pub async fn get_roles(
     State(state): State<Arc<AppState>>,
     _auth: AuthMember,
-) -> Result<Json<Vec<Role>>> {
+) -> Result<Json<Vec<ApiRole>>> {
     let roles = state.db.get_all_roles().await?;
-    Ok(Json(roles))
+    let api_roles = roles.into_iter().map(ApiRole::from).collect();
+    Ok(Json(api_roles))
 }
 
 #[derive(Debug, Deserialize)]
@@ -76,15 +103,22 @@ pub async fn update_role(
     auth: AuthMember,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateRoleRequest>,
-) -> Result<Json<Role>> {
+) -> Result<Json<ApiRole>> {
     let perms = state.db.get_member_permissions(auth.member_id).await?;
     if !permissions::has_permission(perms, permissions::MANAGE_ROLES) {
         return Err(AppError::Forbidden);
     }
 
+    let name_str = req.name.map(|n| n.trim().to_string());
+    if let Some(ref n) = name_str {
+        if n.is_empty() {
+            return Err(AppError::BadRequest("Role name cannot be empty".into()));
+        }
+    }
+
     state
         .db
-        .update_role(id, req.name, req.permissions, req.color, req.position)
+        .update_role(id, name_str, req.permissions, req.color, req.position)
         .await?;
 
     let role = state
@@ -93,7 +127,7 @@ pub async fn update_role(
         .await?
         .ok_or(AppError::NotFound("Role not found".into()))?;
 
-    Ok(Json(role))
+    Ok(Json(ApiRole::from(role)))
 }
 
 pub async fn delete_role(
