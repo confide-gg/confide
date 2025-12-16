@@ -206,6 +206,19 @@ pub async fn send_message(
         .await?;
 
     if let Some(keys) = &req.message_keys {
+        let conversation_members = state.db.get_conversation_members(conversation_id).await?;
+        let member_ids: std::collections::HashSet<Uuid> =
+            conversation_members.iter().map(|m| m.user_id).collect();
+
+        for key in keys {
+            if !member_ids.contains(&key.user_id) {
+                return Err(AppError::BadRequest(format!(
+                    "User {} is not a conversation member",
+                    key.user_id
+                )));
+            }
+        }
+
         let key_data: Vec<(Uuid, Vec<u8>)> = keys
             .iter()
             .map(|k| (k.user_id, k.encrypted_key.clone()))
@@ -304,6 +317,19 @@ pub async fn edit_message(
         .ok_or(AppError::NotFound("Message not found".into()))?;
 
     if let Some(keys) = &req.message_keys {
+        let conversation_members = state.db.get_conversation_members(conversation_id).await?;
+        let member_ids: std::collections::HashSet<Uuid> =
+            conversation_members.iter().map(|m| m.user_id).collect();
+
+        for key in keys {
+            if !member_ids.contains(&key.user_id) {
+                return Err(AppError::BadRequest(format!(
+                    "User {} is not a conversation member",
+                    key.user_id
+                )));
+            }
+        }
+
         let key_data: Vec<(Uuid, Vec<u8>)> = keys
             .iter()
             .map(|k| (k.user_id, k.encrypted_key.clone()))
