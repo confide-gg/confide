@@ -5,8 +5,8 @@ use std::time::{Duration, Instant};
 use crate::call::h264::{rgba_to_i420, H264Encoder};
 
 pub const TARGET_FPS: u32 = 30;
-pub const TARGET_BITRATE: u32 = 4_000_000;
-pub const MAX_FRAME_SIZE: usize = 1400;
+pub const TARGET_BITRATE: u32 = 6_000_000;
+pub const MAX_FRAME_SIZE: usize = 1100;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenCaptureSource {
@@ -37,6 +37,7 @@ pub enum ScreenShareCommand {
     },
 }
 
+#[derive(Clone)]
 pub struct ScreenSharePipelineHandle {
     command_tx: Sender<ScreenShareCommand>,
     #[allow(dead_code)]
@@ -310,11 +311,6 @@ fn run_screen_capture_pipeline(
 
     let output_resolution = scap::capturer::Resolution::_1080p;
 
-    eprintln!(
-        "[Screen] Starting capture with {:?} output",
-        output_resolution
-    );
-
     let options = scap::capturer::Options {
         fps: TARGET_FPS,
         target: Some(target),
@@ -386,10 +382,6 @@ fn run_screen_capture_pipeline(
         };
 
         if width == 0 || height == 0 {
-            eprintln!(
-                "[Screen] Skipping frame with invalid dimensions: {}x{}",
-                width, height
-            );
             continue;
         }
 
@@ -445,44 +437,47 @@ fn run_screen_capture_pipeline(
                 perf_frame_count += 1;
 
                 if perf_frame_count >= perf_report_interval {
-                    let avg_convert = perf_convert_total.as_micros() / perf_frame_count as u128;
-                    let avg_encode = perf_encode_total.as_micros() / perf_frame_count as u128;
-                    let total = avg_convert + avg_encode;
-
-                    eprintln!(
-                        "[Screen Perf] {}x{} avg over {} frames: convert={}us ({:.0}%), encode={}us ({:.0}%), total={}us, max_fps={:.1}",
-                        width,
-                        height,
-                        perf_frame_count,
-                        avg_convert,
-                        avg_convert as f64 / total as f64 * 100.0,
-                        avg_encode,
-                        avg_encode as f64 / total as f64 * 100.0,
-                        total,
-                        1_000_000.0 / total as f64
-                    );
+                    let _avg_convert = perf_convert_total.as_micros() / perf_frame_count as u128;
+                    let _avg_encode = perf_encode_total.as_micros() / perf_frame_count as u128;
 
                     perf_convert_total = Duration::ZERO;
                     perf_encode_total = Duration::ZERO;
                     perf_frame_count = 0;
                 }
 
+                let frame_key_requested = do_keyframe;
                 for packet in packets {
+                    let is_keyframe = packet.is_keyframe || frame_key_requested;
                     let fragments = fragment_frame(
                         frame_id,
-                        packet.is_keyframe,
+                        is_keyframe,
                         aligned_width as u16,
                         aligned_height as u16,
                         timestamp,
                         &packet.data,
                     );
 
+                    let mut dropped = false;
                     for fragment in fragments {
                         let bytes = fragment.to_bytes();
-                        if frame_tx.send(bytes).is_err() {
-                            capturer.stop_capture();
-                            return;
+                        match frame_tx.try_send(bytes) {
+                            Ok(_) => {}
+                            Err(crossbeam_channel::TrySendError::Full(_)) => {
+                                dropped = true;
+                                if is_keyframe {
+                                    force_keyframe = true;
+                                }
+                                break;
+                            }
+                            Err(crossbeam_channel::TrySendError::Disconnected(_)) => {
+                                capturer.stop_capture();
+                                return;
+                            }
                         }
+                    }
+
+                    if dropped {
+                        break;
                     }
                 }
                 frame_id = frame_id.wrapping_add(1);
@@ -539,6 +534,7 @@ fn fragment_frame(
 pub struct FrameReassembler {
     pending_frames: std::collections::HashMap<u32, Vec<Option<Vec<u8>>>>,
     frame_metadata: std::collections::HashMap<u32, (bool, u16, u16, u64)>,
+    frame_first_seen: std::collections::HashMap<u32, Instant>,
     last_complete_frame: u32,
 }
 
@@ -547,21 +543,34 @@ impl FrameReassembler {
         Self {
             pending_frames: std::collections::HashMap::new(),
             frame_metadata: std::collections::HashMap::new(),
+            frame_first_seen: std::collections::HashMap::new(),
             last_complete_frame: 0,
         }
     }
 
-    pub fn add_fragment(&mut self, frame: VideoFrame) -> Option<(Vec<u8>, bool, u16, u16, u64)> {
+    pub fn add_fragment(
+        &mut self,
+        frame: VideoFrame,
+    ) -> Option<(Vec<u8>, bool, u16, u16, u64, u32, u64)> {
+        let now = Instant::now();
+        self.evict_expired(now);
+
         if frame.frame_id < self.last_complete_frame
             && self.last_complete_frame - frame.frame_id < 1000
         {
             return None;
         }
 
+        if frame.is_keyframe {
+            self.evict_before(frame.frame_id);
+        }
+
         let fragments = self
             .pending_frames
             .entry(frame.frame_id)
             .or_insert_with(|| vec![None; frame.fragment_count as usize]);
+
+        self.frame_first_seen.entry(frame.frame_id).or_insert(now);
 
         if (frame.fragment_index as usize) < fragments.len() {
             fragments[frame.fragment_index as usize] = Some(frame.data.clone());
@@ -583,11 +592,14 @@ impl FrameReassembler {
 
             let metadata = self.frame_metadata.remove(&frame.frame_id)?;
             self.pending_frames.remove(&frame.frame_id);
+            let first_seen = self.frame_first_seen.remove(&frame.frame_id);
             self.last_complete_frame = frame.frame_id;
 
             self.pending_frames
                 .retain(|&id, _| id >= frame.frame_id.saturating_sub(5));
             self.frame_metadata
+                .retain(|&id, _| id >= frame.frame_id.saturating_sub(5));
+            self.frame_first_seen
                 .retain(|&id, _| id >= frame.frame_id.saturating_sub(5));
 
             return Some((
@@ -596,10 +608,67 @@ impl FrameReassembler {
                 metadata.1,
                 metadata.2,
                 metadata.3,
+                frame.frame_id,
+                first_seen.map(|t| now.duration_since(t).as_millis() as u64).unwrap_or(0),
             ));
         }
 
+        if self.pending_frames.len() > 16 {
+            self.evict_oldest_until(12);
+        }
+
         None
+    }
+
+    fn evict_expired(&mut self, now: Instant) {
+        let timeout = Duration::from_millis(150);
+        let mut expired = Vec::new();
+        for (id, first_seen) in self.frame_first_seen.iter() {
+            if now.duration_since(*first_seen) > timeout {
+                expired.push(*id);
+            }
+        }
+
+        for id in expired {
+            self.pending_frames.remove(&id);
+            self.frame_metadata.remove(&id);
+            self.frame_first_seen.remove(&id);
+        }
+    }
+
+    fn evict_before(&mut self, frame_id: u32) {
+        let mut to_remove = Vec::new();
+        for id in self.pending_frames.keys() {
+            if *id < frame_id {
+                to_remove.push(*id);
+            }
+        }
+        for id in to_remove {
+            self.pending_frames.remove(&id);
+            self.frame_metadata.remove(&id);
+            self.frame_first_seen.remove(&id);
+        }
+    }
+
+    fn evict_oldest_until(&mut self, target_len: usize) {
+        if self.pending_frames.len() <= target_len {
+            return;
+        }
+        let mut ids: Vec<(u32, Instant)> = self
+            .frame_first_seen
+            .iter()
+            .map(|(id, t)| (*id, *t))
+            .collect();
+        ids.sort_by_key(|(_, t)| *t);
+
+        for (id, _) in ids {
+            if self.pending_frames.len() <= target_len {
+                break;
+            }
+            self.pending_frames.remove(&id);
+            self.frame_metadata.remove(&id);
+            self.frame_first_seen.remove(&id);
+        }
     }
 }
 

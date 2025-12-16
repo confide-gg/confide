@@ -10,6 +10,17 @@ interface DecodedFrame {
   rgba_data: number[];
 }
 
+interface H264Chunk {
+  width: number;
+  height: number;
+  timestamp: number;
+  frame_id: number;
+  is_keyframe: boolean;
+  data_b64: string;
+  age_ms: number;
+  drained: number;
+}
+
 interface ScreenShareViewerProps {
   isActive: boolean;
   peerUsername?: string;
@@ -22,6 +33,9 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const animationFrameRef = useRef<number | null>(null);
   const isPollingRef = useRef(false);
+  const usingWebCodecsRef = useRef(false);
+  const webCodecsFailedRef = useRef(false);
+  const decoderRef = useRef<VideoDecoder | null>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -67,6 +81,34 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
     ctx.putImageData(imageData, 0, 0);
   }, []);
 
+  const drawToCanvas = useCallback((source: CanvasImageSource, codedWidth: number, codedHeight: number) => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const targetW = Math.max(1, Math.floor(rect.width * dpr));
+    const targetH = Math.max(1, Math.floor(rect.height * dpr));
+
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const scale = Math.min(canvas.width / codedWidth, canvas.height / codedHeight);
+    const drawW = Math.max(1, Math.floor(codedWidth * scale));
+    const drawH = Math.max(1, Math.floor(codedHeight * scale));
+    const x = Math.floor((canvas.width - drawW) / 2);
+    const y = Math.floor((canvas.height - drawH) / 2);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(source, x, y, drawW, drawH);
+  }, []);
+
   useEffect(() => {
     if (!isActive) {
       const canvas = canvasRef.current;
@@ -82,18 +124,81 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      if (decoderRef.current) {
+        try {
+          decoderRef.current.close();
+        } catch {}
+        decoderRef.current = null;
+      }
       return;
     }
 
     isPollingRef.current = true;
+    usingWebCodecsRef.current = typeof (window as unknown as { VideoDecoder?: unknown }).VideoDecoder !== "undefined";
+    webCodecsFailedRef.current = false;
 
     const pollFrames = async () => {
       if (!isPollingRef.current) return;
 
       try {
-        const frame = await invoke<DecodedFrame | null>("get_video_frame");
-        if (frame) {
-          renderFrame(frame);
+        if (usingWebCodecsRef.current && !webCodecsFailedRef.current) {
+          const chunk = await invoke<H264Chunk | null>("get_h264_chunk");
+          if (chunk) {
+            setDimensions({ width: chunk.width, height: chunk.height });
+            const bin = atob(chunk.data_b64);
+            const data = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+
+            if (!decoderRef.current) {
+              try {
+                const decoder = new VideoDecoder({
+                  output: (frame) => {
+                    drawToCanvas(frame, frame.codedWidth, frame.codedHeight);
+                    frame.close();
+                  },
+                  error: () => {
+                    webCodecsFailedRef.current = true;
+                    decoderRef.current?.close();
+                    decoderRef.current = null;
+                  },
+                });
+
+                decoder.configure({
+                  codec: "avc1.42E01E",
+                  codedWidth: chunk.width,
+                  codedHeight: chunk.height,
+                  hardwareAcceleration: "prefer-hardware",
+                  optimizeForLatency: true,
+                  avc: { format: "annexb" },
+                } as unknown as VideoDecoderConfig);
+
+                decoderRef.current = decoder;
+              } catch {
+                webCodecsFailedRef.current = true;
+              }
+            }
+
+            if (decoderRef.current && !webCodecsFailedRef.current) {
+              try {
+                decoderRef.current.decode(
+                  new EncodedVideoChunk({
+                    type: chunk.is_keyframe ? "key" : "delta",
+                    timestamp: chunk.timestamp * 1000,
+                    data,
+                  })
+                );
+              } catch {
+                webCodecsFailedRef.current = true;
+                decoderRef.current?.close();
+                decoderRef.current = null;
+              }
+            }
+          }
+        } else {
+          const frame = await invoke<DecodedFrame | null>("get_video_frame");
+          if (frame) {
+            renderFrame(frame);
+          }
         }
       } catch (e) {
         console.error("Failed to get video frame:", e);
@@ -112,8 +217,14 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      if (decoderRef.current) {
+        try {
+          decoderRef.current.close();
+        } catch {}
+        decoderRef.current = null;
+      }
     };
-  }, [isActive, renderFrame]);
+  }, [isActive, renderFrame, drawToCanvas]);
 
   if (!isActive) {
     return null;

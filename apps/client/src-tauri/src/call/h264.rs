@@ -88,12 +88,14 @@ impl H264Encoder {
         context.set_frame_rate(Some(Rational::new(fps as i32, 1)));
         context.set_bit_rate(bitrate as usize);
         context.set_max_bit_rate(bitrate as usize * 2);
-        context.set_gop(fps * 2);
+        let gop = (fps / 4).max(8);
+        context.set_gop(gop);
 
         unsafe {
             let ctx = context.as_mut_ptr();
 
             (*ctx).thread_count = 0;
+            (*ctx).max_b_frames = 0;
 
             if codec_name == "libx264" {
                 let preset = std::ffi::CString::new("preset").unwrap();
@@ -103,6 +105,29 @@ impl H264Encoder {
                 let tune = std::ffi::CString::new("tune").unwrap();
                 let zerolatency = std::ffi::CString::new("zerolatency").unwrap();
                 ffmpeg::ffi::av_opt_set((*ctx).priv_data, tune.as_ptr(), zerolatency.as_ptr(), 0);
+
+                let profile = std::ffi::CString::new("profile").unwrap();
+                let baseline = std::ffi::CString::new("baseline").unwrap();
+                ffmpeg::ffi::av_opt_set((*ctx).priv_data, profile.as_ptr(), baseline.as_ptr(), 0);
+
+                let repeat_headers = std::ffi::CString::new("repeat_headers").unwrap();
+                let one = std::ffi::CString::new("1").unwrap();
+                ffmpeg::ffi::av_opt_set((*ctx).priv_data, repeat_headers.as_ptr(), one.as_ptr(), 0);
+
+                let bf = std::ffi::CString::new("bf").unwrap();
+                let zero = std::ffi::CString::new("0").unwrap();
+                ffmpeg::ffi::av_opt_set((*ctx).priv_data, bf.as_ptr(), zero.as_ptr(), 0);
+
+                let keyint = std::ffi::CString::new("keyint").unwrap();
+                let keyint_val = std::ffi::CString::new(gop.to_string()).unwrap();
+                ffmpeg::ffi::av_opt_set((*ctx).priv_data, keyint.as_ptr(), keyint_val.as_ptr(), 0);
+
+                let min_keyint = std::ffi::CString::new("min-keyint").unwrap();
+                let min_keyint_val = std::ffi::CString::new(gop.to_string()).unwrap();
+                ffmpeg::ffi::av_opt_set((*ctx).priv_data, min_keyint.as_ptr(), min_keyint_val.as_ptr(), 0);
+
+                let scenecut = std::ffi::CString::new("scenecut").unwrap();
+                ffmpeg::ffi::av_opt_set((*ctx).priv_data, scenecut.as_ptr(), zero.as_ptr(), 0);
             }
 
             if codec_name == "h264_videotoolbox" {

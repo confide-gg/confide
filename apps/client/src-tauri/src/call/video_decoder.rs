@@ -1,5 +1,7 @@
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
+use base64::{engine::general_purpose, Engine as _};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::call::h264::H264Decoder;
 use crate::call::screen::{FrameReassembler, VideoFrame};
@@ -10,6 +12,20 @@ pub struct DecodedFrame {
     pub height: u32,
     pub timestamp: u64,
     pub rgba_data: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct H264Chunk {
+    pub width: u32,
+    pub height: u32,
+    pub timestamp: u64,
+    pub frame_id: u32,
+    pub is_keyframe: bool,
+    pub data_b64: String,
+    pub queued_at_ms: u64,
+    pub age_ms: u64,
+    pub drained: u32,
+    pub reasm_ms: u64,
 }
 
 pub struct VideoDecoderHandle {
@@ -25,11 +41,12 @@ impl VideoDecoderHandle {
 pub fn start_video_decoder(
     encrypted_rx: Receiver<Vec<u8>>,
     decoded_tx: Sender<DecodedFrame>,
+    h264_tx: Sender<H264Chunk>,
 ) -> Result<VideoDecoderHandle, String> {
     let (stop_tx, stop_rx) = crossbeam_channel::bounded::<()>(1);
 
     std::thread::spawn(move || {
-        run_video_decoder(encrypted_rx, decoded_tx, stop_rx);
+        run_video_decoder(encrypted_rx, decoded_tx, h264_tx, stop_rx);
     });
 
     Ok(VideoDecoderHandle { stop_tx })
@@ -38,28 +55,21 @@ pub fn start_video_decoder(
 fn run_video_decoder(
     encrypted_rx: Receiver<Vec<u8>>,
     decoded_tx: Sender<DecodedFrame>,
+    h264_tx: Sender<H264Chunk>,
     stop_rx: Receiver<()>,
 ) {
     let mut decoder = match H264Decoder::new() {
-        Ok(d) => {
-            eprintln!("[VideoDecoder] Created H.264 decoder");
-            d
-        }
-        Err(e) => {
-            eprintln!("[VideoDecoder] Failed to create H.264 decoder: {}", e);
-            return;
-        }
+        Ok(d) => d,
+        Err(_) => return,
     };
 
     let mut reassembler = FrameReassembler::new();
     let mut waiting_for_keyframe = true;
-    let mut frames_decoded = 0u64;
     let mut _frames_received = 0u64;
 
     loop {
         crossbeam_channel::select! {
             recv(stop_rx) -> _ => {
-                eprintln!("[VideoDecoder] Stop signal received, decoded {} frames", frames_decoded);
                 break;
             }
             recv(encrypted_rx) -> result => {
@@ -69,28 +79,40 @@ fn run_video_decoder(
 
                         let frame = match VideoFrame::from_bytes(&data) {
                             Ok(f) => f,
-                            Err(e) => {
-                                eprintln!("[VideoDecoder] Failed to parse video frame: {}", e);
-                                continue;
-                            }
+                            Err(_) => continue,
                         };
 
                         let reassembled = reassembler.add_fragment(frame);
-                        if let Some((h264_data, is_keyframe, _width, _height, timestamp)) = reassembled {
+                        if let Some((h264_data, is_keyframe, width, height, timestamp, frame_id, reasm_ms)) = reassembled {
                             if waiting_for_keyframe && !is_keyframe {
-                                eprintln!("[VideoDecoder] Waiting for keyframe, skipping P-frame");
                                 continue;
                             }
 
                             if is_keyframe {
                                 waiting_for_keyframe = false;
-                                eprintln!("[VideoDecoder] Got keyframe, size={} bytes", h264_data.len());
                             }
+
+                            let queued_at_ms = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_millis() as u64;
+
+                            let _ = h264_tx.try_send(H264Chunk {
+                                width: width as u32,
+                                height: height as u32,
+                                timestamp,
+                                frame_id,
+                                is_keyframe,
+                                data_b64: general_purpose::STANDARD.encode(&h264_data),
+                                queued_at_ms,
+                                age_ms: 0,
+                                drained: 0,
+                                reasm_ms,
+                            });
 
                             match decoder.decode(&h264_data) {
                                 Ok(decoded_frames) => {
                                     for frame in decoded_frames {
-                                        frames_decoded += 1;
                                         let decoded_frame = DecodedFrame {
                                             width: frame.width,
                                             height: frame.height,
@@ -98,14 +120,10 @@ fn run_video_decoder(
                                             rgba_data: frame.rgba_data,
                                         };
 
-                                        if decoded_tx.send(decoded_frame).is_err() {
-                                            eprintln!("[VideoDecoder] Output channel closed");
-                                            return;
-                                        }
+                                        let _ = decoded_tx.try_send(decoded_frame);
                                     }
                                 }
-                                Err(e) => {
-                                    eprintln!("[VideoDecoder] Decode error: {}", e);
+                                Err(_) => {
                                     if is_keyframe {
                                         waiting_for_keyframe = true;
                                     }
@@ -114,7 +132,6 @@ fn run_video_decoder(
                         }
                     }
                     Err(_) => {
-                        eprintln!("[VideoDecoder] Input channel closed");
                         break;
                     }
                 }

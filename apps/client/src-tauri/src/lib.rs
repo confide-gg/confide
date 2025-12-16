@@ -492,6 +492,31 @@ async fn get_video_frame() -> Option<call::DecodedFrame> {
 }
 
 #[tauri::command]
+async fn get_h264_chunk() -> Option<call::H264Chunk> {
+    let manager = get_call_manager().read().await;
+    let rx = manager.get_h264_chunk_receiver();
+    let mut last: Option<call::H264Chunk> = None;
+    let mut drained: u32 = 0;
+    while let Ok(chunk) = rx.try_recv() {
+        if last.is_some() {
+            drained = drained.saturating_add(1);
+        }
+        last = Some(chunk);
+    }
+    if let Some(mut chunk) = last {
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        chunk.age_ms = now_ms.saturating_sub(chunk.queued_at_ms);
+        chunk.drained = drained;
+        Some(chunk)
+    } else {
+        None
+    }
+}
+
+#[tauri::command]
 async fn init_notification_service() -> Result<(), String> {
     let service = get_notification_service();
     service.initialize().await.map_err(|e| e.to_string())
@@ -690,6 +715,7 @@ pub fn run() {
             set_peer_screen_sharing,
             set_peer_muted,
             get_video_frame,
+            get_h264_chunk,
             init_notification_service,
             check_notification_permission,
             send_enhanced_notification,

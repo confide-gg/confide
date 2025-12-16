@@ -13,7 +13,7 @@ pub use screen::{
 };
 pub use settings::AudioSettings;
 pub use state::{AudioDevices, CallQualityStats};
-pub use video_decoder::DecodedFrame;
+pub use video_decoder::{DecodedFrame, H264Chunk};
 
 use chrono::{DateTime, Utc};
 use confide_sdk::crypto::call::{
@@ -42,12 +42,17 @@ static AUDIO_CHANNEL: Lazy<(
 static VIDEO_SEND_CHANNEL: Lazy<(
     crossbeam_channel::Sender<Vec<u8>>,
     crossbeam_channel::Receiver<Vec<u8>>,
-)> = Lazy::new(|| crossbeam_channel::bounded(30));
+)> = Lazy::new(|| crossbeam_channel::bounded(200));
 
 static VIDEO_RECV_CHANNEL: Lazy<(
     crossbeam_channel::Sender<DecodedFrame>,
     crossbeam_channel::Receiver<DecodedFrame>,
 )> = Lazy::new(|| crossbeam_channel::bounded(10));
+
+static VIDEO_H264_CHANNEL: Lazy<(
+    crossbeam_channel::Sender<H264Chunk>,
+    crossbeam_channel::Receiver<H264Chunk>,
+)> = Lazy::new(|| crossbeam_channel::bounded(30));
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -174,6 +179,7 @@ pub struct CallManager {
     audio_settings: RwLock<settings::AudioSettings>,
     audio_pipeline: std::sync::Mutex<Option<AudioPipelineHandle>>,
     screen_pipeline: std::sync::Mutex<Option<ScreenSharePipelineHandle>>,
+    screen_quality_stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
     video_decoder: std::sync::Mutex<Option<VideoDecoderHandle>>,
     video_recv_tx: Arc<std::sync::Mutex<Option<crossbeam_channel::Sender<Vec<u8>>>>>,
     encryptor: RwLock<Option<Arc<std::sync::Mutex<confide_sdk::crypto::call::CallEncryptor>>>>,
@@ -205,6 +211,7 @@ impl CallManager {
             audio_settings: RwLock::new(audio_settings),
             audio_pipeline: std::sync::Mutex::new(None),
             screen_pipeline: std::sync::Mutex::new(None),
+            screen_quality_stop: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
             video_decoder: std::sync::Mutex::new(None),
             video_recv_tx: Arc::new(std::sync::Mutex::new(None)),
             encryptor: RwLock::new(None),
@@ -583,6 +590,7 @@ impl CallManager {
         let recv_stats = self.stats.clone();
         let media_streams_conn = media_streams.connection.clone();
         let audio_recv_tx_datagram = audio_recv_tx.clone();
+        let video_recv_tx_datagram = self.video_recv_tx.clone();
         let last_audio_recv = self.last_audio_received.clone();
         let conn_error = self.connection_error.clone();
 
@@ -592,26 +600,62 @@ impl CallManager {
                     datagram_result = media_streams_conn.read_datagram() => {
                         match datagram_result {
                             Ok(data) => {
-                                let decrypted = {
-                                    let mut enc = recv_encryptor.lock().unwrap();
-                                    match enc.decrypt_frame(&data) {
-                                        Ok(d) => d,
-                                        Err(_) => {
-                                            if let Ok(mut stats) = recv_stats.lock() {
-                                                stats.packets_lost += 1;
-                                            }
-                                            continue;
-                                        }
-                                    }
-                                };
-
-                                if let Ok(mut stats) = recv_stats.lock() {
-                                    stats.packets_received += 1;
+                                if data.is_empty() {
+                                    continue;
                                 }
 
-                                *last_audio_recv.lock().unwrap() = Some(std::time::Instant::now());
+                                let (datagram_type, payload) = match data[0] {
+                                    0x01 | 0x02 => (data[0], &data[1..]),
+                                    _ => (0x01, data.as_ref()),
+                                };
 
-                                let _ = audio_recv_tx_datagram.send(decrypted);
+                                match datagram_type {
+                                    0x01 => {
+                                        let decrypted = {
+                                            let mut enc = recv_encryptor.lock().unwrap();
+                                            match enc.decrypt_frame(payload) {
+                                                Ok(d) => d,
+                                                Err(_) => {
+                                                    if let Ok(mut stats) = recv_stats.lock() {
+                                                        stats.packets_lost += 1;
+                                                    }
+                                                    continue;
+                                                }
+                                            }
+                                        };
+
+                                        if let Ok(mut stats) = recv_stats.lock() {
+                                            stats.packets_received += 1;
+                                        }
+
+                                        *last_audio_recv.lock().unwrap() = Some(std::time::Instant::now());
+                                        let _ = audio_recv_tx_datagram.send(decrypted);
+                                    }
+                                    0x02 => {
+                                        let decrypted = {
+                                            let mut enc = recv_encryptor.lock().unwrap();
+                                            match enc.decrypt_video_frame(payload) {
+                                                Ok(d) => d,
+                                                Err(_) => {
+                                                    if let Ok(mut stats) = recv_stats.lock() {
+                                                        stats.packets_lost += 1;
+                                                    }
+                                                    continue;
+                                                }
+                                            }
+                                        };
+
+                                        if let Ok(mut stats) = recv_stats.lock() {
+                                            stats.packets_received += 1;
+                                        }
+
+                                        let tx_guard = video_recv_tx_datagram.lock().unwrap();
+                                        if let Some(ref tx) = *tx_guard {
+                                            let _ = tx.send(decrypted);
+                                        }
+                                    }
+                                    _ => {}
+                                }
                             }
                             Err(e) => {
                                 eprintln!("[QUIC] Datagram receive error: {}", e);
@@ -731,6 +775,8 @@ impl CallManager {
         drop(state);
 
         if let Some(pipeline) = self.screen_pipeline.lock().unwrap().take() {
+            self.screen_quality_stop
+                .store(true, std::sync::atomic::Ordering::Relaxed);
             pipeline.stop();
         }
         if let Some(decoder) = self.video_decoder.lock().unwrap().take() {
@@ -796,6 +842,8 @@ impl CallManager {
 
     pub async fn end_call(&self) {
         if let Some(pipeline) = self.screen_pipeline.lock().unwrap().take() {
+            self.screen_quality_stop
+                .store(true, std::sync::atomic::Ordering::Relaxed);
             pipeline.stop();
         }
         if let Some(decoder) = self.video_decoder.lock().unwrap().take() {
@@ -957,53 +1005,97 @@ impl CallManager {
         let enc_clone = enc.clone();
         drop(encryptor);
 
-        let video_send_guard = self.video_send.read().await;
-        let video_send = video_send_guard
+        let datagram_guard = self.datagram_channel.read().await;
+        let datagram_channel = datagram_guard
             .as_ref()
-            .ok_or("No video send stream available")?
+            .ok_or("No datagram channel available")?
             .clone();
-        drop(video_send_guard);
+        drop(datagram_guard);
 
         let frame_tx = VIDEO_SEND_CHANNEL.0.clone();
         let frame_rx = VIDEO_SEND_CHANNEL.1.clone();
 
         let pipeline = start_screen_share_pipeline(source_id, frame_tx)?;
+        let pipeline_for_quality = pipeline.clone();
         *self.screen_pipeline.lock().unwrap() = Some(pipeline);
 
-        let send_enc = enc_clone.clone();
+        self.screen_quality_stop
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+        let quality_stop = self.screen_quality_stop.clone();
+        let quality_stats = self.stats.clone();
         std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap();
+            let mut bitrate = screen::TARGET_BITRATE;
+            let mut last_sent = 0u32;
+            let mut last_lost = 0u32;
+            while !quality_stop.load(std::sync::atomic::Ordering::Relaxed) {
+                std::thread::sleep(std::time::Duration::from_secs(2));
+                let stats = match quality_stats.lock() {
+                    Ok(s) => s.clone(),
+                    Err(_) => continue,
+                };
+                let sent = stats.packets_sent;
+                let lost = stats.packets_lost;
+                let delta_sent = sent.saturating_sub(last_sent);
+                let delta_lost = lost.saturating_sub(last_lost);
+                last_sent = sent;
+                last_lost = lost;
 
-            rt.block_on(async move {
-                loop {
-                    match frame_rx.recv_timeout(std::time::Duration::from_millis(50)) {
-                        Ok(frame_data) => {
-                            let encrypted = {
-                                let mut e = send_enc.lock().unwrap();
-                                match e.encrypt_video_frame(&frame_data) {
-                                    Ok(data) => data,
-                                    Err(err) => {
-                                        eprintln!("[Video] Encrypt error: {}", err);
-                                        continue;
-                                    }
+                let loss = if delta_sent > 0 {
+                    delta_lost as f32 / delta_sent as f32
+                } else {
+                    0.0
+                };
+
+                if loss > 0.08 {
+                    bitrate = ((bitrate as f32) * 0.75) as u32;
+                    pipeline_for_quality.request_keyframe();
+                } else if loss > 0.03 {
+                    bitrate = ((bitrate as f32) * 0.85) as u32;
+                } else if loss < 0.01 {
+                    bitrate = ((bitrate as f32) * 1.10) as u32;
+                }
+
+                bitrate = bitrate.clamp(1_500_000, 12_000_000);
+                pipeline_for_quality.set_quality(screen::TARGET_FPS, bitrate);
+            }
+        });
+
+        let send_enc = enc_clone.clone();
+        let send_stats = self.stats.clone();
+        std::thread::spawn(move || {
+            loop {
+                match frame_rx.recv_timeout(std::time::Duration::from_millis(50)) {
+                    Ok(frame_data) => {
+                        let encrypted = {
+                            let mut e = send_enc.lock().unwrap();
+                            match e.encrypt_video_frame(&frame_data) {
+                                Ok(data) => data,
+                                Err(err) => {
+                                    eprintln!("[Video] Encrypt error: {}", err);
+                                    continue;
                                 }
-                            };
-                            if video_send.send(&encrypted).await.is_err() {
-                                eprintln!("[Video] Send failed, stopping");
-                                break;
+                            }
+                        };
+                        match datagram_channel.send_video_lossy(&encrypted) {
+                            Ok(_) => {
+                                if let Ok(mut stats) = send_stats.lock() {
+                                    stats.packets_sent += 1;
+                                }
+                            }
+                            Err(_) => {
+                                if let Ok(mut stats) = send_stats.lock() {
+                                    stats.packets_lost += 1;
+                                }
                             }
                         }
-                        Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
-                        Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
-                            eprintln!("[Video] Channel disconnected, stopping");
-                            break;
-                        }
+                    }
+                    Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
+                    Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
+                        eprintln!("[Video] Channel disconnected, stopping");
+                        break;
                     }
                 }
-            });
+            }
         });
 
         {
@@ -1017,6 +1109,8 @@ impl CallManager {
 
     pub async fn stop_screen_share(&self) -> Result<(), String> {
         if let Some(pipeline) = self.screen_pipeline.lock().unwrap().take() {
+            self.screen_quality_stop
+                .store(true, std::sync::atomic::Ordering::Relaxed);
             pipeline.stop();
         }
 
@@ -1041,11 +1135,12 @@ impl CallManager {
             }
 
             let decoded_tx = VIDEO_RECV_CHANNEL.0.clone();
+            let h264_tx = VIDEO_H264_CHANNEL.0.clone();
             let (video_recv_tx, video_recv_rx) = crossbeam_channel::bounded::<Vec<u8>>(30);
 
             *self.video_recv_tx.lock().unwrap() = Some(video_recv_tx);
 
-            let decoder = start_video_decoder(video_recv_rx, decoded_tx)?;
+            let decoder = start_video_decoder(video_recv_rx, decoded_tx, h264_tx)?;
             *self.video_decoder.lock().unwrap() = Some(decoder);
         } else {
             *self.video_recv_tx.lock().unwrap() = None;
@@ -1062,6 +1157,10 @@ impl CallManager {
 
     pub fn get_decoded_frame_receiver(&self) -> crossbeam_channel::Receiver<DecodedFrame> {
         VIDEO_RECV_CHANNEL.1.clone()
+    }
+
+    pub fn get_h264_chunk_receiver(&self) -> crossbeam_channel::Receiver<H264Chunk> {
+        VIDEO_H264_CHANNEL.1.clone()
     }
 
     #[allow(dead_code)]

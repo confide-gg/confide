@@ -9,6 +9,8 @@ use tokio::sync::Mutex;
 
 const STREAM_TYPE_AUDIO: u8 = 0x01;
 const STREAM_TYPE_VIDEO: u8 = 0x02;
+const DATAGRAM_TYPE_AUDIO: u8 = 0x01;
+const DATAGRAM_TYPE_VIDEO: u8 = 0x02;
 
 pub struct CallTransport {
     #[allow(dead_code)]
@@ -285,7 +287,17 @@ impl DatagramChannel {
     }
 
     pub fn send_audio_lossy(&self, data: &[u8]) -> Result<(), String> {
-        self.send(data)
+        let mut buf = Vec::with_capacity(1 + data.len());
+        buf.push(DATAGRAM_TYPE_AUDIO);
+        buf.extend_from_slice(data);
+        self.send(&buf)
+    }
+
+    pub fn send_video_lossy(&self, data: &[u8]) -> Result<(), String> {
+        let mut buf = Vec::with_capacity(1 + data.len());
+        buf.push(DATAGRAM_TYPE_VIDEO);
+        buf.extend_from_slice(data);
+        self.send(&buf)
     }
 }
 

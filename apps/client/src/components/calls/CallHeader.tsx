@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { PhoneOff, PhoneIncoming, Mic, MicOff, Headphones, HeadphoneOff, Monitor, MonitorOff, ChevronDown, GripHorizontal } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { PhoneOff, PhoneIncoming, Mic, MicOff, Headphones, HeadphoneOff, Monitor, MonitorOff, ChevronDown } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
@@ -10,9 +10,7 @@ import { ScreenShareViewer } from "./ScreenShareViewer";
 import { CallView } from "./CallView";
 import { cn } from "@/lib/utils";
 
-const MIN_HEIGHT = 200;
-const MAX_HEIGHT = 600;
-const DEFAULT_HEIGHT = 350;
+const DEFAULT_HEIGHT = 360;
 
 export function CallHeader() {
   const { callState, peerHasLeft, leaveCall, rejoinCall, endCall, setMuted, setDeafened, startScreenShare, stopScreenShare } = useCall();
@@ -21,10 +19,7 @@ export function CallHeader() {
   const [isRejoining, setIsRejoining] = useState(false);
   const [showScreenPicker, setShowScreenPicker] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
-  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef<{ y: number; height: number } | null>(null);
 
   useEffect(() => {
     if (callState.status !== "active" || !callState.connected_at) return;
@@ -60,37 +55,6 @@ export function CallHeader() {
 
     return () => clearInterval(interval);
   }, [rejoinTimeRemaining]);
-
-  const handleDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-    dragStartRef.current = { y: e.clientY, height };
-  }, [height]);
-
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragStartRef.current) return;
-      
-      const deltaY = e.clientY - dragStartRef.current.y;
-      const newHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, dragStartRef.current.height + deltaY));
-      setHeight(newHeight);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      dragStartRef.current = null;
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -178,23 +142,10 @@ export function CallHeader() {
       <div 
         ref={containerRef}
         className="flex flex-col bg-card border-b border-border"
-        style={{ height: `${height}px`, minHeight: `${MIN_HEIGHT}px`, maxHeight: `${MAX_HEIGHT}px` }}
+        style={{ height: `min(${DEFAULT_HEIGHT}px, 70vh)` }}
       >
         <div className="flex-1 overflow-hidden">
           <CallView onMinimize={() => setIsMinimized(true)} isMinimized={false} />
-        </div>
-        
-        <div 
-          className={cn(
-            "h-3 bg-background flex items-center justify-center cursor-ns-resize group border-t border-border flex-shrink-0",
-            isDragging && "bg-white/10"
-          )}
-          onMouseDown={handleDragStart}
-        >
-          <GripHorizontal className={cn(
-            "w-6 h-4 text-white/30 group-hover:text-white/60 transition-colors",
-            isDragging && "text-white/60"
-          )} />
         </div>
       </div>
     );
