@@ -9,7 +9,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::error::{AppError, Result};
-use crate::federation::{verify_federation_token, CENTRAL_API_URL};
+use crate::federation::verify_federation_token;
 use crate::AppState;
 
 pub fn routes() -> Router<Arc<AppState>> {
@@ -82,18 +82,30 @@ pub async fn claim_ownership(
     let token_bytes = hex::decode(&req.setup_token).map_err(|_| AppError::InvalidSetupToken)?;
     let provided_hash = Sha256::digest(&token_bytes).to_vec();
     if provided_hash != setup_token_hash {
+        tracing::warn!("Setup token hash mismatch");
         return Err(AppError::InvalidSetupToken);
     }
+
+    tracing::info!("Setup token verified. Verifying federation token with Central...");
 
     let user_info = verify_federation_token(
         &state.http_client,
         req.central_server_id,
         &req.federation_token,
         req.user_id,
+        &state.config.server.central_url,
     )
     .await
-    .map_err(AppError::Federation)?
-    .ok_or(AppError::Unauthorized)?;
+    .map_err(|e| {
+        tracing::error!("Federation verification error: {}", e);
+        AppError::Federation(e)
+    })?;
+
+    if user_info.is_none() {
+        tracing::warn!("Central returned valid=false for token verification");
+        return Err(AppError::Unauthorized);
+    }
+    let user_info = user_info.unwrap();
 
     let member = state
         .db
@@ -123,10 +135,21 @@ pub async fn claim_ownership(
         }
     }
 
+    // Create default category
+    let category = match state.db.create_category("General".to_string(), 0).await {
+        Ok(c) => Some(c),
+        Err(e) => {
+            tracing::warn!("Failed to create default General category: {}", e);
+            None
+        }
+    };
+
+    let category_id = category.map(|c| c.id);
+
     if let Err(e) = state
         .db
         .create_channel(
-            None,
+            category_id,
             "general".to_string(),
             Some("General discussion".to_string()),
             0,
@@ -174,13 +197,16 @@ async fn register_with_central(
         dsa_public_key: identity.dsa_public_key.clone(),
         domain: state.config.server.public_domain.clone(),
         display_name: identity.server_name.clone(),
-        description: state.config.discovery.description.clone(),
-        is_discoverable: state.config.discovery.enabled,
+        description: identity.description.clone(),
+        is_discoverable: identity.is_discoverable,
     };
 
     let response = state
         .http_client
-        .post(format!("{}/federation/register-server", CENTRAL_API_URL))
+        .post(format!(
+            "{}/federation/register",
+            &state.config.server.central_url
+        ))
         .json(&request)
         .send()
         .await
