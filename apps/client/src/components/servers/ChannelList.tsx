@@ -1,5 +1,5 @@
 import { useServer } from "../../context/ServerContext";
-import { Hash, ChevronDown, ChevronRight, Plus, Settings, Loader2 } from "lucide-react";
+import { Hash, ChevronDown, ChevronRight, Plus, Settings, Loader2, GripVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -22,6 +22,7 @@ import { UserProfile } from "../sidebar/UserProfile";
 import { isFederatedServer } from "../../features/servers/types";
 import { ServerSettings } from "./ServerSettings";
 import { Panel } from "../layout/Panel";
+import { serverService } from "../../features/servers/servers";
 
 export function ChannelList() {
   const {
@@ -50,8 +51,15 @@ export function ChannelList() {
   const [newChannelCategoryId, setNewChannelCategoryId] = useState<string | undefined>();
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [draggedItem, setDraggedItem] = useState<{ type: 'channel' | 'category'; id: string; } | null>(null);
-  const [dragOverItem, setDragOverItem] = useState<{ type: 'channel' | 'category'; id: string; position?: 'above' | 'below' } | null>(null);
+  type DragItem = { type: "channel" | "category"; id: string };
+  type DragOver =
+    | { type: "channel"; id: string; position: "above" | "below"; categoryId: string | null }
+    | { type: "category"; id: string; position: "above" | "below" }
+    | { type: "uncategorized" };
+
+  const [dragItem, setDragItem] = useState<DragItem | null>(null);
+  const [dragOver, setDragOver] = useState<DragOver | null>(null);
+  const [dragPointerId, setDragPointerId] = useState<number | null>(null);
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -106,91 +114,183 @@ export function ChannelList() {
     }
   };
 
-  const handleDrop = async () => {
-    if (!draggedItem || !dragOverItem || !activeServer || !federatedClient) return;
-    if (draggedItem.id === dragOverItem.id) return;
+  const commitDrag = async (from: DragItem, to: DragOver) => {
+    if (!activeServer) return;
 
-    try {
-      if (draggedItem.type === 'channel' && dragOverItem.type === 'channel') {
-        const draggedChannel = channels.find(c => c.id === draggedItem.id);
-        const targetChannel = channels.find(c => c.id === dragOverItem.id);
-        if (!draggedChannel || !targetChannel) return;
-
-        const categoryChannels = channels
-          .filter(c => c.category_id === targetChannel.category_id)
-          .sort((a, b) => a.position - b.position);
-
-        const otherChannels = categoryChannels.filter(c => c.id !== draggedChannel.id);
-
-        const targetIndex = otherChannels.findIndex(c => c.id === targetChannel.id);
-        const insertIndex = dragOverItem.position === 'below' ? targetIndex + 1 : targetIndex;
-
-        const reorderedChannels = [
-          ...otherChannels.slice(0, insertIndex),
-          draggedChannel,
-          ...otherChannels.slice(insertIndex)
-        ];
-
-        for (let i = 0; i < reorderedChannels.length; i++) {
-          const channel = reorderedChannels[i];
-          if (channel.position !== i || channel.category_id !== targetChannel.category_id) {
-            await federatedClient.updateChannel(channel.id, {
-              position: i,
-              category_id: targetChannel.category_id,
-            });
-          }
-        }
-
-        await reloadServerData();
-      } else if (draggedItem.type === 'channel' && dragOverItem.type === 'category') {
-        const draggedChannel = channels.find(c => c.id === draggedItem.id);
-        const targetCategory = categories.find(c => c.id === dragOverItem.id);
-        if (!draggedChannel || !targetCategory) return;
-
-        const targetCategoryChannels = channels.filter(c => c.category_id === targetCategory.id);
-        const newPosition = targetCategoryChannels.length;
-
-        await federatedClient.updateChannel(draggedChannel.id, {
-          position: newPosition,
-          category_id: targetCategory.id,
-        });
-
-        await reloadServerData();
-      } else if (draggedItem.type === 'category' && dragOverItem.type === 'category') {
-        const draggedCategory = categories.find(c => c.id === draggedItem.id);
-        const targetCategory = categories.find(c => c.id === dragOverItem.id);
-        if (!draggedCategory || !targetCategory) return;
-
-        const sortedCategories = [...categories].sort((a, b) => a.position - b.position);
-        const otherCategories = sortedCategories.filter(c => c.id !== draggedCategory.id);
-
-        const targetIndex = otherCategories.findIndex(c => c.id === targetCategory.id);
-        const insertIndex = dragOverItem.position === 'below' ? targetIndex + 1 : targetIndex;
-
-        const reorderedCategories = [
-          ...otherCategories.slice(0, insertIndex),
-          draggedCategory,
-          ...otherCategories.slice(insertIndex)
-        ];
-
-        for (let i = 0; i < reorderedCategories.length; i++) {
-          const category = reorderedCategories[i];
-          if (category.position !== i) {
-            await federatedClient.updateCategory(category.id, {
-              position: i,
-            });
-          }
-        }
-
-        await reloadServerData();
+    const updateChannel = async (channelId: string, data: { position?: number; category_id?: string | null }) => {
+      if (federatedClient) {
+        await federatedClient.updateChannel(channelId, data);
+      } else {
+        await serverService.updateChannel(activeServer.id, channelId, data);
       }
-    } catch (error) {
-      console.error("Failed to reorder:", error);
-    } finally {
-      setDraggedItem(null);
-      setDragOverItem(null);
+    };
+
+    const updateCategory = async (categoryId: string, data: { position?: number }) => {
+      if (federatedClient) {
+        await federatedClient.updateCategory(categoryId, data);
+      } else {
+        await serverService.updateCategory(activeServer.id, categoryId, data);
+      }
+    };
+
+    // Categories: reorder relative to another category.
+    if (from.type === "category" && to.type === "category") {
+      if (from.id === to.id) return;
+      const sorted = [...categories].sort((a, b) => a.position - b.position);
+      const fromIndex = sorted.findIndex((c) => c.id === from.id);
+      if (fromIndex === -1) return;
+      const [moved] = sorted.splice(fromIndex, 1);
+      const targetIndex = sorted.findIndex((c) => c.id === to.id);
+      if (targetIndex === -1) return;
+      const insertAt = to.position === "below" ? targetIndex + 1 : targetIndex;
+      sorted.splice(insertAt, 0, moved);
+
+      for (let i = 0; i < sorted.length; i++) {
+        const cat = sorted[i];
+        if (cat.position !== i) {
+          await updateCategory(cat.id, { position: i });
+        }
+      }
+      await reloadServerData();
+      return;
     }
+
+    // Channels: reorder within a list or move across categories/uncategorized.
+    if (from.type !== "channel") return;
+    const dragged = channels.find((c) => c.id === from.id);
+    if (!dragged) return;
+
+    const normCat = (v: string | undefined) => (v ? v : null);
+    const byId = new Map(channels.map((c) => [c.id, c] as const));
+
+    const getList = (catId: string | null) =>
+      channels
+        .filter((c) => normCat(c.category_id) === catId)
+        .sort((a, b) => a.position - b.position);
+
+    const sourceCatId = normCat(dragged.category_id);
+
+    let targetCatId: string | null = sourceCatId;
+    let insertIndex: number | null = null;
+
+    if (to.type === "channel") {
+      if (to.id === from.id) return;
+      targetCatId = to.categoryId;
+      const targetList = getList(targetCatId).filter((c) => c.id !== dragged.id);
+      const baseIndex = targetList.findIndex((c) => c.id === to.id);
+      if (baseIndex === -1) return;
+      insertIndex = to.position === "below" ? baseIndex + 1 : baseIndex;
+    } else if (to.type === "category") {
+      targetCatId = to.id;
+      insertIndex = getList(targetCatId).filter((c) => c.id !== dragged.id).length; // end
+    } else if (to.type === "uncategorized") {
+      targetCatId = null;
+      insertIndex = getList(null).filter((c) => c.id !== dragged.id).length; // end
+    } else {
+      return;
+    }
+
+    const sourceListNext = getList(sourceCatId).filter((c) => c.id !== dragged.id);
+    const targetListBase = getList(targetCatId).filter((c) => c.id !== dragged.id);
+    const targetListNext = [...targetListBase];
+    targetListNext.splice(insertIndex, 0, dragged);
+
+    // Persist target list (and source list if moved across categories).
+    const persistList = async (catId: string | null, list: typeof channels) => {
+      for (let i = 0; i < list.length; i++) {
+        const ch = list[i];
+        const original = byId.get(ch.id);
+        const desiredCat = catId;
+        const origCat = normCat(original?.category_id);
+        if (!original) continue;
+        if (original.position !== i || origCat !== desiredCat) {
+          await updateChannel(ch.id, { position: i, category_id: desiredCat });
+        }
+      }
+    };
+
+    if (sourceCatId !== targetCatId) {
+      await persistList(sourceCatId, sourceListNext);
+    }
+    await persistList(targetCatId, targetListNext);
+    await reloadServerData();
   };
+
+  useEffect(() => {
+    if (!dragItem || dragPointerId === null) return;
+
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+
+    const findTarget = (el: Element | null): HTMLElement | null => {
+      let node: Element | null = el;
+      while (node) {
+        const t = (node as HTMLElement).dataset?.dndType;
+        if (t) return node as HTMLElement;
+        node = node.parentElement;
+      }
+      return null;
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId !== dragPointerId) return;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const target = findTarget(el);
+      if (!target) {
+        setDragOver(null);
+        return;
+      }
+
+      const t = target.dataset.dndType;
+      const id = target.dataset.dndId;
+
+      if (t === "channel" && id) {
+        const rect = target.getBoundingClientRect();
+        const position = e.clientY < rect.top + rect.height / 2 ? "above" : "below";
+        const rawCat = target.dataset.dndCategoryId;
+        setDragOver({ type: "channel", id, position, categoryId: rawCat ? rawCat : null });
+        return;
+      }
+
+      if (t === "category" && id) {
+        const rect = target.getBoundingClientRect();
+        const position = e.clientY < rect.top + rect.height / 2 ? "above" : "below";
+        setDragOver({ type: "category", id, position });
+        return;
+      }
+
+      if (t === "uncategorized") {
+        setDragOver({ type: "uncategorized" });
+        return;
+      }
+
+      setDragOver(null);
+    };
+
+    const end = (e: PointerEvent) => {
+      if (e.pointerId !== dragPointerId) return;
+      const from = dragItem;
+      const to = dragOver;
+      setDragItem(null);
+      setDragOver(null);
+      setDragPointerId(null);
+
+      if (!to) return;
+      // Fire and forget; the UI will refresh via reloadServerData.
+      commitDrag(from, to).catch((err) => console.error("Failed to reorder:", err));
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", end, { once: true });
+    window.addEventListener("pointercancel", end, { once: true });
+
+    return () => {
+      document.body.style.userSelect = prevUserSelect;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", end as any);
+      window.removeEventListener("pointercancel", end as any);
+    };
+  }, [dragItem, dragPointerId, dragOver, categories, channels, activeServer, federatedClient]);
 
   return (
     <aside className="w-60 h-full overflow-hidden shrink-0">
@@ -217,46 +317,41 @@ export function ChannelList() {
             return (
               <div
                 key={category.id}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (draggedItem?.type === 'category' && draggedItem.id !== category.id) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const midpoint = rect.top + rect.height / 2;
-                    const position = e.clientY < midpoint ? 'above' : 'below';
-                    setDragOverItem({ type: 'category', id: category.id, position });
-                  }
-                }}
-                onDragLeave={() => {
-                  if (dragOverItem?.id === category.id && draggedItem?.type === 'category') {
-                    setDragOverItem(null);
-                  }
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (draggedItem?.type === 'category') {
-                    handleDrop();
-                  }
-                }}
               >
                 <div
                   className={cn(
-                    "flex items-center justify-between px-2 py-1.5 text-muted-foreground hover:text-foreground group cursor-pointer",
-                    dragOverItem?.id === category.id && draggedItem?.type === 'category'
-                      ? dragOverItem.position === 'above' ? 'border-t-2 border-primary' : 'border-b-2 border-primary'
-                      : ''
+                    "flex items-center justify-between px-2 py-1.5 text-muted-foreground hover:text-foreground group",
+                    dragItem?.type === "category" && dragOver?.type === "category" && dragOver.id === category.id
+                      ? dragOver.position === "above" ? "border-t-2 border-primary" : "border-b-2 border-primary"
+                      : "",
+                    dragItem?.type === "channel" && dragOver?.type === "category" && dragOver.id === category.id
+                      ? "ring-2 ring-primary/40 rounded-md"
+                      : "",
+                    dragItem?.type === "category" && dragItem.id === category.id ? "opacity-50" : ""
                   )}
-                  draggable
-                  onDragStart={(e) => {
-                    setDraggedItem({ type: 'category', id: category.id });
-                    e.currentTarget.style.opacity = '0.5';
-                  }}
-                  onDragEnd={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                    setDraggedItem(null);
-                    setDragOverItem(null);
-                  }}
+                  data-dnd-type="category"
+                  data-dnd-id={category.id}
                 >
-                  <div className="flex items-center gap-1.5 flex-1 overflow-hidden" onClick={() => toggleCategory(category.id)}>
+                  <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
+                    <button
+                      type="button"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragItem({ type: "category", id: category.id });
+                        setDragOver({ type: "category", id: category.id, position: "below" });
+                        setDragPointerId(e.pointerId);
+                      }}
+                      className="p-1 -ml-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                      aria-label="Drag category"
+                    >
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(category.id)}
+                      className="flex items-center gap-1.5 flex-1 overflow-hidden text-left"
+                    >
                     {expandedCategories.has(category.id) ? (
                       <ChevronDown className="w-3 h-3 flex-shrink-0" />
                     ) : (
@@ -265,6 +360,7 @@ export function ChannelList() {
                     <span className="text-[11px] font-semibold uppercase tracking-wide truncate select-none">
                       {category.name}
                     </span>
+                    </button>
                   </div>
 
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -287,54 +383,43 @@ export function ChannelList() {
                     {categoryChannels.map((channel) => (
                       <div
                         key={channel.id}
-                        draggable
-                        onDragStart={(e) => {
-                          setDraggedItem({ type: 'channel', id: channel.id });
-                          e.currentTarget.style.opacity = '0.5';
-                        }}
-                        onDragEnd={(e) => {
-                          e.currentTarget.style.opacity = '1';
-                          setDraggedItem(null);
-                          setDragOverItem(null);
-                        }}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          if (draggedItem?.type === 'channel' && draggedItem.id !== channel.id) {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const midpoint = rect.top + rect.height / 2;
-                            const position = e.clientY < midpoint ? 'above' : 'below';
-                            setDragOverItem({ type: 'channel', id: channel.id, position });
-                          }
-                        }}
-                        onDragLeave={() => {
-                          if (dragOverItem?.id === channel.id && draggedItem?.type === 'channel') {
-                            setDragOverItem(null);
-                          }
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          if (draggedItem?.type === 'channel') {
-                            handleDrop();
-                          }
-                        }}
-                        className={
-                          dragOverItem?.id === channel.id && draggedItem?.type === 'channel'
-                            ? dragOverItem.position === 'above'
-                              ? 'border-t-2 border-primary'
-                              : 'border-b-2 border-primary'
-                            : ''
-                        }
+                        className={cn(
+                          "group",
+                          dragItem?.type === "channel" && dragOver?.type === "channel" && dragOver.id === channel.id
+                            ? dragOver.position === "above" ? "border-t-2 border-primary" : "border-b-2 border-primary"
+                            : "",
+                          dragItem?.type === "channel" && dragItem.id === channel.id ? "opacity-50" : ""
+                        )}
+                        data-dnd-type="channel"
+                        data-dnd-id={channel.id}
+                        data-dnd-category-id={category.id}
                       >
-                        <button
-                          onClick={() => setActiveChannel(channel)}
-                          className={`flex items-center gap-2 px-3 py-1.5 ml-2 w-[calc(100%-8px)] text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${activeChannel?.id === channel.id
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                            }`}
-                        >
-                          <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
-                          <span className="truncate text-sm">{channel.name}</span>
-                        </button>
+                        <div className="flex items-center gap-1 ml-2 w-[calc(100%-8px)]">
+                          <button
+                            type="button"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDragItem({ type: "channel", id: channel.id });
+                              setDragOver({ type: "channel", id: channel.id, position: "below", categoryId: category.id });
+                              setDragPointerId(e.pointerId);
+                            }}
+                            className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                            aria-label="Drag channel"
+                          >
+                            <GripVertical className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setActiveChannel(channel)}
+                            className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${activeChannel?.id === channel.id
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              }`}
+                          >
+                            <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
+                            <span className="truncate text-sm">{channel.name}</span>
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -345,61 +430,55 @@ export function ChannelList() {
 
           {uncategorizedChannels.length > 0 && (
             <div>
-              <div className="px-2 py-1.5 text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+              <div
+                className={cn(
+                  "px-2 py-1.5 text-muted-foreground text-[11px] font-semibold uppercase tracking-wide rounded-md",
+                  dragItem?.type === "channel" && dragOver?.type === "uncategorized" ? "ring-2 ring-primary/40" : ""
+                )}
+                data-dnd-type="uncategorized"
+              >
                 Text Channels
               </div>
               <div className="space-y-0.5">
                 {uncategorizedChannels.map((channel) => (
                   <div
                     key={channel.id}
-                    draggable
-                    onDragStart={(e) => {
-                      setDraggedItem({ type: 'channel', id: channel.id });
-                      e.currentTarget.style.opacity = '0.5';
-                    }}
-                    onDragEnd={(e) => {
-                      e.currentTarget.style.opacity = '1';
-                      setDraggedItem(null);
-                      setDragOverItem(null);
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      if (draggedItem?.type === 'channel' && draggedItem.id !== channel.id) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const midpoint = rect.top + rect.height / 2;
-                        const position = e.clientY < midpoint ? 'above' : 'below';
-                        setDragOverItem({ type: 'channel', id: channel.id, position });
-                      }
-                    }}
-                    onDragLeave={() => {
-                      if (dragOverItem?.id === channel.id && draggedItem?.type === 'channel') {
-                        setDragOverItem(null);
-                      }
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (draggedItem?.type === 'channel') {
-                        handleDrop();
-                      }
-                    }}
-                    className={
-                      dragOverItem?.id === channel.id && draggedItem?.type === 'channel'
-                        ? dragOverItem.position === 'above'
-                          ? 'border-t-2 border-primary'
-                          : 'border-b-2 border-primary'
-                        : ''
-                    }
+                    className={cn(
+                      "group",
+                      dragItem?.type === "channel" && dragOver?.type === "channel" && dragOver.id === channel.id
+                        ? dragOver.position === "above" ? "border-t-2 border-primary" : "border-b-2 border-primary"
+                        : "",
+                      dragItem?.type === "channel" && dragItem.id === channel.id ? "opacity-50" : ""
+                    )}
+                    data-dnd-type="channel"
+                    data-dnd-id={channel.id}
                   >
-                    <button
-                      onClick={() => setActiveChannel(channel)}
-                      className={`flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${activeChannel?.id === channel.id
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        }`}
-                    >
-                      <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
-                      <span className="truncate text-sm">{channel.name}</span>
-                    </button>
+                    <div className="flex items-center gap-1 w-full">
+                      <button
+                        type="button"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragItem({ type: "channel", id: channel.id });
+                          setDragOver({ type: "channel", id: channel.id, position: "below", categoryId: null });
+                          setDragPointerId(e.pointerId);
+                        }}
+                        className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                        aria-label="Drag channel"
+                      >
+                        <GripVertical className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setActiveChannel(channel)}
+                        className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${activeChannel?.id === channel.id
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          }`}
+                      >
+                        <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
+                        <span className="truncate text-sm">{channel.name}</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

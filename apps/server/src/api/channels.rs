@@ -17,11 +17,14 @@ pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/categories", post(create_category))
         .route("/categories", get(get_categories))
-        .route("/categories/{id}", patch(update_category))
+        .route(
+            "/categories/{id}",
+            patch(update_category).post(update_category),
+        )
         .route("/categories/{id}", delete(delete_category))
         .route("/", post(create_channel))
         .route("/", get(get_channels))
-        .route("/{id}", patch(update_channel))
+        .route("/{id}", patch(update_channel).post(update_channel))
         .route("/{id}", delete(delete_channel))
         .route("/invites", post(create_invite))
         .route("/invites", get(get_invites))

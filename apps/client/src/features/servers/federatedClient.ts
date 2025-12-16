@@ -52,7 +52,10 @@ export class FederatedServerClient {
         if (!response.ok) {
             const text = await response.text();
             console.error(`[FederatedClient] Request to ${path} failed with status ${response.status}: ${text}`);
-            throw new Error(`Federated request failed: ${text}`);
+            const err = new Error(`Federated request failed: ${text}`) as Error & { status?: number; path?: string };
+            err.status = response.status;
+            err.path = path;
+            throw err;
         }
         return response.json();
     }
@@ -88,15 +91,17 @@ export class FederatedServerClient {
     }
 
     public async updateChannel(channelId: string, data: any): Promise<void> {
-        await this.fetch<void>(`/channels/${channelId}`, {
-            method: "POST",
+        const path = `/channels/${channelId}`;
+        await this.fetch<void>(path, {
+            method: "PATCH",
             body: JSON.stringify(data),
         });
     }
 
     public async updateCategory(categoryId: string, data: any): Promise<void> {
-        await this.fetch<void>(`/channels/categories/${categoryId}`, {
-            method: "POST",
+        const path = `/channels/categories/${categoryId}`;
+        await this.fetch<void>(path, {
+            method: "PATCH",
             body: JSON.stringify(data),
         });
     }
