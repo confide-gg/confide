@@ -4,7 +4,6 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use redis::AsyncCommands;
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
@@ -86,17 +85,22 @@ pub async fn rate_limit_middleware(
         .await
         .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis error: {}", e)))?;
 
-    let count: u32 = conn
-        .incr(&rate_key, 1)
+    let script = redis::Script::new(
+        r#"
+        local count = redis.call('INCR', KEYS[1])
+        if count == 1 then
+            redis.call('EXPIRE', KEYS[1], ARGV[1])
+        end
+        return count
+        "#,
+    );
+
+    let count: u32 = script
+        .key(&rate_key)
+        .arg(window_seconds as i64)
+        .invoke_async(&mut conn)
         .await
         .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis error: {}", e)))?;
-
-    if count == 1 {
-        let _: () = conn
-            .expire(&rate_key, window_seconds as i64)
-            .await
-            .map_err(|e| AppError::Internal(anyhow::anyhow!("Redis error: {}", e)))?;
-    }
 
     if count > max_requests {
         tracing::warn!(
