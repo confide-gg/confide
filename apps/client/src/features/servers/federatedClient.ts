@@ -76,6 +76,14 @@ export class FederatedServerClient {
         return this.fetch<FederatedMember[]>("/members");
     }
 
+    async getMemberRoles(memberId: string): Promise<string[]> {
+        return this.fetch<string[]>(`/members/${memberId}/roles`);
+    }
+
+    async getAllMemberRoles(): Promise<Array<{ member_id: string; role_ids: string[] }>> {
+        return this.fetch<Array<{ member_id: string; role_ids: string[] }>>("/members/roles");
+    }
+
     async createCategory(data: { name: string; position: number }): Promise<FederatedCategory> {
         return this.fetch<FederatedCategory>("/channels/categories", {
             method: "POST",
@@ -126,7 +134,7 @@ export class FederatedServerClient {
     }
 
     public async getMyPermissions(): Promise<number> {
-        const response = await this.fetch<{ permissions: number }>("/permissions/me");
+        const response = await this.fetch<{ permissions: number }>("/members/me/permissions");
         return response.permissions;
     }
 
@@ -172,6 +180,18 @@ export class FederatedServerClient {
 
     public async deleteRole(roleId: string): Promise<void> {
         await this.fetch<void>(`/roles/${roleId}`, {
+            method: "DELETE",
+        });
+    }
+
+    public async assignRole(roleId: string, memberId: string): Promise<void> {
+        await this.fetch<void>(`/roles/${roleId}/members/${memberId}`, {
+            method: "POST",
+        });
+    }
+
+    public async removeRole(roleId: string, memberId: string): Promise<void> {
+        await this.fetch<void>(`/roles/${roleId}/members/${memberId}`, {
             method: "DELETE",
         });
     }

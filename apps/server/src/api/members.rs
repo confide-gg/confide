@@ -20,7 +20,9 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/me/permissions", get(get_my_permissions))
         .route("/me/leave", post(leave_server))
         .route("/me/channel-keys", post(update_my_channel_keys))
+        .route("/roles", get(get_all_member_roles))
         .route("/{id}", get(get_member))
+        .route("/{id}/roles", get(get_member_roles))
         .route("/{id}/kick", post(kick_member))
         .route("/{id}/ban", post(ban_member))
         .route("/{id}/unban", post(unban_member))
@@ -56,6 +58,39 @@ pub async fn get_my_permissions(
 ) -> Result<Json<PermissionsResponse>> {
     let permissions = state.db.get_member_permissions(auth.member_id).await?;
     Ok(Json(PermissionsResponse { permissions }))
+}
+
+#[derive(Debug, Serialize)]
+pub struct MemberRolesResponse {
+    pub member_id: Uuid,
+    pub role_ids: Vec<Uuid>,
+}
+
+pub async fn get_member_roles(
+    State(state): State<Arc<AppState>>,
+    _auth: AuthMember,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<Uuid>>> {
+    let role_ids = state.db.get_member_role_ids(id).await?;
+    Ok(Json(role_ids))
+}
+
+pub async fn get_all_member_roles(
+    State(state): State<Arc<AppState>>,
+    _auth: AuthMember,
+) -> Result<Json<Vec<MemberRolesResponse>>> {
+    let members = state.db.get_all_members().await?;
+    let mut result = Vec::new();
+
+    for member in members {
+        let role_ids = state.db.get_member_role_ids(member.id).await?;
+        result.push(MemberRolesResponse {
+            member_id: member.id,
+            role_ids,
+        });
+    }
+
+    Ok(Json(result))
 }
 
 pub async fn leave_server(

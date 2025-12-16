@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use crate::error::Result;
-use crate::models::{Ban, Member, MemberRoleAssignment};
+use crate::models::{Ban, Member};
 
 use super::Database;
 
@@ -83,24 +83,19 @@ impl Database {
         Ok(())
     }
 
-    pub async fn assign_role(
-        &self,
-        member_id: Uuid,
-        role_id: Uuid,
-    ) -> Result<MemberRoleAssignment> {
-        let assignment = sqlx::query_as::<_, MemberRoleAssignment>(
+    pub async fn assign_role(&self, member_id: Uuid, role_id: Uuid) -> Result<()> {
+        sqlx::query(
             r#"
             INSERT INTO member_roles (member_id, role_id)
             VALUES ($1, $2)
             ON CONFLICT (member_id, role_id) DO NOTHING
-            RETURNING *
             "#,
         )
         .bind(member_id)
         .bind(role_id)
-        .fetch_one(&self.pool)
+        .execute(&self.pool)
         .await?;
-        Ok(assignment)
+        Ok(())
     }
 
     pub async fn remove_role(&self, member_id: Uuid, role_id: Uuid) -> Result<()> {

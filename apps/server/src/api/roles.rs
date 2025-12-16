@@ -170,7 +170,7 @@ pub async fn assign_role_to_member(
         return Err(AppError::Forbidden);
     }
 
-    let _ = state.db.assign_role(member_id, role_id).await?;
+    state.db.assign_role(member_id, role_id).await?;
     let role_ids = state.db.get_member_role_ids(member_id).await?;
     state
         .ws

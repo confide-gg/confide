@@ -15,6 +15,7 @@ pub struct Member {
     pub encrypted_channel_keys: serde_json::Value,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct MemberRoleAssignment {
     pub member_id: Uuid,
