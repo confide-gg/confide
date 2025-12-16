@@ -33,24 +33,6 @@ export default defineConfig(async () => ({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
-            }
-            if (id.includes('lucide-react') || id.includes('sonner')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('@noble') || id.includes('crypto')) {
-              return 'crypto-vendor';
-            }
-            return 'vendor';
-          }
-        },
-      },
-    },
+    chunkSizeWarningLimit: 1500,
   },
 }));
