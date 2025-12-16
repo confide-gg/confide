@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/confide-gg/confide/compare/confide-client-v0.12.0...confide-client-v0.13.0) (2025-12-16)
+
+
+### Features
+
+* add drag-and-drop roles manager ([26fc050](https://github.com/confide-gg/confide/commit/26fc050505bee185b8c76defbd3815d9121688ef))
+
+
+### Bug Fixes
+
+* align federation role and ws behavior ([877ec13](https://github.com/confide-gg/confide/commit/877ec137a7fd219bff47e47b2b131d5561def9fe))
+
 ## [0.12.0](https://github.com/confide-gg/confide/compare/confide-client-v0.11.1...confide-client-v0.12.0) (2025-12-15)
 
 
