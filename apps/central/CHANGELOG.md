@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/confide-gg/confide/compare/confide-central-v0.5.0...confide-central-v0.6.0) (2025-12-16)
+
+
+### Features
+
+* server installer ([#16](https://github.com/confide-gg/confide/issues/16)) ([89bb70b](https://github.com/confide-gg/confide/commit/89bb70b9530f7af67fa6fa8f3e09f623f2618817))
+
 ## [0.5.0](https://github.com/confide-gg/confide/compare/confide-central-v0.4.1...confide-central-v0.5.0) (2025-12-15)
 
 
