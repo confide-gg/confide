@@ -90,7 +90,7 @@ impl Database {
     ) -> Result<MemberRoleAssignment> {
         let assignment = sqlx::query_as::<_, MemberRoleAssignment>(
             r#"
-            INSERT INTO member_role_assignments (member_id, role_id)
+            INSERT INTO member_roles (member_id, role_id)
             VALUES ($1, $2)
             ON CONFLICT (member_id, role_id) DO NOTHING
             RETURNING *
@@ -104,7 +104,7 @@ impl Database {
     }
 
     pub async fn remove_role(&self, member_id: Uuid, role_id: Uuid) -> Result<()> {
-        sqlx::query("DELETE FROM member_role_assignments WHERE member_id = $1 AND role_id = $2")
+        sqlx::query("DELETE FROM member_roles WHERE member_id = $1 AND role_id = $2")
             .bind(member_id)
             .bind(role_id)
             .execute(&self.pool)
@@ -114,7 +114,7 @@ impl Database {
 
     pub async fn get_member_role_ids(&self, member_id: Uuid) -> Result<Vec<Uuid>> {
         let roles: Vec<(Uuid,)> =
-            sqlx::query_as("SELECT role_id FROM member_role_assignments WHERE member_id = $1")
+            sqlx::query_as("SELECT role_id FROM member_roles WHERE member_id = $1")
                 .bind(member_id)
                 .fetch_all(&self.pool)
                 .await?;
