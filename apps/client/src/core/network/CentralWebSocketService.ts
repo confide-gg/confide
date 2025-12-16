@@ -90,8 +90,7 @@ class CentralWebSocketService extends BaseWebSocket<WsMessage, OutgoingMessage> 
     protected getUrl(): string {
         const token = httpClient.getAuthToken();
         if (!token) {
-            console.error("[WS] Cannot connect: no auth token");
-            throw new Error("No auth token");
+            throw new Error("No auth token available for WebSocket connection");
         }
         return `${WS_BASE_URL}/ws?token=${token}`;
     }

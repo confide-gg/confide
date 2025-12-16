@@ -55,8 +55,14 @@ function loadAuthFromStorage(): { user: PublicUser; keys: DecryptedKeys } | null
   try {
     const data = JSON.parse(stored);
 
-    if (data.keys?.kem_secret_key && Array.isArray(data.keyService.kem_secret_key)) {
-      if (data.keyService.kem_secret_key.length === 0) {
+    if (!data.user || !data.keys) {
+      console.error("[Auth] Invalid stored auth data: missing user or keys");
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+
+    if (data.keys?.kem_secret_key && Array.isArray(data.keys.kem_secret_key)) {
+      if (data.keys.kem_secret_key.length === 0) {
         console.error(`[Auth] Invalid KEM secret key: empty array`);
         localStorage.removeItem(AUTH_STORAGE_KEY);
         return null;
@@ -66,6 +72,7 @@ function loadAuthFromStorage(): { user: PublicUser; keys: DecryptedKeys } | null
     return data;
   } catch (err) {
     console.error("[Auth] Failed to parse stored auth:", err);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
 }

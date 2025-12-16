@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState } from "react";
 import { Plus, Globe, HardDrive, Compass } from "lucide-react";
 import { useServer } from "../../context/ServerContext";
 import { useChat } from "../../context/ChatContext";
@@ -34,7 +34,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex flex-col items-center gap-2 px-1 w-full h-full">
-        {servers.length > 0 && <div className="w-6 h-px bg-border" />}
+        {servers.length > 0 && <div key="central-divider" className="w-6 h-px bg-border" />}
 
         {servers.map((server) => (
           <Tooltip key={server.id}>
@@ -68,8 +68,8 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
         ))}
 
         {federatedServers.length > 0 && (
-          <Fragment key="federated-servers-section">
-            <div className="w-6 h-px bg-border" />
+          <>
+            <div key="fed-divider" className="w-6 h-px bg-border" />
             {federatedServers.map((server) => (
               <Tooltip key={server.id}>
                 <TooltipTrigger asChild>
@@ -102,7 +102,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
                 </TooltipContent>
               </Tooltip>
             ))}
-          </Fragment>
+          </>
         )}
 
         <Tooltip>

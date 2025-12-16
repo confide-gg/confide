@@ -28,22 +28,18 @@ function PreferencesLoader() {
   return null;
 }
 
-function GlobalProviders({ children }: { children: React.ReactNode }) {
-  const { user, keys } = useAuth();
-
-  if (!user || !keys) return null;
-
+function GlobalProviders({ children, userId, dsaSecretKey }: { children: React.ReactNode; userId: string; dsaSecretKey: number[] }) {
   return (
     <PresenceProvider>
       <ChatProvider>
         <ServerProvider>
-          <CallProvider currentUserId={user.id}>
+          <CallProvider currentUserId={userId}>
             <IdleDetector />
             <PreferencesLoader />
             <SnowEffect />
             {children}
             <ActiveCallOverlay />
-            <IncomingCallDialog dsaSecretKey={keys.dsa_secret_key} />
+            <IncomingCallDialog dsaSecretKey={dsaSecretKey} />
           </CallProvider>
         </ServerProvider>
       </ChatProvider>
@@ -52,8 +48,14 @@ function GlobalProviders({ children }: { children: React.ReactNode }) {
 }
 
 export function AuthenticatedLayout() {
+  const { user, keys } = useAuth();
+
+  if (!user || !keys) {
+    return null;
+  }
+
   return (
-    <GlobalProviders>
+    <GlobalProviders userId={user.id} dsaSecretKey={keys.dsa_secret_key}>
       <Outlet />
     </GlobalProviders>
   );

@@ -51,7 +51,10 @@ export abstract class BaseWebSocket<IncomingMessageType, OutgoingMessageType> {
         }
 
         if (this.ws?.readyState === WebSocket.CLOSING) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 200));
+            if (this.ws?.readyState === WebSocket.CLOSING) {
+                return;
+            }
         }
 
         this.isConnecting = true;
@@ -68,7 +71,10 @@ export abstract class BaseWebSocket<IncomingMessageType, OutgoingMessageType> {
 
             if (this.ws) {
                 this.resetWsListeners(this.ws);
-                this.ws.close();
+                if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+                    this.ws.close();
+                }
+                await new Promise(resolve => setTimeout(resolve, 50));
                 this.ws = null;
             }
 

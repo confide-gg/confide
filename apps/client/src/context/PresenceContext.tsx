@@ -31,6 +31,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     if (!user) {
       centralWebSocketService.disconnect();
       setIsWsConnected(false);
+      setUserPresence(new Map());
       return;
     }
 
@@ -93,13 +94,25 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       activeSubscriptionsRef.current.clear();
     });
 
-    if (centralWebSocketService.isConnected()) {
-      handleConnect();
-    } else {
-      centralWebSocketService.connect();
-    }
+    const connectWithRetry = async () => {
+      try {
+        if (centralWebSocketService.isConnected()) {
+          handleConnect();
+        } else {
+          await centralWebSocketService.connect();
+        }
+      } catch (err) {
+        console.error("Failed to connect to presence WebSocket:", err);
+        setIsWsConnected(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      connectWithRetry();
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       unsubscribeMessage();
       unsubscribeConnect();
       unsubscribeDisconnect();
