@@ -68,8 +68,11 @@ async fn main() -> anyhow::Result<()> {
     });
 
     if db.is_setup_complete().await? {
-        let heartbeat = Arc::new(HeartbeatService::new(db.clone()));
-        heartbeat.start();
+        let heartbeat_service = Arc::new(HeartbeatService::new(
+            db.clone(),
+            config.server.central_url.clone(),
+        ));
+        heartbeat_service.start();
         tracing::info!("Heartbeat service started");
     }
 
@@ -79,6 +82,7 @@ async fn main() -> anyhow::Result<()> {
         .allow_headers(Any);
 
     let app = Router::new()
+        .route("/health", get(|| async { "OK" }))
         .route("/ws", get(ws::ws_handler))
         .nest("/api", api::routes())
         .layer(cors)
@@ -114,8 +118,17 @@ async fn run_setup(db: &Database, config: &Config) -> anyhow::Result<()> {
 
     let dsa_private_encrypted = encrypt_aes_gcm(&encryption_key, dsa_keypair.secret_bytes())?;
 
+    let display_name =
+        std::env::var("DISCOVERY_DISPLAY_NAME").unwrap_or_else(|_| "Confide Server".to_string());
+    let description = std::env::var("DISCOVERY_DESCRIPTION").ok();
+    let enabled = std::env::var("DISCOVERY_ENABLED")
+        .map(|v| v.parse().unwrap_or(false))
+        .unwrap_or(false);
+
     db.create_server_identity(
-        config.discovery.display_name.clone(),
+        display_name,
+        description,
+        enabled,
         dsa_keypair.public.clone(),
         dsa_private_encrypted,
         setup_token_hash,
