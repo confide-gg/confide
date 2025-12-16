@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.14.0](https://github.com/confide-gg/confide/compare/confide-client-v0.13.0...confide-client-v0.14.0) (2025-12-16)
+
+
+### Features
+
+* add context menu to channel sidebar ([20e0b97](https://github.com/confide-gg/confide/commit/20e0b97c3c2de1ae3884c4b48897398605093954))
+* add member role management ([1c8aa0e](https://github.com/confide-gg/confide/commit/1c8aa0e15dc80c0d4581fd65946ee7c6cf5a12d2))
+* allow changing hierarchy of channels & categories ([f2e2d5e](https://github.com/confide-gg/confide/commit/f2e2d5e234fc94608418b444bc2ef5df2721e4a2))
+* improve WebSocket handling and context robustness ([bfd3663](https://github.com/confide-gg/confide/commit/bfd366315cd076ad724f361f2293d3bebab71850))
+
+
+### Bug Fixes
+
+* properly show channel name in channel chat header ([56dcd21](https://github.com/confide-gg/confide/commit/56dcd21c43dc8dba67b16d59512565a041fa8dcb))
+
 ## [0.13.0](https://github.com/confide-gg/confide/compare/confide-client-v0.12.0...confide-client-v0.13.0) (2025-12-16)
 
 

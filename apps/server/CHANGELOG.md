@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/confide-gg/confide/compare/confide-server-v0.2.0...confide-server-v0.3.0) (2025-12-16)
+
+
+### Features
+
+* add member role management ([1c8aa0e](https://github.com/confide-gg/confide/commit/1c8aa0e15dc80c0d4581fd65946ee7c6cf5a12d2))
+* allow changing hierarchy of channels & categories ([f2e2d5e](https://github.com/confide-gg/confide/commit/f2e2d5e234fc94608418b444bc2ef5df2721e4a2))
+
 ## [0.2.0](https://github.com/confide-gg/confide/compare/confide-server-v0.1.1...confide-server-v0.2.0) (2025-12-16)
 
 
