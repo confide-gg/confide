@@ -222,8 +222,14 @@ pub async fn join_by_invite(
 
     state.db.increment_invite_uses(invite.id).await?;
 
+    let identity = state
+        .db
+        .get_server_identity()
+        .await?
+        .ok_or(AppError::Internal("Server identity not found".into()))?;
+
     Ok(Json(serde_json::json!({
         "valid": true,
-        "server_name": state.config.discovery.display_name
+        "server_name": identity.server_name
     })))
 }

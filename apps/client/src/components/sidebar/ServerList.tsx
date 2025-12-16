@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Plus, Globe, HardDrive, Compass } from "lucide-react";
 import { useServer } from "../../context/ServerContext";
 import { useChat } from "../../context/ChatContext";
@@ -68,7 +68,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
         ))}
 
         {federatedServers.length > 0 && (
-          <>
+          <Fragment key="federated-servers-section">
             <div className="w-6 h-px bg-border" />
             {federatedServers.map((server) => (
               <Tooltip key={server.id}>
@@ -102,7 +102,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
                 </TooltipContent>
               </Tooltip>
             ))}
-          </>
+          </Fragment>
         )}
 
         <Tooltip>

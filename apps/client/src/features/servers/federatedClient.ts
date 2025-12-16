@@ -20,6 +20,7 @@ export interface FederatedChannel {
 
 export interface FederatedMember {
     id: string;
+    central_user_id: string;
     username: string;
     display_name?: string;
     kem_public_key: number[];
@@ -50,13 +51,14 @@ export class FederatedServerClient {
         const response = await fetch(url, { ...options, headers });
         if (!response.ok) {
             const text = await response.text();
+            console.error(`[FederatedClient] Request to ${path} failed with status ${response.status}: ${text}`);
             throw new Error(`Federated request failed: ${text}`);
         }
         return response.json();
     }
 
     async getCategories(): Promise<FederatedCategory[]> {
-        return this.fetch<FederatedCategory[]>("/categories");
+        return this.fetch<FederatedCategory[]>("/channels/categories");
     }
 
     async getChannels(): Promise<FederatedChannel[]> {
@@ -72,7 +74,7 @@ export class FederatedServerClient {
     }
 
     async createCategory(data: { name: string; position: number }): Promise<FederatedCategory> {
-        return this.fetch<FederatedCategory>("/categories", {
+        return this.fetch<FederatedCategory>("/channels/categories", {
             method: "POST",
             body: JSON.stringify(data),
         });
@@ -87,20 +89,35 @@ export class FederatedServerClient {
 
     public async updateChannel(channelId: string, data: any): Promise<void> {
         await this.fetch<void>(`/channels/${channelId}`, {
-            method: "POST", // Assuming POST for update based on original instruction's `this.post`
+            method: "POST",
             body: JSON.stringify(data),
         });
     }
 
     public async updateCategory(categoryId: string, data: any): Promise<void> {
-        await this.fetch<void>(`/categories/${categoryId}`, {
-            method: "POST", // Assuming POST for update based on original instruction's `this.post`
+        await this.fetch<void>(`/channels/categories/${categoryId}`, {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    }
+
+    public async updateServerSettings(data: {
+        server_name?: string;
+        description?: string;
+        is_discoverable?: boolean;
+        icon_url?: string;
+        max_users?: number;
+        max_upload_size_mb?: number;
+        message_retention?: string;
+    }): Promise<any> {
+        return this.fetch<any>("/server/settings", {
+            method: "PATCH",
             body: JSON.stringify(data),
         });
     }
 
     public async getServerInfo(): Promise<any> {
-        return this.fetch<any>("/");
+        return this.fetch<any>("/server/info");
     }
 
     public async getMyPermissions(): Promise<number> {
@@ -122,16 +139,41 @@ export class FederatedServerClient {
         });
     }
 
+
+    public async getRoles(): Promise<any[]> {
+        return this.fetch<any[]>("/roles");
+    }
+
+    public async createRole(data: { name: string; permissions: number; color?: string; position: number }): Promise<any> {
+        return this.fetch<any>("/roles", {
+            method: "POST",
+            body: JSON.stringify(data),
+        });
+    }
+
+    public async updateRole(roleId: string, data: { name?: string; permissions?: number; color?: string; position?: number }): Promise<any> {
+        return this.fetch<any>(`/roles/${roleId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        });
+    }
+
+    public async deleteRole(roleId: string): Promise<void> {
+        await this.fetch<void>(`/roles/${roleId}`, {
+            method: "DELETE",
+        });
+    }
+
     public async deleteChannel(channelId: string): Promise<void> {
         await this.fetch<void>(`/channels/${channelId}/delete`, {
-            method: "POST", // Assuming POST for delete based on original instruction's `this.post`
+            method: "POST",
             body: JSON.stringify({}),
         });
     }
 
     public async deleteCategory(categoryId: string): Promise<void> {
-        await this.fetch<void>(`/categories/${categoryId}/delete`, {
-            method: "POST", // Assuming POST for delete based on original instruction's `this.post`
+        await this.fetch<void>(`/channels/categories/${categoryId}/delete`, {
+            method: "POST",
             body: JSON.stringify({}),
         });
     }
@@ -149,14 +191,14 @@ export class FederatedServerClient {
     }
 
     async updateMyChannelKeys(keys: Record<string, number[]>): Promise<void> {
-        return this.fetch<void>("/members/keys", {
-            method: "PUT",
-            body: JSON.stringify({ encrypted_channel_keys: keys }),
+        return this.fetch<void>("/members/me/channel-keys", {
+            method: "POST",
+            body: JSON.stringify({ channel_keys: keys }),
         });
     }
 
     async distributeChannelKey(memberId: string, channelId: string, encryptedKey: number[]): Promise<void> {
-        return this.fetch<void>(`/members/${memberId}/keys`, {
+        return this.fetch<void>(`/members/${memberId}/channel-keys`, {
             method: "POST",
             body: JSON.stringify({
                 channel_id: channelId,
@@ -166,13 +208,13 @@ export class FederatedServerClient {
     }
 
     async getMessages(channelId: string, limit = 50, before?: string): Promise<any[]> {
-        let url = `/channels/${channelId}/messages?limit=${limit}`;
+        let url = `/messages/${channelId}?limit=${limit}`;
         if (before) url += `&before=${before}`;
         return this.fetch<any[]>(url);
     }
 
     async sendMessage(channelId: string, data: any): Promise<any> {
-        return this.fetch<any>(`/channels/${channelId}/messages`, {
+        return this.fetch<any>(`/messages/${channelId}`, {
             method: "POST",
             body: JSON.stringify(data),
         });

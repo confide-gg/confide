@@ -29,22 +29,19 @@ pub enum ServerMessage {
 
     // Messages
     NewMessage {
+        #[serde(rename = "data")]
         message: MessageWithKey,
     },
     MessageDeleted {
-        channel_id: Uuid,
-        message_id: Uuid,
+        data: MessageDeletedData,
     },
 
     // Typing indicators
     TypingStart {
-        channel_id: Uuid,
-        member_id: Uuid,
-        username: String,
+        data: TypingStartData,
     },
     TypingStop {
-        channel_id: Uuid,
-        member_id: Uuid,
+        data: TypingStopData,
     },
 
     // Members
@@ -125,4 +122,23 @@ pub enum ServerMessage {
 pub struct MemberPresence {
     pub member_id: Uuid,
     pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TypingStartData {
+    pub channel_id: Uuid,
+    pub member_id: Uuid,
+    pub username: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TypingStopData {
+    pub channel_id: Uuid,
+    pub member_id: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MessageDeletedData {
+    pub channel_id: Uuid,
+    pub message_id: Uuid,
 }
