@@ -174,7 +174,10 @@ pub async fn assign_role_to_member(
     let role_ids = state.db.get_member_role_ids(member_id).await?;
     state
         .ws
-        .broadcast_all(ServerMessage::MemberRolesUpdated { member_id, role_ids })
+        .broadcast_all(ServerMessage::MemberRolesUpdated {
+            member_id,
+            role_ids,
+        })
         .await;
     Ok(Json(()))
 }
@@ -193,7 +196,10 @@ pub async fn remove_role_from_member(
     let role_ids = state.db.get_member_role_ids(member_id).await?;
     state
         .ws
-        .broadcast_all(ServerMessage::MemberRolesUpdated { member_id, role_ids })
+        .broadcast_all(ServerMessage::MemberRolesUpdated {
+            member_id,
+            role_ids,
+        })
         .await;
     Ok(Json(()))
 }

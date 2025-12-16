@@ -28,10 +28,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/", delete(delete_server))
 }
 
-async fn check_server_admin_or_owner(
-    state: &Arc<AppState>,
-    member_id: Uuid,
-) -> Result<()> {
+async fn check_server_admin_or_owner(state: &Arc<AppState>, member_id: Uuid) -> Result<()> {
     let perms = state.db.get_member_permissions(member_id).await?;
     if permissions::has_permission(perms, permissions::ADMINISTRATOR) {
         return Ok(());
