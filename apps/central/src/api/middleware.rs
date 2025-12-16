@@ -41,6 +41,10 @@ impl FromRequestParts<Arc<AppState>> for AuthUser {
             .await?
             .ok_or(AppError::Unauthorized)?;
 
+        if session.expires_at < chrono::Utc::now() {
+            return Err(AppError::Unauthorized);
+        }
+
         Ok(AuthUser {
             user_id: session.user_id,
             session_id: session.id,
