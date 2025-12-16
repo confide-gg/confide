@@ -3,6 +3,7 @@ mod channels;
 mod members;
 pub mod messages;
 pub mod middleware;
+pub mod rate_limit;
 mod roles;
 pub mod server;
 mod setup;

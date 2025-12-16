@@ -5,10 +5,8 @@ use uuid::Uuid;
 
 use super::types::ServerMessage;
 
-/// Sender type for sending messages to a WebSocket connection
 pub type WsSender = mpsc::UnboundedSender<ServerMessage>;
 
-/// Connection info for a connected member
 #[derive(Debug)]
 pub struct Connection {
     pub member_id: Uuid,
@@ -16,7 +14,6 @@ pub struct Connection {
     pub subscribed_channels: HashSet<Uuid>,
 }
 
-/// Manages all WebSocket connections and channel subscriptions
 #[derive(Debug, Default)]
 pub struct ConnectionManager {
     connections: RwLock<HashMap<Uuid, Connection>>,
@@ -78,7 +75,6 @@ impl ConnectionManager {
         tracing::debug!("Member {} disconnected from WebSocket", member_id);
     }
 
-    /// Subscribe a member to a channel
     pub async fn subscribe_channel(&self, member_id: Uuid, channel_id: Uuid) {
         let mut connections = self.connections.write().await;
         let mut subs = self.channel_subscriptions.write().await;
@@ -90,7 +86,6 @@ impl ConnectionManager {
         }
     }
 
-    /// Unsubscribe a member from a channel
     pub async fn unsubscribe_channel(&self, member_id: Uuid, channel_id: Uuid) {
         let mut connections = self.connections.write().await;
         let mut subs = self.channel_subscriptions.write().await;
@@ -110,7 +105,6 @@ impl ConnectionManager {
         );
     }
 
-    /// Broadcast a message to all members subscribed to a channel
     pub async fn broadcast_to_channel(&self, channel_id: Uuid, message: ServerMessage) {
         let connections = self.connections.read().await;
         let subs = self.channel_subscriptions.read().await;
@@ -129,7 +123,6 @@ impl ConnectionManager {
         }
     }
 
-    /// Broadcast a message to all members subscribed to a channel, except one
     pub async fn broadcast_to_channel_except(
         &self,
         channel_id: Uuid,
@@ -155,7 +148,6 @@ impl ConnectionManager {
         }
     }
 
-    /// Broadcast a message to all connected members
     pub async fn broadcast_all(&self, message: ServerMessage) {
         let connections = self.connections.read().await;
 
@@ -169,7 +161,6 @@ impl ConnectionManager {
         }
     }
 
-    /// Broadcast a message to all connected members except one
     pub async fn broadcast_all_except(&self, message: ServerMessage, except_member_id: Uuid) {
         let connections = self.connections.read().await;
 
@@ -183,7 +174,6 @@ impl ConnectionManager {
         }
     }
 
-    /// Send a message to a specific member
     pub async fn send_to_member(&self, member_id: Uuid, message: ServerMessage) {
         let connections = self.connections.read().await;
 
@@ -197,12 +187,10 @@ impl ConnectionManager {
         }
     }
 
-    /// Get the number of connected members
     pub async fn connection_count(&self) -> usize {
         self.connections.read().await.len()
     }
 
-    /// Check if a member is connected
     pub async fn is_connected(&self, member_id: Uuid) -> bool {
         self.connections.read().await.contains_key(&member_id)
     }
@@ -212,6 +200,14 @@ impl ConnectionManager {
         subs.get(&channel_id)
             .map(|members| members.iter().copied().collect())
             .unwrap_or_default()
+    }
+
+    pub async fn is_subscribed(&self, member_id: Uuid, channel_id: Uuid) -> bool {
+        let connections = self.connections.read().await;
+        connections
+            .get(&member_id)
+            .map(|c| c.subscribed_channels.contains(&channel_id))
+            .unwrap_or(false)
     }
 
     pub async fn update_presence(&self, member_id: Uuid, status: String) {

@@ -13,6 +13,7 @@ use sha2::{Digest, Sha256};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
+use crate::models::permissions;
 use crate::AppState;
 
 use super::types::{ClientMessage, MemberPresence, ServerMessage};
@@ -22,13 +23,11 @@ pub struct WsQuery {
     token: String,
 }
 
-/// WebSocket upgrade handler
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
     Query(query): Query<WsQuery>,
 ) -> Response {
-    // Authenticate using session token
     let member_id = match authenticate_token(&state, &query.token).await {
         Ok(id) => id,
         Err(e) => {
@@ -43,7 +42,6 @@ pub async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket(socket, state, member_id))
 }
 
-/// Authenticate a session token and return the member_id
 async fn authenticate_token(state: &AppState, token: &str) -> Result<Uuid, String> {
     let token_bytes = hex::decode(token).map_err(|_| "Authentication failed")?;
     let token_hash = Sha256::digest(&token_bytes).to_vec();
@@ -109,7 +107,6 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid)
     };
     state.ws.broadcast_all_except(join_msg, member_id).await;
 
-    // Task to forward messages from the channel to the WebSocket
     let send_task = {
         let mut sender = sender;
         async move {
@@ -123,21 +120,26 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid)
         }
     };
 
-    // Task to receive messages from the WebSocket
     let recv_task = {
         let state = state.clone();
         async move {
             while let Some(Ok(msg)) = receiver.next().await {
                 match msg {
                     Message::Text(text) => {
+                        if text.len() > 16 * 1024 {
+                            tracing::warn!(
+                                "Member {} sent oversized WS message ({} bytes), ignoring",
+                                member_id,
+                                text.len()
+                            );
+                            continue;
+                        }
                         if let Ok(client_msg) = serde_json::from_str::<ClientMessage>(&text) {
                             handle_client_message(&state, member_id, client_msg).await;
                         }
                     }
                     Message::Close(_) => break,
-                    Message::Ping(_data) => {
-                        // Pong is handled automatically by axum
-                    }
+                    Message::Ping(_data) => {}
                     _ => {}
                 }
             }
@@ -160,25 +162,23 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid)
     tracing::debug!("WebSocket connection closed for member {}", member_id);
 }
 
-/// Handle a message from the client
 async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMessage) {
     match msg {
         ClientMessage::SubscribeChannel { channel_id } => {
             match state.db.get_channel(channel_id).await {
                 Ok(Some(_)) => match state.db.get_member_permissions(member_id).await {
-                    Ok(perms) if perms > 0 => {
+                    Ok(perms) if permissions::has_permission(perms, permissions::READ_MESSAGES) => {
                         state.ws.subscribe_channel(member_id, channel_id).await;
                     }
-                    Ok(_) => {
+                    Ok(perms) => {
                         tracing::warn!(
-                            "Member {} attempted to subscribe to channel {} without permissions",
+                            "Member {} attempted to subscribe to channel {} without READ_MESSAGES (perms={})",
                             member_id,
-                            channel_id
+                            channel_id,
+                            perms
                         );
                     }
-                    Err(e) => {
-                        tracing::error!("Error checking member permissions: {:?}", e);
-                    }
+                    Err(e) => tracing::error!("Error checking member permissions: {:?}", e),
                 },
                 Ok(None) => {
                     tracing::warn!(
@@ -196,22 +196,33 @@ async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMes
             state.ws.unsubscribe_channel(member_id, channel_id).await;
         }
         ClientMessage::Typing { channel_id } => {
-            // Get member info for the typing indicator
-            if let Ok(Some(member)) = state.db.get_member(member_id).await {
-                let msg = ServerMessage::TypingStart {
-                    data: crate::ws::types::TypingStartData {
-                        channel_id,
-                        member_id,
-                        username: member.username,
-                    },
-                };
-                state
-                    .ws
-                    .broadcast_to_channel_except(channel_id, msg, member_id)
-                    .await;
+            if !state.ws.is_subscribed(member_id, channel_id).await {
+                return;
+            }
+            match state.db.get_member_permissions(member_id).await {
+                Ok(perms) if permissions::has_permission(perms, permissions::SEND_MESSAGES) => {
+                    if let Ok(Some(member)) = state.db.get_member(member_id).await {
+                        let msg = ServerMessage::TypingStart {
+                            data: crate::ws::types::TypingStartData {
+                                channel_id,
+                                member_id,
+                                username: member.username,
+                            },
+                        };
+                        state
+                            .ws
+                            .broadcast_to_channel_except(channel_id, msg, member_id)
+                            .await;
+                    }
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!("Error checking member permissions: {:?}", e),
             }
         }
         ClientMessage::StopTyping { channel_id } => {
+            if !state.ws.is_subscribed(member_id, channel_id).await {
+                return;
+            }
             let msg = ServerMessage::TypingStop {
                 data: crate::ws::types::TypingStopData {
                     channel_id,
@@ -224,6 +235,11 @@ async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMes
                 .await;
         }
         ClientMessage::UpdatePresence { status } => {
+            let status = if status.len() > 64 {
+                status.chars().take(64).collect::<String>()
+            } else {
+                status
+            };
             state.ws.update_presence(member_id, status.clone()).await;
             let msg = ServerMessage::PresenceUpdate {
                 member_id,
@@ -233,6 +249,9 @@ async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMes
             state.ws.broadcast_all_except(msg, member_id).await;
         }
         ClientMessage::SubscribeUser { user_id } => {
+            if state.db.get_member(user_id).await.ok().flatten().is_none() {
+                return;
+            }
             if let Some(status) = state.ws.get_presence(user_id).await {
                 let msg = ServerMessage::PresenceUpdate {
                     member_id: user_id,
@@ -241,8 +260,6 @@ async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMes
                 };
                 state.ws.send_to_member(member_id, msg).await;
             } else {
-                // If not found, send offline status? Or just nothing?
-                // Usually we want to know they are offline.
                 let msg = ServerMessage::PresenceUpdate {
                     member_id: user_id,
                     status: "offline".to_string(),

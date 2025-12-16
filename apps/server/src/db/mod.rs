@@ -20,6 +20,10 @@ impl Database {
         Self { pool, redis }
     }
 
+    pub async fn redis_conn(&self) -> crate::error::Result<redis::aio::MultiplexedConnection> {
+        Ok(self.redis.get_multiplexed_async_connection().await?)
+    }
+
     pub async fn delete_all_data(&self) -> crate::error::Result<()> {
         sqlx::query("TRUNCATE TABLE messages, member_roles, roles, sessions, members, categories, channels, bans CASCADE")
             .execute(&self.pool)

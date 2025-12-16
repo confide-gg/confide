@@ -8,6 +8,7 @@ mod ws;
 
 use std::sync::Arc;
 
+use axum::middleware;
 use axum::routing::get;
 use axum::Router;
 use reqwest::Client as HttpClient;
@@ -85,6 +86,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(|| async { "OK" }))
         .route("/ws", get(ws::ws_handler))
         .nest("/api", api::routes())
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            api::rate_limit::rate_limit_middleware,
+        ))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);

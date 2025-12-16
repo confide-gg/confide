@@ -14,6 +14,9 @@ use crate::AppState;
 
 use super::middleware::AuthMember;
 
+const MAX_ENCRYPTED_MESSAGE_BYTES: usize = 256 * 1024;
+const MAX_SIGNATURE_BYTES: usize = 8 * 1024;
+
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/{channel_id}", post(send_message))
@@ -61,6 +64,14 @@ pub async fn send_message(
     let perms = state.db.get_member_permissions(auth.member_id).await?;
     if !permissions::has_permission(perms, permissions::SEND_MESSAGES) {
         return Err(AppError::Forbidden);
+    }
+
+    if req.encrypted_content.is_empty() || req.encrypted_content.len() > MAX_ENCRYPTED_MESSAGE_BYTES
+    {
+        return Err(AppError::BadRequest("Invalid message size".into()));
+    }
+    if req.signature.is_empty() || req.signature.len() > MAX_SIGNATURE_BYTES {
+        return Err(AppError::BadRequest("Invalid signature size".into()));
     }
 
     state
@@ -138,6 +149,12 @@ pub async fn get_messages(
     if !permissions::has_permission(perms, permissions::READ_MESSAGES) {
         return Err(AppError::Forbidden);
     }
+
+    state
+        .db
+        .get_channel(channel_id)
+        .await?
+        .ok_or(AppError::NotFound("Channel not found".into()))?;
 
     let limit = query.limit.clamp(1, 100);
     let messages = state

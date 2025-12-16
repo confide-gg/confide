@@ -30,6 +30,9 @@ pub enum AppError {
     #[error("Bad request: {0}")]
     BadRequest(String),
 
+    #[error("Too many requests")]
+    TooManyRequests,
+
     #[error("Server not setup")]
     ServerNotSetup,
 
@@ -59,6 +62,7 @@ impl IntoResponse for AppError {
             AppError::Forbidden => (StatusCode::FORBIDDEN, "Forbidden"),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.as_str()),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.as_str()),
+            AppError::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, "Too many requests"),
             AppError::ServerNotSetup => (StatusCode::SERVICE_UNAVAILABLE, "Server not setup"),
             AppError::InvalidSetupToken => (StatusCode::UNAUTHORIZED, "Invalid setup token"),
             AppError::Federation(msg) => (StatusCode::BAD_GATEWAY, msg.as_str()),
