@@ -23,6 +23,7 @@ import { isFederatedServer } from "../../features/servers/types";
 import { ServerSettings } from "./ServerSettings";
 import { Panel } from "../layout/Panel";
 import { serverService } from "../../features/servers/servers";
+import { ChannelSidebarContextMenu } from "./ChannelSidebarContextMenu";
 
 export function ChannelList() {
   const {
@@ -60,6 +61,8 @@ export function ChannelList() {
   const [dragItem, setDragItem] = useState<DragItem | null>(null);
   const [dragOver, setDragOver] = useState<DragOver | null>(null);
   const [dragPointerId, setDragPointerId] = useState<number | null>(null);
+
+  const [sidebarMenu, setSidebarMenu] = useState<{ x: number; y: number } | null>(null);
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -292,6 +295,20 @@ export function ChannelList() {
     };
   }, [dragItem, dragPointerId, dragOver, categories, channels, activeServer, federatedClient]);
 
+  useEffect(() => {
+    if (!sidebarMenu) return;
+    const onDown = () => setSidebarMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebarMenu(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [sidebarMenu]);
+
   return (
     <aside className="w-60 h-full overflow-hidden shrink-0">
       <Panel className="h-full flex flex-col">
@@ -307,7 +324,31 @@ export function ChannelList() {
           )}
         </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div
+        className="flex-1 overflow-y-auto custom-scrollbar"
+        onContextMenu={(e) => {
+          const target = e.target as HTMLElement | null;
+          if (!target) return;
+          if (target.closest('[data-dnd-type="channel"], [data-dnd-type="category"], button')) return;
+          e.preventDefault();
+          setSidebarMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
+        {sidebarMenu && (
+          <ChannelSidebarContextMenu
+            x={sidebarMenu.x}
+            y={sidebarMenu.y}
+            onCreateChannel={() => {
+              setSidebarMenu(null);
+              setNewChannelCategoryId(undefined);
+              setShowCreateChannel(true);
+            }}
+            onCreateCategory={() => {
+              setSidebarMenu(null);
+              setShowCreateCategory(true);
+            }}
+          />
+        )}
         <div className="p-2 space-y-4">
           {categories.map((category) => {
             const categoryChannels = channels
