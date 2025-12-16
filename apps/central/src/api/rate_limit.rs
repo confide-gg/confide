@@ -60,14 +60,7 @@ pub async fn rate_limit_middleware(
         .get(AUTHORIZATION)
         .and_then(|h| h.to_str().ok())
         .and_then(|h| h.strip_prefix("Bearer "))
-        .map(|t| t.to_string())
-        .or_else(|| {
-            request.uri().query().and_then(|q| {
-                q.split('&')
-                    .find(|p| p.starts_with("token="))
-                    .map(|p| p.strip_prefix("token=").unwrap_or("").to_string())
-            })
-        });
+        .map(|t| t.to_string());
 
     let user_identifier = if let Some(token) = token {
         if let Ok(token_bytes) = hex::decode(&token) {
