@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.2](https://github.com/confide-gg/confide/compare/confide-central-v0.5.1...confide-central-v0.5.2) (2025-12-16)
+
+
+### Bug Fixes
+
+* file upload security ([96815b3](https://github.com/confide-gg/confide/commit/96815b3308f6023629710853f2d49ab0cb05dd6d))
+* message key validation ([65da93c](https://github.com/confide-gg/confide/commit/65da93c5ea357cea1b43075eb4adbe4f0e76d9f9))
+* pin unpin authorization ([581226f](https://github.com/confide-gg/confide/commit/581226f5faced1c0c8db84d5bf9bdce83cfcbc55))
+* rate limit race condition ([168986e](https://github.com/confide-gg/confide/commit/168986ecc074911d0d5dfdf3490ce014d31383e3))
+* rate limit token leak ([e64066e](https://github.com/confide-gg/confide/commit/e64066e5a187340a3410a5019287892dd0cea2f1))
+* session expiration check ([432e943](https://github.com/confide-gg/confide/commit/432e94360d126ce2d9dd5c82a8276ef37d97bb4c))
+* websocket message size limit ([1b8d95e](https://github.com/confide-gg/confide/commit/1b8d95e4347c25287884eee042c3ca4c637383a5))
+
 ## [0.5.1](https://github.com/confide-gg/confide/compare/confide-central-v0.5.0...confide-central-v0.5.1) (2025-12-16)
 
 

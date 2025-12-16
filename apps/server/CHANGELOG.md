@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.1](https://github.com/confide-gg/confide/compare/confide-server-v0.3.0...confide-server-v0.3.1) (2025-12-16)
+
+
+### Bug Fixes
+
+* error handling unwrap ([2e6221b](https://github.com/confide-gg/confide/commit/2e6221b6933981eb55b993a32353558929c3e79f))
+* error message sanitization ([a78cdcb](https://github.com/confide-gg/confide/commit/a78cdcb69e8557aa27810ec05046ca3bde4b6da7))
+* websocket authorization bypass ([c4f64bd](https://github.com/confide-gg/confide/commit/c4f64bd1c47d2c80509b026b824caa8b21fc0fcf))
+
 ## [0.3.0](https://github.com/confide-gg/confide/compare/confide-server-v0.2.0...confide-server-v0.3.0) (2025-12-16)
 
 
