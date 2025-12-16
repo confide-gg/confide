@@ -3,7 +3,6 @@ name: Build and Publish Docker Images
 on:
   push:
     tags:
-      - 'v*'
       - 'confide-server-v*'
       - 'confide-central-v*'
   workflow_dispatch:
@@ -46,7 +45,7 @@ jobs:
   build-central-amd64:
     name: Build Central (AMD64)
     needs: changes
-    if: startsWith(github.ref, 'refs/tags/') || needs.changes.outputs.central == 'true'
+    if: startsWith(github.ref, 'refs/tags/confide-central-v') || needs.changes.outputs.central == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -91,7 +90,7 @@ jobs:
   build-central-arm64:
     name: Build Central (ARM64)
     needs: changes
-    if: startsWith(github.ref, 'refs/tags/') || needs.changes.outputs.central == 'true'
+    if: startsWith(github.ref, 'refs/tags/confide-central-v') || needs.changes.outputs.central == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     permissions:
       contents: read
@@ -149,12 +148,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/confide-central-v')
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: echo "version=${GITHUB_REF#refs/tags/confide-central-v}" >> $GITHUB_OUTPUT
 
       - name: Create versioned manifest
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/confide-central-v')
         run: |
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:${{ steps.version.outputs.version }} \
             ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}:${{ steps.version.outputs.version }}-amd64 \
@@ -169,7 +168,7 @@ jobs:
   build-server-amd64:
     name: Build Server (AMD64)
     needs: changes
-    if: startsWith(github.ref, 'refs/tags/') || needs.changes.outputs.server == 'true'
+    if: startsWith(github.ref, 'refs/tags/confide-server-v') || needs.changes.outputs.server == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -214,7 +213,7 @@ jobs:
   build-server-arm64:
     name: Build Server (ARM64)
     needs: changes
-    if: startsWith(github.ref, 'refs/tags/') || needs.changes.outputs.server == 'true'
+    if: startsWith(github.ref, 'refs/tags/confide-server-v') || needs.changes.outputs.server == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     permissions:
       contents: read
@@ -272,12 +271,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/confide-server-v')
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: echo "version=${GITHUB_REF#refs/tags/confide-server-v}" >> $GITHUB_OUTPUT
 
       - name: Create versioned manifest
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/confide-server-v')
         run: |
           docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ steps.version.outputs.version }} \
             ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}:${{ steps.version.outputs.version }}-amd64 \
