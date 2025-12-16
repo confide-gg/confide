@@ -86,18 +86,6 @@ pub async fn upload_file(
                 file_type = Some(value);
             }
             "file" => {
-                let ct = field
-                    .content_type()
-                    .unwrap_or("application/octet-stream")
-                    .to_string();
-                if !ALLOWED_TYPES.contains(&ct.as_str()) {
-                    return Err(AppError::BadRequest(format!(
-                        "File type {} not allowed. Use JPEG, PNG, GIF, or WebP",
-                        ct
-                    )));
-                }
-                content_type = Some(ct);
-
                 let bytes = field
                     .bytes()
                     .await
@@ -108,6 +96,24 @@ pub async fn upload_file(
                         MAX_FILE_SIZE / 1024 / 1024
                     )));
                 }
+
+                // Validate actual file content, not just Content-Type header
+                let file_type = infer::get(&bytes);
+                let mime = match file_type {
+                    Some(kind) => kind.mime_type(),
+                    None => {
+                        return Err(AppError::BadRequest("Could not determine file type".into()));
+                    }
+                };
+
+                if !ALLOWED_TYPES.contains(&mime) {
+                    return Err(AppError::BadRequest(format!(
+                        "File type {} not allowed. Use JPEG, PNG, GIF, or WebP",
+                        mime
+                    )));
+                }
+
+                content_type = Some(mime.to_string());
                 data = Some(bytes.to_vec());
             }
             _ => {}
@@ -145,10 +151,10 @@ pub async fn get_file(
 
     let response = Response::builder()
         .status(StatusCode::OK)
-        .header(header::CONTENT_TYPE, upload.content_type)
+        .header(header::CONTENT_TYPE, &upload.content_type)
         .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable")
         .body(Body::from(upload.data))
-        .unwrap();
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("Failed to build response: {}", e)))?;
 
     Ok(response)
 }
