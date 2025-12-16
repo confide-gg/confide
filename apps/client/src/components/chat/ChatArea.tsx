@@ -129,7 +129,7 @@ export function ChatArea() {
   };
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-full">
       <div className="flex flex-col flex-1 min-w-0">
         {isInCallWithActiveChat && <CallHeader />}
         <ChatHeader />

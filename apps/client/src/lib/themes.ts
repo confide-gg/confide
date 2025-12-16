@@ -85,9 +85,10 @@ export const THEMES: Record<Theme, { name: string; description: string; colors: 
     colors: {
       background: '#000000',
       foreground: '#e4e4e7',
-      card: '#0a0a0a',
+      // For AMOLED, keep surfaces true black; separation comes from borders/rings.
+      card: '#000000',
       cardForeground: '#e4e4e7',
-      popover: '#0a0a0a',
+      popover: '#000000',
       popoverForeground: '#e4e4e7',
       primary: '#c9ed7b',
       primaryForeground: '#000000',
@@ -102,7 +103,7 @@ export const THEMES: Record<Theme, { name: string; description: string; colors: 
       border: '#1a1a1a',
       input: '#1a1a1a',
       ring: '#c9ed7b',
-      bgElevated: '#0a0a0a',
+      bgElevated: '#000000',
       online: '#22c55e',
     },
   },

@@ -21,6 +21,7 @@ import { cn } from "../../lib/utils";
 import { UserProfile } from "../sidebar/UserProfile";
 import { isFederatedServer } from "../../features/servers/types";
 import { ServerSettings } from "./ServerSettings";
+import { Panel } from "../layout/Panel";
 
 export function ChannelList() {
   const {
@@ -192,18 +193,19 @@ export function ChannelList() {
   };
 
   return (
-    <div className="w-60 bg-background flex flex-col h-screen border-r border-border overflow-hidden shrink-0">
-      <div className="h-14 px-4 flex items-center justify-between border-b border-border shrink-0">
-        <h2 className="font-semibold text-base truncate text-foreground">{activeServer?.name}</h2>
-        {isFederated && (
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-1.5 hover:bg-white/5 rounded-md transition-colors"
-          >
-            <Settings className="w-4 h-4 text-muted-foreground" />
-          </button>
-        )}
-      </div>
+    <aside className="w-60 h-full overflow-hidden shrink-0">
+      <Panel className="h-full flex flex-col">
+        <div className="h-14 px-4 flex items-center justify-between shrink-0">
+          <h2 className="font-semibold text-base truncate text-foreground">{activeServer?.name}</h2>
+          {isFederated && (
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-1.5 hover:bg-secondary/50 rounded-md transition-colors"
+            >
+              <Settings className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
+        </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-2 space-y-4">
@@ -406,9 +408,9 @@ export function ChannelList() {
         </div>
       </div>
 
-      <div className="p-2 shrink-0 border-t border-border">
-        <UserProfile />
-      </div>
+        <div className="p-2 shrink-0">
+          <UserProfile />
+        </div>
 
       <Dialog open={showCreateChannel} onOpenChange={setShowCreateChannel}>
         <DialogContent>
@@ -503,7 +505,8 @@ export function ChannelList() {
           onClose={() => setShowSettings(false)}
         />
       )}
-    </div>
+      </Panel>
+    </aside>
   );
 }
 

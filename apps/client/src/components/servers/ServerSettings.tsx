@@ -27,6 +27,7 @@ import { serverService } from "../../features/servers/servers";
 import { Permissions } from "../../features/servers/permissions";
 import { useServer } from "../../context/ServerContext";
 import type { ServerRole, ServerBan } from "../../features/servers/types";
+import { Panel } from "../layout/Panel";
 
 interface ServerSettingsProps {
   serverId: string;
@@ -428,8 +429,8 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
 
     return (
       <div className="fixed inset-0 z-50 bg-background p-3 flex flex-col">
-        <div className="flex-1 flex flex-col bg-bg-elevated rounded-xl border border-border/50 overflow-hidden">
-          <div className="flex items-center gap-4 p-4 border-b border-border/50">
+        <Panel className="flex-1 flex flex-col">
+          <div className="flex items-center gap-4 p-4">
             <button
               onClick={() => setSelectedRole(null)}
               className="p-2 hover:bg-secondary rounded-lg transition-colors"
@@ -534,7 +535,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
               </div>
             </div>
           </ScrollArea>
-        </div>
+        </Panel>
       </div>
     );
   };
@@ -601,54 +602,56 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-background p-3 flex">
-        <div className="w-[240px] flex flex-col mr-3">
-          <div className="p-4">
-            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide truncate">
-              {serverName}
-            </h2>
-          </div>
+      <div className="fixed inset-0 z-50 bg-background p-3 flex gap-3">
+        <aside className="w-[240px] shrink-0">
+          <Panel className="h-full flex flex-col">
+            <div className="p-4">
+              <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide truncate">
+                {serverName}
+              </h2>
+            </div>
 
-          <ScrollArea className="flex-1">
-            <nav className="space-y-1 px-2">
-              <button
-                onClick={() => setActiveTab("overview")}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "overview"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  }`}
-              >
-                <Settings className="w-4 h-4" />
-                Overview
-              </button>
+            <ScrollArea className="flex-1">
+              <nav className="space-y-1 px-2">
+                <button
+                  onClick={() => setActiveTab("overview")}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "overview"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  Overview
+                </button>
 
-              <button
-                onClick={() => setActiveTab("roles")}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "roles"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  }`}
-              >
-                <Shield className="w-4 h-4" />
-                Roles
-              </button>
+                <button
+                  onClick={() => setActiveTab("roles")}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "roles"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  Roles
+                </button>
 
-              <button
-                onClick={() => setActiveTab("bans")}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "bans"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                  }`}
-              >
-                <Ban className="w-4 h-4" />
-                Bans
-              </button>
-            </nav>
-          </ScrollArea>
-        </div>
+                <button
+                  onClick={() => setActiveTab("bans")}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === "bans"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    }`}
+                >
+                  <Ban className="w-4 h-4" />
+                  Bans
+                </button>
+              </nav>
+            </ScrollArea>
+          </Panel>
+        </aside>
 
-        <div className="flex-1 flex flex-col min-w-0 bg-bg-elevated rounded-xl border border-border/50 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+        <Panel className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center justify-between px-6 py-4">
             <h1 className="text-lg font-semibold">
               {activeTab === "overview" && "Server Overview"}
               {activeTab === "roles" && "Roles"}
@@ -663,7 +666,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="p-6">
+            <div className="p-6 w-full max-w-4xl mx-auto">
               {activeTab === "overview" && (
                 <div className="space-y-8 max-w-2xl">
                   <p className="text-muted-foreground">
@@ -943,7 +946,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
               )}
             </div>
           </ScrollArea>
-        </div>
+        </Panel>
       </div>
 
       <Dialog open={showCreateRole} onOpenChange={setShowCreateRole}>

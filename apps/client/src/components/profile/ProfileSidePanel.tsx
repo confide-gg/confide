@@ -5,6 +5,7 @@ import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
 import type { PublicProfile, UserStatus } from "../../types";
 import { Avatar } from "../ui/avatar";
+import { Panel } from "../layout/Panel";
 
 interface ProfileSidePanelProps {
   userId: string;
@@ -160,26 +161,28 @@ export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanel
   };
 
   return (
-    <div className="w-80 h-full bg-background border-l border-border flex flex-col shrink-0 animate-in slide-in-from-right duration-200">
-      <div className="flex items-center justify-between px-4 h-14 border-b border-border">
-        <h3 className="font-semibold text-base">User Profile</h3>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+    <aside className="w-80 h-full flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-right duration-200">
+      <Panel className="h-full flex flex-col">
+        <div className="flex items-center justify-between px-4 h-14">
+          <h3 className="font-semibold text-base">User Profile</h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-      <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-          </div>
-        ) : (
-          renderDefaultProfile()
-        )}
-      </div>
-    </div>
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+            </div>
+          ) : (
+            renderDefaultProfile()
+          )}
+        </div>
+      </Panel>
+    </aside>
   );
 }

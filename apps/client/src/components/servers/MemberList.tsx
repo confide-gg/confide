@@ -6,6 +6,7 @@ import { UserAvatar } from "../ui/user-avatar";
 import type { FederatedMember as Member } from "../../features/servers/federatedClient";
 
 import { MemberProfileCard } from "./MemberProfileCard";
+import { Panel } from "../layout/Panel";
 
 export function MemberList() {
   const { activeServer, federatedClient } = useServer();
@@ -134,22 +135,24 @@ export function MemberList() {
           onClose={() => setSelectedMemberId(null)}
         />
       )}
-      <aside className="w-60 h-full flex flex-col shrink-0 bg-background border-l border-border">
-        <div className="h-14 px-4 flex items-center border-b border-border shrink-0">
-          <h3 className="font-semibold text-base text-foreground">Members</h3>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
-            </div>
-          ) : (
-            <div className="mt-2">
-              <MemberGroup title="Online" list={onlineMembers} />
-              <MemberGroup title="Offline" list={offlineMembers} />
-            </div>
-          )}
-        </div>
+      <aside className="w-60 h-full flex flex-col shrink-0 overflow-hidden">
+        <Panel className="h-full flex flex-col">
+          <div className="h-14 px-4 flex items-center shrink-0">
+            <h3 className="font-semibold text-base text-foreground">Members</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
+            {isLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+              </div>
+            ) : (
+              <div className="mt-2">
+                <MemberGroup title="Online" list={onlineMembers} />
+                <MemberGroup title="Offline" list={offlineMembers} />
+              </div>
+            )}
+          </div>
+        </Panel>
       </aside>
     </>
   );

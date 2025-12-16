@@ -6,6 +6,7 @@ import { cn } from "../../lib/utils";
 import { Sidebar } from "../sidebar/Sidebar";
 import { ChatArea } from "../chat/ChatArea";
 import { FriendsPage, DiscoveryPage } from "../pages";
+import { Panel } from "./Panel";
 import {
   Dialog,
   DialogContent,
@@ -118,10 +119,11 @@ export function MainLayout() {
 
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="flex h-screen bg-background text-foreground p-3 gap-3">
       {!isConnected && <ServerOfflineOverlay />}
-      <aside className="w-16 h-full bg-background flex flex-col items-center shrink-0 border-r border-border">
-        <div className="h-14 w-full flex items-center justify-center border-b border-border shrink-0">
+      <aside className="w-16 h-full shrink-0">
+        <Panel className="h-full flex flex-col items-center">
+        <div className="h-14 w-full flex items-center justify-center shrink-0">
           <button
             onClick={handleHomeClick}
             className={cn(
@@ -137,6 +139,7 @@ export function MainLayout() {
         <div className="flex-1 overflow-y-auto py-4 w-full">
           <ServerList onOpenDiscovery={handleOpenDiscovery} />
         </div>
+        </Panel>
       </aside>
 
       {activeServer && <ChannelList />}
@@ -144,29 +147,27 @@ export function MainLayout() {
       {!activeServer && <Sidebar />}
 
       {!activeServer && (
-        <main className="flex-1 flex flex-col min-w-0 relative bg-background overflow-hidden">
+        <Panel className="flex-1 flex flex-col min-w-0 relative">
           {renderMainContent()}
-        </main>
+        </Panel>
       )}
 
       {activeServer && activeChannel && (
-        <main className="flex-1 flex min-w-0 relative bg-background overflow-hidden">
-          <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex min-w-0 relative overflow-hidden gap-3">
+          <Panel className="flex-1 flex flex-col min-w-0">
             <ChannelChat />
-          </div>
-          <div className="border-l border-border bg-background">
-            <MemberList />
-          </div>
+          </Panel>
+          <MemberList />
         </main>
       )}
 
       {activeServer && !activeChannel && (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground bg-background">
+        <Panel className="flex-1 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
             <p className="text-lg font-medium">Welcome to {activeServer.name}</p>
             <p className="text-sm mt-1 text-muted-foreground">Select a channel to start chatting</p>
           </div>
-        </div>
+        </Panel>
       )}
 
 
