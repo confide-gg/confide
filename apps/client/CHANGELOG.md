@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.17.0](https://github.com/confide-gg/confide/compare/confide-client-v0.16.0...confide-client-v0.17.0) (2025-12-16)
+
+
+### Features
+
+* improve screen sharing with WebCodecs and H.264 chunk support ([256d532](https://github.com/confide-gg/confide/commit/256d532fd2ff6e631857edb289dc84531f36ad48))
+
+
+### Bug Fixes
+
+* use correct capture deps + gate macOS permissions plugin ([47a094b](https://github.com/confide-gg/confide/commit/47a094be49e8a2577f72c5ca6aecb7467f6b395c))
+
 ## [0.16.0](https://github.com/confide-gg/confide/compare/confide-client-v0.15.1...confide-client-v0.16.0) (2025-12-16)
 
 
