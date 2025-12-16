@@ -164,14 +164,32 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid)
 async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMessage) {
     match msg {
         ClientMessage::SubscribeChannel { channel_id } => {
-            // Verify member has access to this channel
-            let perms = state
-                .db
-                .get_member_permissions(member_id)
-                .await
-                .unwrap_or(0);
-            if perms > 0 || state.db.get_channel(channel_id).await.is_ok() {
-                state.ws.subscribe_channel(member_id, channel_id).await;
+            match state.db.get_channel(channel_id).await {
+                Ok(Some(_)) => match state.db.get_member_permissions(member_id).await {
+                    Ok(perms) if perms > 0 => {
+                        state.ws.subscribe_channel(member_id, channel_id).await;
+                    }
+                    Ok(_) => {
+                        tracing::warn!(
+                            "Member {} attempted to subscribe to channel {} without permissions",
+                            member_id,
+                            channel_id
+                        );
+                    }
+                    Err(e) => {
+                        tracing::error!("Error checking member permissions: {:?}", e);
+                    }
+                },
+                Ok(None) => {
+                    tracing::warn!(
+                        "Member {} attempted to subscribe to non-existent channel {}",
+                        member_id,
+                        channel_id
+                    );
+                }
+                Err(e) => {
+                    tracing::error!("Error checking channel existence: {:?}", e);
+                }
             }
         }
         ClientMessage::UnsubscribeChannel { channel_id } => {
