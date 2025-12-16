@@ -1,195 +1,189 @@
 #!/bin/bash
 set -e
 
-# Confide Community Server Installer
-# This script installs and configures a Confide community server
-
-CONFIDE_VERSION="${CONFIDE_VERSION:-latest}"
+# --- Configuration ---
 INSTALL_DIR="${INSTALL_DIR:-$HOME/confide-server}"
-REGISTRY="ghcr.io"
-IMAGE_NAME="confide-gg/confide/server"
+REPO_URL="https://raw.githubusercontent.com/confide-gg/confide/feature/server-installer"
 
-echo "============================================"
-echo "Confide Community Server Installer"
-echo "============================================"
-echo
+# --- Colors ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Check dependencies
-command -v docker >/dev/null 2>&1 || { echo "Error: Docker is not installed. Please install Docker first."; exit 1; }
-command -v docker compose >/dev/null 2>&1 || command -v docker-compose >/dev/null 2>&1 || { echo "Error: Docker Compose is not installed."; exit 1; }
+# --- Utilities ---
+spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
 
-echo "✓ Docker found"
-echo
+info() {
+    echo -e "${CYAN}ℹ${NC} $1"
+}
 
-# Prompt for configuration
-read -p "Enter your server's public domain (e.g., confide.example.com): " SERVER_DOMAIN
-read -p "Enter HTTP port [8080]: " SERVER_PORT
-SERVER_PORT=${SERVER_PORT:-8080}
+success() {
+    echo -e "${GREEN}✔${NC} $1"
+}
 
-read -p "Enter PostgreSQL port [5432]: " POSTGRES_PORT
-POSTGRES_PORT=${POSTGRES_PORT:-5432}
+error() {
+    echo -e "${RED}✖${NC} $1"
+}
 
-read -p "Enter Redis port [6379]: " REDIS_PORT
-REDIS_PORT=${REDIS_PORT:-6379}
+warn() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
 
-read -p "Enter server display name: " DISPLAY_NAME
-read -p "Enter server description [Optional]: " DESCRIPTION
+print_header() {
+    clear
+    echo -e "${CYAN}"
+    echo "   ______            __  _      __     "
+    echo "  / ____/___  ____  / /_(_)____/ /__   "
+    echo " / /   / __ \/ __ \/ __/ / __  / _ \  "
+    echo "/ /___/ /_/ / / / / /_/ / /_/ /  __/  "
+    echo "\____/\____/_/ /_/\__/_/\__,_/\___/   "
+    echo "                                      "
+    echo "      Server Installer (Community)    "
+    echo -e "${NC}"
+    echo "----------------------------------------"
+}
 
-read -p "Enable discovery (register with Central)? [y/N]: " ENABLE_DISCOVERY
-ENABLE_DISCOVERY=${ENABLE_DISCOVERY:-n}
+# --- Main Logic ---
 
-CENTRAL_URL=""
-if [[ "$ENABLE_DISCOVERY" =~ ^[Yy]$ ]]; then
-    read -p "Enter Central server URL (e.g., https://central.confide.gg): " CENTRAL_URL
+print_header
+
+# 1. Docker Check & Install
+if ! command -v docker >/dev/null 2>&1; then
+    warn "Docker not found."
+    read -p "  Auto-install Docker? (y/n) " yn
+    if [[ "$yn" =~ ^[Yy]$ ]]; then
+        info "Installing Docker..."
+        (curl -fsSL https://get.docker.com | sh) &
+        spinner $!
+        success "Docker installed successfully."
+    else
+        error "Docker is required. Exiting."
+        exit 1
+    fi
+else
+    success "Docker is present."
 fi
 
-# Generate secure passwords
-POSTGRES_PASSWORD=$(openssl rand -hex 16)
+# 2. IP Detection
+info "Detecting Public IP..."
+PUBLIC_IP=$(curl -s https://api.ipify.org || echo "127.0.0.1")
+info "Public IP: ${GREEN}$PUBLIC_IP${NC}"
+DOMAIN="$PUBLIC_IP"
 
-echo
-echo "Creating installation directory at $INSTALL_DIR..."
-mkdir -p "$INSTALL_DIR"
+# 3. Server Details
+echo ""
+info "Server Configuration"
+read -p "  Server Name (default: My Community Server): " SERVER_NAME
+if [ -z "$SERVER_NAME" ]; then
+    SERVER_NAME="My Community Server"
+fi
+
+read -p "  Email for SSL (default: admin@$DOMAIN): " EMAIL
+if [ -z "$EMAIL" ]; then
+    EMAIL="admin@$DOMAIN"
+fi
+
+
+# 4. Generate Secrets
+info "Generating secure passwords..."
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
+REDIS_PASSWORD=$(openssl rand -hex 16)
+
+# 5. Setup Directories
+info "Setting up installation directory at ${CYAN}$INSTALL_DIR${NC}..."
+mkdir -p "$INSTALL_DIR" "$INSTALL_DIR/config" "$INSTALL_DIR/data"/{postgres,redis,caddy_data,caddy_config}
+
+# 6. Fetch Configs
+echo -n "  Fetching configuration files... "
+(
+    curl -sSL "$REPO_URL/infrastructure/deployment/config/Caddyfile" -o "$INSTALL_DIR/config/Caddyfile"
+    curl -sSL "$REPO_URL/infrastructure/deployment/server-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
+) &
+spinner $!
+echo ""
+success "Configuration downloaded."
+
+# 7. Create .env
+cat > "$INSTALL_DIR/.env" <<EOF
+DOMAIN=${DOMAIN}
+EMAIL=${EMAIL}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+REDIS_PASSWORD=${REDIS_PASSWORD}
+SERVER_VERSION=latest
+
+# Server Limits & Config
+LIMITS_MAX_USERS=100
+LIMITS_MAX_UPLOAD_SIZE_MB=100
+MESSAGES_RETENTION=30d
+MESSAGES_RETENTION=30d
+DISCOVERY_ENABLED=true
+DISCOVERY_DISPLAY_NAME="${SERVER_NAME}"
+CENTRAL_API_URL=https://central.confide.gg/api
+EOF
+success "Environment configured."
+
+# 7.5 Setup Config
+# Download base config (overridden by env vars)
+curl -sSL "$REPO_URL/apps/server/config.docker.toml" -o "$INSTALL_DIR/config/config.toml"
+
+# Patch public domain in config.toml
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  sed -i '' "s/public_domain = \".*\"/public_domain = \"$DOMAIN\"/" "$INSTALL_DIR/config/config.toml"
+  sed -i '' "s/display_name = \".*\"/display_name = \"$SERVER_NAME\"/" "$INSTALL_DIR/config/config.toml"
+else
+  sed -i "s/public_domain = \".*\"/public_domain = \"$DOMAIN\"/" "$INSTALL_DIR/config/config.toml"
+  sed -i "s/display_name = \".*\"/display_name = \"$SERVER_NAME\"/" "$INSTALL_DIR/config/config.toml"
+fi
+
+success "Configuration generated."
+
+# 8. Start Server
+info "Starting Confide Server..."
 cd "$INSTALL_DIR"
 
-# Create docker-compose.yml
-cat > docker-compose.yml <<EOF
-version: '3.8'
+# Log output to file
+LOG_FILE="$INSTALL_DIR/install.log"
+echo "Installation started at $(date)" > "$LOG_FILE"
 
-services:
-  server:
-    image: ${REGISTRY}/${IMAGE_NAME}:${CONFIDE_VERSION}
-    container_name: confide-server
-    ports:
-      - "${SERVER_PORT}:8080"
-    environment:
-      - DATABASE_URL=postgres://confide:\${POSTGRES_PASSWORD}@postgres:5432/confide_server
-      - REDIS_URL=redis://redis:6379
-      - RUST_LOG=info,confide_server=info
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8080
-    volumes:
-      - ./config.toml:/app/config.toml:ro
-      - ./uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
-      interval: 30s
-      timeout: 3s
-      start_period: 10s
-      retries: 3
+# Run docker compose in background, redirecting output to log
+docker compose up -d >> "$LOG_FILE" 2>&1 &
+PID=$!
 
-  postgres:
-    image: postgres:17.2-alpine
-    container_name: confide-server-postgres
-    environment:
-      POSTGRES_USER: confide
-      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
-      POSTGRES_DB: confide_server
-      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U confide"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+# Run spinner
+spinner $PID
 
-  redis:
-    image: redis:7.4-alpine
-    container_name: confide-server-redis
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    command:
-      - "redis-server"
-      - "--maxmemory"
-      - "200mb"
-      - "--maxmemory-policy"
-      - "allkeys-lru"
+# Check exit status of the background process
+wait $PID
+EXIT_CODE=$?
 
-volumes:
-  postgres_data:
-  redis_data:
-EOF
+echo ""
 
-# Create config.toml
-cat > config.toml <<EOF
-[server]
-host = "0.0.0.0"
-port = 8080
-public_domain = "${SERVER_DOMAIN}"
-
-[database]
-max_connections = 50
-
-[limits]
-max_users = 1000
-max_upload_size_mb = 100
-
-[messages]
-retention = "30d"
-
-[discovery]
-enabled = $([ "$ENABLE_DISCOVERY" = "y" ] && echo "true" || echo "false")
-display_name = "${DISPLAY_NAME}"
-description = "${DESCRIPTION}"
-
-[uploads]
-directory = "/app/uploads"
-max_file_size_mb = 25
-EOF
-
-# Create .env file
-cat > .env <<EOF
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-EOF
-
-echo
-echo "✓ Configuration created"
-echo
-
-# Pull and start services
-echo "Pulling Docker images..."
-docker compose pull
-
-echo
-echo "Starting services..."
-docker compose up -d
-
-echo
-echo "Waiting for server to start..."
-sleep 10
-
-# Get the owner token
-echo
-echo "============================================"
-echo "Installation Complete!"
-echo "============================================"
-echo
-echo "Your Confide server is now running!"
-echo
-echo "Server URL: http://${SERVER_DOMAIN}:${SERVER_PORT}"
-echo
-echo "Important: Check the logs for your Owner Token:"
-docker compose logs server | grep "Owner Token" || echo "Run: docker compose logs server | grep 'Owner Token'"
-echo
-echo "Useful commands:"
-echo "  View logs:     docker compose logs -f"
-echo "  Stop server:   docker compose stop"
-echo "  Start server:  docker compose start"
-echo "  Restart:       docker compose restart"
-echo "  Update:        docker compose pull && docker compose up -d"
-echo
-echo "Configuration files are in: $INSTALL_DIR"
-echo "============================================"
+if [ $EXIT_CODE -eq 0 ]; then
+    print_header
+    success "Installation Complete!"
+    echo ""
+    echo -e "  Dashboard:  ${GREEN}http://$DOMAIN${NC}"
+    echo -e "  Location:   ${CYAN}$INSTALL_DIR${NC}"
+    echo -e "  Logs:       ${CYAN}$LOG_FILE${NC}"
+    echo ""
+else
+    error "Installation failed. See logs below:"
+    echo "----------------------------------------"
+    tail -n 20 "$LOG_FILE"
+    echo "----------------------------------------"
+    exit 1
+fi
