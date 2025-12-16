@@ -165,10 +165,25 @@ pub async fn verify_token(
     State(state): State<Arc<AppState>>,
     Json(req): Json<VerifyTokenRequest>,
 ) -> Result<Json<VerifyTokenResponse>> {
+    tracing::error!(
+        "Verifying token for server_id: {}, user_id: {}, hash_len: {}",
+        req.server_id,
+        req.user_id,
+        req.token_hash.len()
+    );
+    let token_hash_hex = hex::encode(&req.token_hash);
+    tracing::debug!("Token hash (hex): {}", token_hash_hex);
+
     let valid = state
         .db
         .verify_federation_token(req.server_id, &req.token_hash, req.user_id)
-        .await?;
+        .await
+        .map_err(|e| {
+            tracing::error!("DB error during token verification: {}", e);
+            e
+        })?;
+
+    tracing::info!("Token verification result: {}", valid);
 
     if !valid {
         return Ok(Json(VerifyTokenResponse {

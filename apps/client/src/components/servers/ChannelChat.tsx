@@ -102,7 +102,7 @@ export function ChannelChat() {
 
   useEffect(() => {
     if (members.length > 0 && isWsConnected) {
-      const centralUserIds = members.map(m => m.id).filter(Boolean);
+      const centralUserIds = members.map(m => m.central_user_id).filter(Boolean);
       subscribeToUsers(centralUserIds);
     }
   }, [members, isWsConnected, subscribeToUsers]);
@@ -247,13 +247,13 @@ export function ChannelChat() {
           const wsMsg = message.data;
           const encryptedMsg: EncryptedMessage = {
             id: wsMsg.id,
-            channel_id: wsMsg.channel_id!, // Checked above
+            channel_id: wsMsg.channel_id!,
             sender_id: wsMsg.sender_id,
             sender_username: wsMsg.sender_username,
             sender_dsa_public_key: wsMsg.sender_dsa_public_key,
             encrypted_content: wsMsg.encrypted_content,
             signature: wsMsg.signature,
-            reply_to_id: wsMsg.reply_to_id || undefined,    // Convert null to undefined
+            reply_to_id: wsMsg.reply_to_id || undefined,
             created_at: wsMsg.created_at,
           };
 
@@ -399,12 +399,12 @@ export function ChannelChat() {
     <div className="flex flex-col h-full bg-transparent relative">
       {selectedProfileId && (() => {
         const selectedMember = members.find(m => m.id === selectedProfileId);
-        const selectedPresence = selectedMember ? getUserPresence(selectedMember.id) : undefined;
+        const selectedPresence = selectedMember ? getUserPresence(selectedMember.central_user_id) : undefined;
         const memberIsOnline = selectedPresence !== undefined;
         const memberStatus = memberIsOnline ? (selectedPresence?.status || "online") : "offline";
         return (
           <MemberProfileCard
-            userId={selectedMember?.id || selectedProfileId}
+            userId={selectedMember?.central_user_id || selectedProfileId}
             username={selectedMember?.username || "?"}
             status={memberStatus}
             roles={[]}

@@ -20,7 +20,7 @@ import {
 import { cn } from "../../lib/utils";
 import { UserProfile } from "../sidebar/UserProfile";
 import { isFederatedServer } from "../../features/servers/types";
-import { FederatedServerSettings } from "./FederatedServerSettings";
+import { ServerSettings } from "./ServerSettings";
 
 export function ChannelList() {
   const {
@@ -326,8 +326,8 @@ export function ChannelList() {
                         <button
                           onClick={() => setActiveChannel(channel)}
                           className={`flex items-center gap-2 px-3 py-1.5 ml-2 w-[calc(100%-8px)] text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${activeChannel?.id === channel.id
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                             }`}
                         >
                           <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
@@ -391,8 +391,8 @@ export function ChannelList() {
                     <button
                       onClick={() => setActiveChannel(channel)}
                       className={`flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg transition-colors cursor-grab active:cursor-grabbing ${activeChannel?.id === channel.id
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                         }`}
                     >
                       <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
@@ -495,9 +495,11 @@ export function ChannelList() {
       </Dialog>
 
       {/* Server Settings Modal */}
-      {isFederated && showSettings && (
-        <FederatedServerSettings
-          server={activeServer as any}
+      {isFederated && showSettings && activeServer && (
+        <ServerSettings
+          serverId={activeServer.id}
+          serverName={activeServer.name}
+          isOwner={(activeServer as any).is_owner || false}
           onClose={() => setShowSettings(false)}
         />
       )}
