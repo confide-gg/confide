@@ -142,7 +142,12 @@ class FederationService {
 
     let centralServerId: string;
 
-    if (!serverStatus.central_registered) {
+    if (serverStatus.central_registered) {
+      throw new Error("Server already registered locally - use Join Server instead");
+    }
+
+    // Try to register with Central
+    try {
       const registerResult = await httpClient.post<{ server_id: string }>("/federation/register-server", {
         dsa_public_key: serverStatus.dsa_public_key,
         domain: data.domain,
@@ -151,10 +156,27 @@ class FederationService {
         is_discoverable: false,
       });
       centralServerId = registerResult.server_id;
-    } else {
-      throw new Error("Server already registered - use Join Server instead");
+    } catch (error: any) {
+      console.error("[Federation] Registration error:", error);
+      // Check if "already registered"
+      const errorMessage = error?.message || JSON.stringify(error);
+      if (errorMessage.includes("already registered")) {
+        console.log("[Federation] Server already registered on Central. Attempting to recover ID...");
+        try {
+          // Lookup the ID
+          const tokenResponse = await this.requestFederationToken(data.domain);
+          centralServerId = tokenResponse.server_info.id;
+          console.log("[Federation] Recovered ID:", centralServerId);
+        } catch (lookupError) {
+          console.error("[Federation] Failed to recover server ID:", lookupError);
+          throw error; // Rethrow original registration error if we can't recover
+        }
+      } else {
+        throw error;
+      }
     }
 
+    // Proceed to Claim
     const federationToken = await httpClient.post<{ token: string }>("/federation/request-token", { server_domain: data.domain });
 
     const claimResponse = await fetch(`${serverUrl}/api/setup/claim`, {
@@ -182,11 +204,18 @@ class FederationService {
   }
 
   private resolveServerUrl(domain: string): string {
-    return domain.startsWith("http")
-      ? domain
-      : domain.includes("localhost")
-        ? `http://${domain}`
-        : `https://${domain}`;
+    let url = domain;
+    if (!domain.startsWith("http") && !domain.startsWith("ws")) {
+      const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(domain);
+      // Default to HTTP for localhost and IP addresses to avoid SSL errors with self-signed certs
+      if (domain.includes("localhost") || isIp) {
+        url = `http://${domain}`;
+      } else {
+        url = `https://${domain}`;
+      }
+    }
+    console.log(`[Federation] Resolved URL for ${domain} -> ${url}`);
+    return url;
   }
 
   private async handleFetchError(response: Response): Promise<void> {

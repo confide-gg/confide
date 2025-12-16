@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { UserMinus, Ban, Shield, Check } from "lucide-react";
 import { Permissions } from "../../features/servers/permissions";
-import { DecryptedRole } from "../../features/servers/types";
+import type { ServerRole } from "../../features/servers/types";
 import { serverService } from "../../features/servers/servers";
 import { cryptoService } from "../../core/crypto/crypto";
 import { useAuth } from "../../context/AuthContext";
@@ -31,8 +31,8 @@ interface MemberContextMenuProps {
   username: string;
   isOwner: boolean;
   userPermissions: number;
-  memberRoles: DecryptedRole[];
-  availableRoles: DecryptedRole[];
+  memberRoles: ServerRole[];
+  availableRoles: ServerRole[];
   onClose: () => void;
   onAction: () => void;
   position: { x: number; y: number };

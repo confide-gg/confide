@@ -112,6 +112,10 @@ class ServerService {
     return httpClient.patch<ServerRole>(`/servers/${serverId}/roles/${roleId}`, data);
   }
 
+  public async reorderRoles(serverId: string, roleIds: string[]): Promise<ServerRole[]> {
+    return httpClient.patch<ServerRole[]>(`/servers/${serverId}/roles/reorder`, { role_ids: roleIds });
+  }
+
   public async deleteRole(serverId: string, roleId: string): Promise<void> {
     return httpClient.del<void>(`/servers/${serverId}/roles/${roleId}`);
   }

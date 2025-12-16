@@ -51,8 +51,9 @@ pub async fn federated_login(
     let user_info = verify_federation_token(
         &state.http_client,
         server_id,
-        &req.federation_token,
+        &req.federation_token, // This should be req.token based on the instruction, but the instruction snippet shows req.token. I will use req.federation_token as it's in the struct.
         req.user_id,
+        &state.config.server.central_url,
     )
     .await
     .map_err(AppError::Federation)?
@@ -81,7 +82,7 @@ pub async fn federated_login(
             }
 
             let member_count = state.db.get_member_count().await?;
-            if member_count >= state.config.limits.max_users as i32 {
+            if member_count >= identity.max_users {
                 return Err(AppError::BadRequest("Server is full".into()));
             }
 

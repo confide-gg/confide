@@ -109,6 +109,23 @@ impl Database {
         Ok(())
     }
 
+    pub async fn reorder_roles(&self, role_ids: Vec<Uuid>) -> Result<Vec<Role>> {
+        let mut tx = self.pool.begin().await?;
+
+        let len = role_ids.len() as i32;
+        for (idx, role_id) in role_ids.into_iter().enumerate() {
+            let position = len - 1 - (idx as i32);
+            sqlx::query("UPDATE roles SET position = $1 WHERE id = $2")
+                .bind(position)
+                .bind(role_id)
+                .execute(&mut *tx)
+                .await?;
+        }
+
+        tx.commit().await?;
+        self.get_all_roles().await
+    }
+
     pub async fn get_member_permissions(&self, member_id: Uuid) -> Result<i64> {
         use crate::models::permissions::DEFAULT_MEMBER;
 

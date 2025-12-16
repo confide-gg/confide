@@ -68,16 +68,6 @@ export interface UserInfo {
 export interface ServerRole {
     id: string;
     server_id: string;
-    encrypted_name: number[];
-    permissions: number;
-    color?: string;
-    position: number;
-    created_at: string;
-}
-
-export interface DecryptedRole {
-    id: string;
-    server_id: string;
     name: string;
     permissions: number;
     color?: string;
@@ -195,14 +185,14 @@ export interface CreateInviteRequest {
 }
 
 export interface CreateRoleRequest {
-    encrypted_name: number[];
+    name: string;
     permissions: number;
     color?: string;
     position: number;
 }
 
 export interface UpdateRoleRequest {
-    encrypted_name?: number[];
+    name?: string;
     permissions?: number;
     color?: string | null;
     position?: number;

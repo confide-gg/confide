@@ -46,19 +46,19 @@ export function MemberList() {
 
   useEffect(() => {
     if (members.length > 0 && isWsConnected) {
-      const centralUserIds = members.map(m => m.id).filter(Boolean);
+      const centralUserIds = members.map(m => m.central_user_id).filter(Boolean);
       subscribeToUsers(centralUserIds);
     }
   }, [members, isWsConnected, subscribeToUsers]);
 
   const onlineMembers = members.filter(m => {
-    if (m.id === user?.id) return true;
-    return isUserOnline(m.id);
+    if (m.central_user_id === user?.id) return true;
+    return isUserOnline(m.central_user_id);
   });
 
   const offlineMembers = members.filter(m => {
-    if (m.id === user?.id) return false;
-    return !isUserOnline(m.id);
+    if (m.central_user_id === user?.id) return false;
+    return !isUserOnline(m.central_user_id);
   });
 
   const handleMemberClick = (memberId: string, event: React.MouseEvent) => {
@@ -79,9 +79,9 @@ export function MemberList() {
         </h3>
         <div className="space-y-0.5">
           {list.map((member) => {
-            const isCurrentUser = member.id === user?.id;
-            const presence = getUserPresence(member.id);
-            const memberIsOnline = isUserOnline(member.id);
+            const isCurrentUser = member.central_user_id === user?.id;
+            const presence = getUserPresence(member.central_user_id);
+            const memberIsOnline = isUserOnline(member.central_user_id);
             const status = memberIsOnline ? (presence?.status || "online") : "offline";
 
             return (
@@ -121,18 +121,15 @@ export function MemberList() {
   };
 
   const selectedMember = members.find(m => m.id === selectedMemberId);
-  const selectedMemberStatus = selectedMember
-    ? (getUserPresence(selectedMember.id)?.status || "offline")
-    : "offline";
 
   return (
     <>
       {selectedMemberId && selectedMember && (
         <MemberProfileCard
-          userId={selectedMember.id} // Profile card needs central user ID
+          userId={selectedMember.central_user_id}
           username={selectedMember.username}
-          status={selectedMemberStatus}
-          roles={[]} // TODO: Fetch roles
+          status={getUserPresence(selectedMember.central_user_id)?.status || "offline"}
+          roles={[]}
           position={profilePosition}
           onClose={() => setSelectedMemberId(null)}
         />

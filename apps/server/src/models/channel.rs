@@ -18,6 +18,8 @@ pub struct TextChannel {
     pub description: Option<String>,
     pub position: i32,
     pub created_at: DateTime<Utc>,
+    #[serde(default)]
+    pub channel_key_version: i32,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, Serialize)]

@@ -167,9 +167,11 @@ async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMes
             // Get member info for the typing indicator
             if let Ok(Some(member)) = state.db.get_member(member_id).await {
                 let msg = ServerMessage::TypingStart {
-                    channel_id,
-                    member_id,
-                    username: member.username,
+                    data: crate::ws::types::TypingStartData {
+                        channel_id,
+                        member_id,
+                        username: member.username,
+                    },
                 };
                 state
                     .ws
@@ -179,8 +181,10 @@ async fn handle_client_message(state: &AppState, member_id: Uuid, msg: ClientMes
         }
         ClientMessage::StopTyping { channel_id } => {
             let msg = ServerMessage::TypingStop {
-                channel_id,
-                member_id,
+                data: crate::ws::types::TypingStopData {
+                    channel_id,
+                    member_id,
+                },
             };
             state
                 .ws
