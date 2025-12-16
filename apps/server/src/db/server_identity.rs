@@ -44,6 +44,7 @@ impl Database {
         Ok(identity)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn update_server_settings(
         &self,
         server_name: Option<String>,
@@ -59,31 +60,31 @@ impl Database {
         let mut updates = Vec::new();
         let mut bind_count = 1;
 
-        if let Some(_) = server_name.as_ref() {
+        if server_name.is_some() {
             updates.push(format!("server_name = ${}", bind_count));
             bind_count += 1;
         }
-        if let Some(_) = description.as_ref() {
+        if description.is_some() {
             updates.push(format!("description = ${}", bind_count));
             bind_count += 1;
         }
-        if let Some(_) = is_discoverable.as_ref() {
+        if is_discoverable.is_some() {
             updates.push(format!("is_discoverable = ${}", bind_count));
             bind_count += 1;
         }
-        if let Some(_) = icon_url.as_ref() {
+        if icon_url.is_some() {
             updates.push(format!("icon_url = ${}", bind_count));
             bind_count += 1;
         }
-        if let Some(_) = max_users {
+        if max_users.is_some() {
             updates.push(format!("max_users = ${}", bind_count));
             bind_count += 1;
         }
-        if let Some(_) = max_upload_size_mb {
+        if max_upload_size_mb.is_some() {
             updates.push(format!("max_upload_size_mb = ${}", bind_count));
             bind_count += 1;
         }
-        if let Some(_) = message_retention.as_ref() {
+        if message_retention.is_some() {
             updates.push(format!("message_retention = ${}", bind_count));
             // bind_count += 1;
         }
