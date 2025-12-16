@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/confide-gg/confide/compare/confide-client-v0.15.0...confide-client-v0.15.1) (2025-12-16)
+
+
+### Bug Fixes
+
+* increase Vite chunk size warning limit to 1500 ([be92e80](https://github.com/confide-gg/confide/commit/be92e80eee481cf244812a83a6da021f3440b168))
+
 ## [0.15.0](https://github.com/confide-gg/confide/compare/confide-client-v0.14.0...confide-client-v0.15.0) (2025-12-16)
 
 
