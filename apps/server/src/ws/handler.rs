@@ -45,18 +45,18 @@ pub async fn ws_handler(
 
 /// Authenticate a session token and return the member_id
 async fn authenticate_token(state: &AppState, token: &str) -> Result<Uuid, String> {
-    let token_bytes = hex::decode(token).map_err(|_| "Invalid token format")?;
+    let token_bytes = hex::decode(token).map_err(|_| "Authentication failed")?;
     let token_hash = Sha256::digest(&token_bytes).to_vec();
 
     let session = state
         .db
         .get_session_by_token(&token_hash)
         .await
-        .map_err(|e| format!("Database error: {}", e))?
-        .ok_or("Session not found")?;
+        .map_err(|_| "Authentication failed")?
+        .ok_or("Authentication failed")?;
 
     if session.expires_at < chrono::Utc::now() {
-        return Err("Session expired".into());
+        return Err("Authentication failed".into());
     }
 
     Ok(session.member_id)
