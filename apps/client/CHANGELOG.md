@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/confide-gg/confide/compare/confide-client-v0.15.1...confide-client-v0.16.0) (2025-12-16)
+
+
+### Features
+
+* improve screen sharing with WebCodecs and H.264 chunk support ([256d532](https://github.com/confide-gg/confide/commit/256d532fd2ff6e631857edb289dc84531f36ad48))
+
 ## [0.15.1](https://github.com/confide-gg/confide/compare/confide-client-v0.15.0...confide-client-v0.15.1) (2025-12-16)
 
 
