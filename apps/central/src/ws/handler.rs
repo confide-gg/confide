@@ -444,6 +444,15 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
         while let Some(Ok(msg)) = receiver.next().await {
             match msg {
                 Message::Text(text) => {
+                    const MAX_WS_MESSAGE_SIZE: usize = 64 * 1024;
+                    if text.len() > MAX_WS_MESSAGE_SIZE {
+                        tracing::warn!(
+                            "WebSocket message too large: {} bytes from user {}",
+                            text.len(),
+                            user_id
+                        );
+                        break;
+                    }
                     if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
                         handle_client_message(&state_clone, user_id, ws_msg, &pubsub_handle).await;
                     }
