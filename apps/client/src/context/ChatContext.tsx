@@ -6,6 +6,7 @@ import { centralWebSocketService } from "../core/network/CentralWebSocketService
 import { cryptoService } from "../core/crypto/crypto";
 import { keyService } from "../core/crypto/KeyService";
 import { initNotifications, playFriendRequestSound, NotificationService } from "../utils/notifications";
+import { messageService } from "../features/chat/messages";
 import type {
   Friend, FriendRequestResponse, ActiveChat, DecryptedMessage, SidebarView,
   ContextMenuData, MessageContextMenuData, DmContextMenuData, ReplyTo,
@@ -223,9 +224,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 const msgJson = cryptoService.bytesToString(msgData.encrypted_content);
                 const parsedMsg = JSON.parse(msgJson);
 
-                const keyResponse = await import("../features/chat/messages").then(api =>
-                  api.messageService.getMessageKey(msgData.conversation_id, msgData.message_id)
-                );
+                const keyResponse = await messageService.getMessageKey(msgData.conversation_id, msgData.message_id);
 
                 let content: string;
 

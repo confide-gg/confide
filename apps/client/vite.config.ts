@@ -3,9 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import pkg from "./package.json";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
-// @ts-expect-error process is a nodejs global
 const port = process.env.PORT ? parseInt(process.env.PORT) : 1420;
 
 export default defineConfig(async () => ({
@@ -32,6 +30,27 @@ export default defineConfig(async () => ({
       : undefined,
     watch: {
       ignored: ["**/src-tauri/**"],
+    },
+  },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            if (id.includes('lucide-react') || id.includes('sonner')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('@noble') || id.includes('crypto')) {
+              return 'crypto-vendor';
+            }
+            return 'vendor';
+          }
+        },
+      },
     },
   },
 }));
