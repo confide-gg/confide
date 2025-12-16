@@ -314,6 +314,14 @@ export function ServerProvider({ children }: { children: ReactNode }) {
                 distributeKeysToMember(federatedClientRef.current, newMember, myMemberRef.current);
               }
             }
+            if (
+              message.type === "member_roles_updated" ||
+              message.type === "role_created" ||
+              message.type === "role_updated" ||
+              message.type === "role_deleted"
+            ) {
+              notifyRoleEvent(server.id);
+            }
           });
 
           wsClient.connect().catch((err) => {

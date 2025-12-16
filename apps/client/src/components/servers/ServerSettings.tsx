@@ -21,13 +21,12 @@ import {
   Users,
   AlertTriangle,
   ArrowLeft,
+  GripVertical,
 } from "lucide-react";
 import { serverService } from "../../features/servers/servers";
-import { cryptoService } from "../../core/crypto/crypto";
 import { Permissions } from "../../features/servers/permissions";
-import { useAuth } from "../../context/AuthContext";
 import { useServer } from "../../context/ServerContext";
-import type { ServerRole, ServerBan, DecryptedRole } from "../../features/servers/types";
+import type { ServerRole, ServerBan } from "../../features/servers/types";
 
 interface ServerSettingsProps {
   serverId: string;
@@ -68,23 +67,111 @@ const PERMISSION_GROUPS = [
   },
 ];
 
-export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClose }: ServerSettingsProps) {
-  const { keys } = useAuth();
-  const { onRoleEvent } = useServer();
+
+export function ServerSettings({ serverId, serverName, isOwner, onClose }: ServerSettingsProps) {
+  const { onRoleEvent, federatedClient, reloadServerData } = useServer();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [roles, setRoles] = useState<ServerRole[]>([]);
-  const [decryptedRoles, setDecryptedRoles] = useState<DecryptedRole[]>([]);
   const [bans, setBans] = useState<ServerBan[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<DecryptedRole | null>(null);
+  const [selectedRole, setSelectedRole] = useState<ServerRole | null>(null);
+  const [selectedRoleName, setSelectedRoleName] = useState("");
+  const [dragRoleId, setDragRoleId] = useState<string | null>(null);
+  const [dragOverRoleId, setDragOverRoleId] = useState<string | null>(null);
+  const [dragPointerId, setDragPointerId] = useState<number | null>(null);
+  const [name, setName] = useState(serverName);
+  const [description, setDescription] = useState("");
+  const [isDiscoverable, setIsDiscoverable] = useState(false);
+  const [maxUsers, setMaxUsers] = useState(100);
+  const [maxUploadSize, setMaxUploadSize] = useState(100);
+  const [messageRetention, setMessageRetention] = useState("30d");
+  const [initialSettings, setInitialSettings] = useState({
+    name: serverName,
+    description: "",
+    isDiscoverable: false,
+    maxUsers: 100,
+    maxUploadSize: 100,
+    messageRetention: "30d"
+  });
 
   const [showCreateRole, setShowCreateRole] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
   const [newRoleColor, setNewRoleColor] = useState("#5865F2");
   const [newRolePermissions, setNewRolePermissions] = useState(0);
 
+  const hasChanges = name !== initialSettings.name ||
+    description !== initialSettings.description ||
+    isDiscoverable !== initialSettings.isDiscoverable ||
+    maxUsers !== initialSettings.maxUsers ||
+    maxUploadSize !== initialSettings.maxUploadSize ||
+    messageRetention !== initialSettings.messageRetention;
+
+  useEffect(() => {
+    if (activeTab === "overview" && federatedClient) {
+      loadServerSettings();
+    }
+  }, [activeTab, federatedClient]);
+
+  const loadServerSettings = async () => {
+    if (!federatedClient) return;
+    try {
+      const info = await federatedClient.getServerInfo();
+      setName(info.name);
+      setDescription(info.description || "");
+      setIsDiscoverable(info.is_discoverable || false);
+      setMaxUsers(info.max_users || 100);
+      setMaxUploadSize(info.max_upload_size_mb || 100);
+      setMessageRetention(info.message_retention || "30d");
+      setInitialSettings({
+        name: info.name,
+        description: info.description || "",
+        isDiscoverable: info.is_discoverable || false,
+        maxUsers: info.max_users || 100,
+        maxUploadSize: info.max_upload_size_mb || 100,
+        messageRetention: info.message_retention || "30d"
+      });
+    } catch (error) {
+      console.error("Failed to load server settings:", error);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!federatedClient) return;
+    setIsLoading(true);
+    try {
+      await federatedClient.updateServerSettings({
+        server_name: name,
+        description,
+        is_discoverable: isDiscoverable,
+        max_users: maxUsers,
+        max_upload_size_mb: maxUploadSize,
+        message_retention: messageRetention
+      });
+      setInitialSettings({ name, description, isDiscoverable, maxUsers, maxUploadSize, messageRetention });
+      await reloadServerData(); // Update sidebar name
+    } catch (error) {
+      console.error("Failed to update settings:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const { deleteServer } = useServer();
+  const [showDeleteServerConfirm, setShowDeleteServerConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [roleToDelete, setRoleToDelete] = useState<DecryptedRole | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<ServerRole | null>(null);
+
+  const handleDeleteServer = async () => {
+    setIsLoading(true);
+    try {
+      await deleteServer(serverId);
+      onClose();
+    } catch (error) {
+      console.error("Failed to delete server:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape" && !showCreateRole && !showDeleteConfirm) {
@@ -111,7 +198,7 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
   }, [activeTab, serverId]);
 
   useEffect(() => {
-    const unsubscribe = onRoleEvent((eventServerId) => {
+    const unsubscribe = onRoleEvent((eventServerId: string) => {
       if (eventServerId === serverId && (activeTab === "roles" || activeTab === "overview")) {
         loadRoles();
       }
@@ -122,33 +209,16 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
   const loadRoles = async () => {
     setIsLoading(true);
     try {
-      const serverRoles = await serverService.getServerRoles(serverId);
-      setRoles(serverRoles || []);
-
-      if (keys && serverRoles) {
-        const decrypted = await Promise.all(
-          serverRoles.map(async (role) => {
-            try {
-              const nameBytes = await cryptoService.decryptData(
-                keys.kem_secret_key,
-                role.encrypted_name
-              );
-              const name = new TextDecoder().decode(new Uint8Array(nameBytes));
-              return { ...role, name };
-            } catch (error) {
-              console.error("Failed to decrypt role:", error);
-              return { ...role, name: "Unknown Role" };
-            }
-          })
-        );
-        setDecryptedRoles(decrypted);
+      let serverRoles: ServerRole[] = [];
+      if (federatedClient) {
+        serverRoles = await federatedClient.getRoles();
       } else {
-        setDecryptedRoles([]);
+        serverRoles = await serverService.getServerRoles(serverId);
       }
+      setRoles(serverRoles || []);
     } catch (error) {
       console.error("Failed to load roles:", error);
       setRoles([]);
-      setDecryptedRoles([]);
     } finally {
       setIsLoading(false);
     }
@@ -168,19 +238,25 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
 
   const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRoleName.trim() || !keys) return;
+    if (!newRoleName.trim()) return;
 
     setIsLoading(true);
     try {
-      const nameBytes = new TextEncoder().encode(newRoleName);
-      const encryptedName = await cryptoService.encryptData(keys.kem_secret_key, Array.from(nameBytes));
-
-      await serverService.createRole(serverId, {
-        encrypted_name: encryptedName,
-        permissions: newRolePermissions,
-        color: newRoleColor,
-        position: roles.length,
-      });
+      if (federatedClient) {
+        await federatedClient.createRole({
+          name: newRoleName.trim(),
+          permissions: newRolePermissions,
+          color: newRoleColor,
+          position: roles.length,
+        });
+      } else {
+        await serverService.createRole(serverId, {
+          name: newRoleName.trim(),
+          permissions: newRolePermissions,
+          color: newRoleColor,
+          position: roles.length,
+        });
+      }
 
       setNewRoleName("");
       setNewRoleColor("#5865F2");
@@ -194,12 +270,38 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
     }
   };
 
-  const handleUpdateRole = async (roleId: string, updates: { permissions?: number; color?: string }) => {
+  const handleUpdateRole = async (roleId: string, updates: { permissions?: number; color?: string; position?: number }) => {
     try {
-      await serverService.updateRole(serverId, roleId, updates);
+      if (federatedClient) {
+        await federatedClient.updateRole(roleId, updates);
+      } else {
+        await serverService.updateRole(serverId, roleId, updates);
+      }
       loadRoles();
     } catch (error) {
       console.error("Failed to update role:", error);
+    }
+  };
+
+  const handleUpdateRoleName = async () => {
+    if (!selectedRole) return;
+    const trimmed = selectedRoleName.trim();
+    if (!trimmed || trimmed === selectedRole.name) return;
+    setIsLoading(true);
+    try {
+      if (federatedClient) {
+        const updated = await federatedClient.updateRole(selectedRole.id, { name: trimmed });
+        setSelectedRole(updated);
+      } else {
+        const updated = await serverService.updateRole(serverId, selectedRole.id, { name: trimmed });
+        setSelectedRole(updated);
+      }
+      loadRoles();
+    } catch (error) {
+      console.error("Failed to update role name:", error);
+      setSelectedRoleName(selectedRole.name);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -208,7 +310,11 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
 
     setIsLoading(true);
     try {
-      await serverService.deleteRole(serverId, roleToDelete.id);
+      if (federatedClient) {
+        await federatedClient.deleteRole(roleToDelete.id);
+      } else {
+        await serverService.deleteRole(serverId, roleToDelete.id);
+      }
       setSelectedRole(null);
       setShowDeleteConfirm(false);
       setRoleToDelete(null);
@@ -219,6 +325,81 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
       setIsLoading(false);
     }
   };
+
+  const handleReorderRoles = async (fromId: string, toId: string) => {
+    const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
+    const fromIndex = sortedRoles.findIndex(r => r.id === fromId);
+    const toIndex = sortedRoles.findIndex(r => r.id === toId);
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+
+    const next = [...sortedRoles];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+
+    const updatedPositions = next.map((r, idx) => ({
+      ...r,
+      position: next.length - 1 - idx,
+    }));
+    setRoles(updatedPositions);
+
+    const roleIds = next.map(r => r.id);
+    try {
+      if (federatedClient) {
+        await federatedClient.reorderRoles(roleIds);
+      } else {
+        await serverService.reorderRoles(serverId, roleIds);
+      }
+      loadRoles();
+    } catch (error) {
+      console.error("Failed to reorder roles:", error);
+      setRoles(sortedRoles);
+    }
+  };
+
+  useEffect(() => {
+    if (!dragRoleId || dragPointerId === null) return;
+
+    const prevUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
+
+    const findRoleId = (el: Element | null): string | null => {
+      let node: Element | null = el;
+      while (node) {
+        const id = (node as HTMLElement).dataset?.roleId;
+        if (id) return id;
+        node = node.parentElement;
+      }
+      return null;
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerId !== dragPointerId) return;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const id = findRoleId(el);
+      setDragOverRoleId(id);
+    };
+
+    const end = (e: PointerEvent) => {
+      if (e.pointerId !== dragPointerId) return;
+      if (dragOverRoleId && dragOverRoleId !== dragRoleId) {
+        handleReorderRoles(dragRoleId, dragOverRoleId);
+      }
+      setDragRoleId(null);
+      setDragOverRoleId(null);
+      setDragPointerId(null);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", end, { once: true });
+    window.addEventListener("pointercancel", end, { once: true });
+
+    return () => {
+      document.body.style.userSelect = prevUserSelect;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", end as any);
+      window.removeEventListener("pointercancel", end as any);
+    };
+  }, [dragRoleId, dragPointerId, dragOverRoleId]);
 
   const handleUnban = async (userId: string) => {
     setIsLoading(true);
@@ -236,7 +417,7 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
     setNewRolePermissions(prev => prev ^ perm);
   };
 
-  const toggleRolePermission = (role: DecryptedRole, perm: number) => {
+  const toggleRolePermission = (role: ServerRole, perm: number) => {
     const newPerms = role.permissions ^ perm;
     handleUpdateRole(role.id, { permissions: newPerms });
     setSelectedRole({ ...role, permissions: newPerms });
@@ -261,9 +442,19 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
                 style={{ backgroundColor: selectedRole.color || "#71717a" }}
               />
               <div>
-                <h2 className="font-semibold" style={{ color: selectedRole.color || 'inherit' }}>
-                  {selectedRole.name}
-                </h2>
+                <Input
+                  value={selectedRoleName}
+                  onChange={(e) => setSelectedRoleName(e.target.value)}
+                  onBlur={handleUpdateRoleName}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="h-8 px-2 bg-secondary/30 border-0 font-semibold"
+                  style={{ color: selectedRole.color || 'inherit' }}
+                  disabled={isLoading}
+                />
                 <p className="text-xs text-muted-foreground">Edit role permissions</p>
               </div>
             </div>
@@ -374,6 +565,36 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={showDeleteServerConfirm} onOpenChange={setShowDeleteServerConfirm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="w-5 h-5" />
+                Delete Server
+              </DialogTitle>
+              <DialogDescription className="space-y-2">
+                <p>Are you absolutely sure you want to delete <strong>{serverName}</strong>?</p>
+                <p className="text-destructive font-semibold">
+                  This action cannot be undone. All channels, messages, and roles will be permanently deleted.
+                </p>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowDeleteServerConfirm(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteServer}
+                disabled={isLoading}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isLoading ? "Deleting..." : "Delete Server"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
@@ -449,33 +670,109 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
                     Manage your server settings and view statistics
                   </p>
 
-                  <div className="flex items-start gap-6">
-                    <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl font-bold text-primary shrink-0">
-                      {serverName.charAt(0).toUpperCase()}
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-6">
+                      <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-3xl font-bold text-primary shrink-0">
+                        {serverName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            Server Name
+                          </label>
+                          <Input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            disabled={isLoading}
+                            className="bg-secondary/50 border-0 h-11"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 space-y-4">
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Description
+                      </label>
+                      <Input
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        disabled={isLoading}
+                        placeholder="Tell people what your server is about"
+                        className="bg-secondary/50 border-0 h-11"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium">Discoverable</div>
+                        <div className="text-xs text-muted-foreground">Allow this server to be found in public discovery</div>
+                      </div>
+                      <Switch
+                        checked={isDiscoverable}
+                        onCheckedChange={setIsDiscoverable}
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                          Server Name
+                          Max Users
                         </label>
                         <Input
-                          value={serverName}
-                          disabled
+                          type="number"
+                          value={maxUsers}
+                          onChange={(e) => setMaxUsers(parseInt(e.target.value) || 0)}
+                          disabled={isLoading}
+                          className="bg-secondary/50 border-0 h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Max Upload (MB)
+                        </label>
+                        <Input
+                          type="number"
+                          value={maxUploadSize}
+                          onChange={(e) => setMaxUploadSize(parseInt(e.target.value) || 0)}
+                          disabled={isLoading}
                           className="bg-secondary/50 border-0 h-11"
                         />
                       </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Message Retention
+                      </label>
+                      <Input
+                        value={messageRetention}
+                        onChange={(e) => setMessageRetention(e.target.value)}
+                        disabled={isLoading}
+                        placeholder="e.g. 30d, 1y, forever"
+                        className="bg-secondary/50 border-0 h-11"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        How long to keep messages before deletion (e.g. '30d', '1y')
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button onClick={handleSaveSettings} disabled={isLoading || !hasChanges}>
+                        {isLoading ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="h-px bg-border/50" />
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-5 rounded-xl bg-secondary/30 space-y-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Users className="w-4 h-4" />
                         <span className="text-xs font-semibold uppercase tracking-wide">Roles</span>
                       </div>
-                      <p className="text-3xl font-bold">{decryptedRoles.length}</p>
+                      <p className="text-3xl font-bold">{roles.length}</p>
                     </div>
                     <div className="p-5 rounded-xl bg-secondary/30 space-y-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
@@ -485,6 +782,31 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
                       <p className="text-3xl font-bold">{bans.length}</p>
                     </div>
                   </div>
+
+                  {isOwner && (
+                    <>
+                      <div className="h-px bg-border/50" />
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-destructive uppercase tracking-wide">
+                          Danger Zone
+                        </h3>
+                        <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex items-center justify-between">
+                          <div className="space-y-1">
+                            <div className="font-medium text-foreground">Delete Server</div>
+                            <div className="text-sm text-muted-foreground">
+                              Permanently delete this server and all its data
+                            </div>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            onClick={() => setShowDeleteServerConfirm(true)}
+                          >
+                            Delete Server
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -505,7 +827,7 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
                       <div className="flex items-center justify-center py-16">
                         <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
                       </div>
-                    ) : decryptedRoles.length === 0 ? (
+                    ) : roles.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
                           <Shield className="w-8 h-8 text-muted-foreground" />
@@ -520,28 +842,47 @@ export function ServerSettings({ serverId, serverName, isOwner: _isOwner, onClos
                         </Button>
                       </div>
                     ) : (
-                      decryptedRoles
+                      roles
                         .sort((a, b) => b.position - a.position)
-                        .map((role, index) => (
-                          <button
+                        .map((role) => (
+                          <div
                             key={role.id}
-                            onClick={() => setSelectedRole(role)}
-                            className="w-full flex items-center gap-4 p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors text-left group"
+                            className={`w-full flex items-center gap-3 p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors group ${dragOverRoleId === role.id ? "ring-2 ring-primary/50" : ""}`}
+                            data-role-id={role.id}
                           >
-                            <div
-                              className="w-4 h-4 rounded-full shrink-0"
-                              style={{ backgroundColor: role.color || "#71717a" }}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate" style={{ color: role.color || 'inherit' }}>
-                                {role.name}
+                            <button
+                              type="button"
+                              onPointerDown={(e) => {
+                                setDragRoleId(role.id);
+                                setDragOverRoleId(role.id);
+                                setDragPointerId(e.pointerId);
+                              }}
+                              className="text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedRole(role);
+                                setSelectedRoleName(role.name);
+                              }}
+                              className="flex-1 flex items-center gap-4 text-left min-w-0"
+                            >
+                              <div
+                                className="w-4 h-4 rounded-full shrink-0"
+                                style={{ backgroundColor: role.color || "#71717a" }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate" style={{ color: role.color || 'inherit' }}>
+                                  {role.name}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Drag to reorder • Click to edit
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                Position {decryptedRoles.length - index} • Click to edit
-                              </div>
-                            </div>
-                            <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </button>
+                              <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          </div>
                         ))
                     )}
                   </div>
