@@ -60,7 +60,7 @@ export function ChannelChat() {
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [profilePosition, setProfilePosition] = useState({ x: 0, y: 0 });
 
-  const { activeChannel, federatedClient, federatedWs } = useServer();
+  const { activeChannel, federatedClient, federatedWs, categories } = useServer();
   const { keys } = useAuth();
   const { getUserPresence, subscribeToUsers, isWsConnected } = usePresence();
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -397,6 +397,20 @@ export function ChannelChat() {
 
   return (
     <div className="flex flex-col h-full bg-transparent relative">
+      <div className="shrink-0 h-14 px-6 flex items-center justify-between">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            {categories.find((c) => c.id === activeChannel.category_id)?.name || "Text Channels"}
+          </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <Hash className="w-4 h-4 text-muted-foreground shrink-0" />
+            <div className="text-sm font-semibold text-foreground truncate">
+              {activeChannel.name}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {selectedProfileId && (() => {
         const selectedMember = members.find(m => m.id === selectedProfileId);
         const selectedPresence = selectedMember ? getUserPresence(selectedMember.central_user_id) : undefined;
