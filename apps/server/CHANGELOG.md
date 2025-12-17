@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/confide-gg/confide/compare/confide-server-v0.3.2...confide-server-v0.4.0) (2025-12-17)
+
+
+### Features
+
+* use DSA signatures for heartbeat verification ([7369dd8](https://github.com/confide-gg/confide/commit/7369dd802e7e64d78e75291214ef38bd1ef527fa))
+
+
+### Bug Fixes
+
+* add security headers and request size limits ([e9742ca](https://github.com/confide-gg/confide/commit/e9742ca3d18a9de5af21b45a982b7b324d429da3))
+* restrict CORS in federated server ([3c54422](https://github.com/confide-gg/confide/commit/3c54422cc9975afac71b8b2172d51a6b573708fc))
+
 ## [0.3.2](https://github.com/confide-gg/confide/compare/confide-server-v0.3.1...confide-server-v0.3.2) (2025-12-16)
 
 

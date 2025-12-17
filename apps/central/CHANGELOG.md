@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/confide-gg/confide/compare/confide-central-v0.6.0...confide-central-v0.7.0) (2025-12-17)
+
+
+### Features
+
+* use DSA signatures for heartbeat verification ([7369dd8](https://github.com/confide-gg/confide/commit/7369dd802e7e64d78e75291214ef38bd1ef527fa))
+
+
+### Bug Fixes
+
+* add security headers and request size limits ([e9742ca](https://github.com/confide-gg/confide/commit/e9742ca3d18a9de5af21b45a982b7b324d429da3))
+* invalidate sessions on password reset ([b82ec00](https://github.com/confide-gg/confide/commit/b82ec007d271f8f4136a81af22ffe5c2da514c5a))
+* require token secret for media relay ([a12cfc5](https://github.com/confide-gg/confide/commit/a12cfc55c8ce57ee5929ddc64288e63cb52f3c00))
+* restrict CORS to specific origins ([8e60e25](https://github.com/confide-gg/confide/commit/8e60e2550b02ded0e9b20484279058c47ff588e8))
+* use full hash for rate limiting ([8d24c7c](https://github.com/confide-gg/confide/commit/8d24c7c0fc941b6e699ee917e497809270581b89))
+
 ## [0.6.0](https://github.com/confide-gg/confide/compare/confide-central-v0.5.2...confide-central-v0.6.0) (2025-12-17)
 
 
