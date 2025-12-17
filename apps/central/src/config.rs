@@ -19,6 +19,7 @@ pub struct Config {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    pub allowed_origins: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -186,6 +187,13 @@ impl Config {
                 .ok()
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(3000),
+            allowed_origins: env::var("ALLOWED_ORIGINS")
+                .unwrap_or_else(|_| {
+                    "http://localhost:3000,http://127.0.0.1:3000,tauri://localhost".to_string()
+                })
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect(),
         };
 
         let database = DatabaseConfig {

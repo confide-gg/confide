@@ -12,7 +12,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -124,6 +124,28 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
+    let allowed_origins: Vec<axum::http::HeaderValue> = config
+        .server
+        .allowed_origins
+        .iter()
+        .filter_map(|origin| origin.parse().ok())
+        .collect();
+
+    let cors = CorsLayer::new()
+        .allow_origin(allowed_origins)
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+            axum::http::Method::OPTIONS,
+        ])
+        .allow_headers([
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::CONTENT_TYPE,
+        ])
+        .allow_credentials(true);
+
     let app = Router::new()
         .nest("/api", api::routes())
         .nest("/ws", ws::routes())
@@ -131,12 +153,7 @@ async fn main() -> anyhow::Result<()> {
             state.clone(),
             api::rate_limit::rate_limit_middleware,
         ))
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
-        )
+        .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
