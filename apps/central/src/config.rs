@@ -287,7 +287,7 @@ impl Config {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(1000),
-            token_secret: env::var("CALLS_RELAY_TOKEN_SECRET").unwrap_or_default(),
+            token_secret: env::var("CALLS_RELAY_TOKEN_SECRET")?,
             cert_path: env::var("CALLS_RELAY_CERT_PATH").ok(),
             key_path: env::var("CALLS_RELAY_KEY_PATH").ok(),
         };
