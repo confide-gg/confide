@@ -61,7 +61,7 @@ pub struct RedisConfig {
 
 fn default_max_connections() -> u32 {
     let cores = num_cpus::get() as u32;
-    (cores * 2 + 5).min(50).max(10)
+    (cores * 2 + 5).clamp(10, 50)
 }
 
 fn default_min_connections() -> u32 {
