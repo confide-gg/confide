@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/confide-gg/confide/compare/confide-client-v0.18.0...confide-client-v0.19.0) (2025-12-17)
+
+
+### Features
+
+* implement E2EE group chats ([#26](https://github.com/confide-gg/confide/issues/26)) ([0d31fde](https://github.com/confide-gg/confide/commit/0d31fde4978d10ab8958d31db5d47ff67b7fd836))
+
 ## [0.18.0](https://github.com/confide-gg/confide/compare/confide-client-v0.17.0...confide-client-v0.18.0) (2025-12-17)
 
 
