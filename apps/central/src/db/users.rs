@@ -257,6 +257,9 @@ impl Database {
         .bind(user_id)
         .execute(&self.pool)
         .await?;
+
+        self.delete_user_sessions(user_id).await?;
+
         Ok(())
     }
 }
