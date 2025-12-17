@@ -30,14 +30,40 @@ pub struct DatabaseConfig {
     pub api_pool_size: u32,
     #[serde(default = "default_websocket_pool_size")]
     pub websocket_pool_size: u32,
+    #[serde(default = "default_min_connections")]
+    pub min_connections: u32,
+    #[serde(default = "default_acquire_timeout_seconds")]
+    pub acquire_timeout_seconds: u64,
+    #[serde(default = "default_idle_timeout_seconds")]
+    pub idle_timeout_seconds: u64,
+    #[serde(default = "default_max_lifetime_seconds")]
+    pub max_lifetime_seconds: u64,
 }
 
 fn default_api_pool_size() -> u32 {
-    40
+    let cores = num_cpus::get() as u32;
+    (cores * 2 + 5).clamp(10, 40)
 }
 
 fn default_websocket_pool_size() -> u32 {
-    30
+    let cores = num_cpus::get() as u32;
+    (cores * 2).clamp(10, 30)
+}
+
+fn default_min_connections() -> u32 {
+    5
+}
+
+fn default_acquire_timeout_seconds() -> u64 {
+    5
+}
+
+fn default_idle_timeout_seconds() -> u64 {
+    300
+}
+
+fn default_max_lifetime_seconds() -> u64 {
+    1800
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -205,11 +231,27 @@ impl Config {
             api_pool_size: env::var("DB_API_POOL_SIZE")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(40),
+                .unwrap_or_else(default_api_pool_size),
             websocket_pool_size: env::var("DB_WEBSOCKET_POOL_SIZE")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(30),
+                .unwrap_or_else(default_websocket_pool_size),
+            min_connections: env::var("DB_MIN_CONNECTIONS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or_else(default_min_connections),
+            acquire_timeout_seconds: env::var("DB_ACQUIRE_TIMEOUT_SECONDS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or_else(default_acquire_timeout_seconds),
+            idle_timeout_seconds: env::var("DB_IDLE_TIMEOUT_SECONDS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or_else(default_idle_timeout_seconds),
+            max_lifetime_seconds: env::var("DB_MAX_LIFETIME_SECONDS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or_else(default_max_lifetime_seconds),
         };
 
         let redis = RedisConfig {
