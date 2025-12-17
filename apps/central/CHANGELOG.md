@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/confide-gg/confide/compare/confide-central-v0.7.0...confide-central-v0.8.0) (2025-12-17)
+
+
+### Features
+
+* backend optimizations ([#30](https://github.com/confide-gg/confide/issues/30)) ([4151e49](https://github.com/confide-gg/confide/commit/4151e49daac8181159a1619a341d5c373678bcbe))
+
 ## [0.7.0](https://github.com/confide-gg/confide/compare/confide-central-v0.6.0...confide-central-v0.7.0) (2025-12-17)
 
 
