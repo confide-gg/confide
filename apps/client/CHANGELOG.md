@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.1](https://github.com/confide-gg/confide/compare/confide-client-v0.19.0...confide-client-v0.19.1) (2025-12-17)
+
+
+### Bug Fixes
+
+* restrict Tauri HTTP permissions ([2945572](https://github.com/confide-gg/confide/commit/2945572b6861ff9e832d699ea341439c10a4107d))
+
 ## [0.19.0](https://github.com/confide-gg/confide/compare/confide-client-v0.18.0...confide-client-v0.19.0) (2025-12-17)
 
 
