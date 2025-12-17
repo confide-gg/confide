@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.0](https://github.com/confide-gg/confide/compare/confide-client-v0.19.1...confide-client-v0.20.0) (2025-12-17)
+
+
+### Features
+
+* add warning when sending too many messages ([736125b](https://github.com/confide-gg/confide/commit/736125baf2f14010164da5ec02faf5c08c31a59f))
+* implement React 19 optimizations ([db1d482](https://github.com/confide-gg/confide/commit/db1d4824cf73c4dab2d56b5b9ade0595a0f888d1))
+* implement TanStack Query caching with instant load times ([38375ab](https://github.com/confide-gg/confide/commit/38375ab2299eadc3db9bd1756d24e6bd656bb34d))
+
+
+### Bug Fixes
+
+* dont show the Server Offline overlay on log in ([54daa33](https://github.com/confide-gg/confide/commit/54daa339ed6dade4ffe222f3fda1bacafd453012))
+
 ## [0.19.1](https://github.com/confide-gg/confide/compare/confide-client-v0.19.0...confide-client-v0.19.1) (2025-12-17)
 
 
