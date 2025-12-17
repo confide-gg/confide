@@ -43,6 +43,16 @@ async fn main() -> anyhow::Result<()> {
 
     let api_pool = PgPoolOptions::new()
         .max_connections(config.database.api_pool_size)
+        .min_connections(config.database.min_connections)
+        .acquire_timeout(std::time::Duration::from_secs(
+            config.database.acquire_timeout_seconds,
+        ))
+        .idle_timeout(std::time::Duration::from_secs(
+            config.database.idle_timeout_seconds,
+        ))
+        .max_lifetime(std::time::Duration::from_secs(
+            config.database.max_lifetime_seconds,
+        ))
         .after_connect(|conn, _meta| {
             Box::pin(async move {
                 sqlx::query("SET statement_timeout = '30s'")
@@ -60,6 +70,16 @@ async fn main() -> anyhow::Result<()> {
 
     let ws_pool = PgPoolOptions::new()
         .max_connections(config.database.websocket_pool_size)
+        .min_connections(config.database.min_connections)
+        .acquire_timeout(std::time::Duration::from_secs(
+            config.database.acquire_timeout_seconds,
+        ))
+        .idle_timeout(std::time::Duration::from_secs(
+            config.database.idle_timeout_seconds,
+        ))
+        .max_lifetime(std::time::Duration::from_secs(
+            config.database.max_lifetime_seconds,
+        ))
         .after_connect(|conn, _meta| {
             Box::pin(async move {
                 sqlx::query("SET statement_timeout = '30s'")

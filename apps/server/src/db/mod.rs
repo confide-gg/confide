@@ -1,3 +1,4 @@
+pub mod cache;
 mod channels;
 mod members;
 mod messages;
@@ -11,13 +12,16 @@ use sqlx::PgPool;
 #[derive(Clone)]
 pub struct Database {
     pool: PgPool,
-    #[allow(dead_code)]
     redis: RedisClient,
 }
 
 impl Database {
     pub fn new(pool: PgPool, redis: RedisClient) -> Self {
         Self { pool, redis }
+    }
+
+    pub fn redis_client(&self) -> &RedisClient {
+        &self.redis
     }
 
     pub async fn redis_conn(&self) -> crate::error::Result<redis::aio::MultiplexedConnection> {

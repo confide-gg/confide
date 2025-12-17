@@ -46,6 +46,16 @@ async fn main() -> anyhow::Result<()> {
 
     let pool = PgPoolOptions::new()
         .max_connections(config.database.max_connections)
+        .min_connections(config.database.min_connections)
+        .acquire_timeout(std::time::Duration::from_secs(
+            config.database.acquire_timeout_seconds,
+        ))
+        .idle_timeout(std::time::Duration::from_secs(
+            config.database.idle_timeout_seconds,
+        ))
+        .max_lifetime(std::time::Duration::from_secs(
+            config.database.max_lifetime_seconds,
+        ))
         .connect(&config.database.url)
         .await?;
 

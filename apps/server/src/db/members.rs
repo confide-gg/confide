@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::error::Result;
@@ -95,6 +96,14 @@ impl Database {
         .bind(role_id)
         .execute(&self.pool)
         .await?;
+
+        let cache_key = format!("permissions:{}", member_id);
+        let mut conn = self.redis_conn().await?;
+        let _: () = redis::cmd("DEL")
+            .arg(&cache_key)
+            .query_async(&mut conn)
+            .await?;
+
         Ok(())
     }
 
@@ -104,6 +113,14 @@ impl Database {
             .bind(role_id)
             .execute(&self.pool)
             .await?;
+
+        let cache_key = format!("permissions:{}", member_id);
+        let mut conn = self.redis_conn().await?;
+        let _: () = redis::cmd("DEL")
+            .arg(&cache_key)
+            .query_async(&mut conn)
+            .await?;
+
         Ok(())
     }
 
@@ -172,5 +189,33 @@ impl Database {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    pub async fn get_all_members_with_roles(&self) -> Result<Vec<(Member, Vec<Uuid>)>> {
+        let members = self.get_all_members().await?;
+        if members.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let member_ids: Vec<Uuid> = members.iter().map(|m| m.id).collect();
+
+        let role_mappings: Vec<(Uuid, Uuid)> =
+            sqlx::query_as("SELECT member_id, role_id FROM member_roles WHERE member_id = ANY($1)")
+                .bind(&member_ids)
+                .fetch_all(&self.pool)
+                .await?;
+
+        let mut roles_by_member: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
+        for (member_id, role_id) in role_mappings {
+            roles_by_member.entry(member_id).or_default().push(role_id);
+        }
+
+        Ok(members
+            .into_iter()
+            .map(|member| {
+                let roles = roles_by_member.get(&member.id).cloned().unwrap_or_default();
+                (member, roles)
+            })
+            .collect())
     }
 }

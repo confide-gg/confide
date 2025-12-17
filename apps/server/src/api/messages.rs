@@ -157,31 +157,25 @@ pub async fn get_messages(
         .ok_or(AppError::NotFound("Channel not found".into()))?;
 
     let limit = query.limit.clamp(1, 100);
-    let messages = state
+    let messages_with_senders = state
         .db
-        .get_channel_messages(channel_id, limit, query.before)
+        .get_channel_messages_with_senders(channel_id, limit, query.before)
         .await?;
 
-    let mut messages_with_keys = Vec::with_capacity(messages.len());
-    for msg in messages {
-        let sender = state.db.get_member(msg.sender_id).await?;
-        let (sender_username, sender_dsa_public_key) = match sender {
-            Some(s) => (s.username, s.dsa_public_key),
-            None => ("Unknown".to_string(), vec![]),
-        };
-
-        messages_with_keys.push(MessageWithKey {
+    let messages_with_keys = messages_with_senders
+        .into_iter()
+        .map(|(msg, sender)| MessageWithKey {
             id: msg.id,
             channel_id: msg.channel_id,
             sender_id: msg.sender_id,
-            sender_username,
-            sender_dsa_public_key,
+            sender_username: sender.username,
+            sender_dsa_public_key: sender.dsa_public_key,
             encrypted_content: msg.encrypted_content,
             signature: msg.signature,
             reply_to_id: msg.reply_to_id,
             created_at: msg.created_at,
-        });
-    }
+        })
+        .collect();
 
     Ok(Json(messages_with_keys))
 }

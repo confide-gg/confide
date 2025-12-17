@@ -98,6 +98,9 @@ impl Database {
         q = q.bind(role_id);
         q.execute(&self.pool).await?;
 
+        use crate::db::cache::invalidate_cache_pattern;
+        invalidate_cache_pattern(self.redis_client(), "permissions:*").await?;
+
         Ok(())
     }
 
@@ -106,6 +109,10 @@ impl Database {
             .bind(role_id)
             .execute(&self.pool)
             .await?;
+
+        use crate::db::cache::invalidate_cache_pattern;
+        invalidate_cache_pattern(self.redis_client(), "permissions:*").await?;
+
         Ok(())
     }
 
@@ -126,37 +133,50 @@ impl Database {
         self.get_all_roles().await
     }
 
-    pub async fn get_member_permissions(&self, member_id: Uuid) -> Result<i64> {
+    async fn get_member_permissions_uncached(&self, member_id: Uuid) -> Result<i64> {
         use crate::models::permissions::DEFAULT_MEMBER;
 
-        let identity = self.get_server_identity().await?;
-        if let Some(id) = identity {
-            if let Some(owner_id) = id.owner_user_id {
-                let member = self.get_member(member_id).await?;
-                if let Some(m) = member {
-                    if m.central_user_id == owner_id {
-                        return Ok(i64::MAX);
-                    }
-                }
-            }
-        }
-
-        let roles: Vec<(i64,)> = sqlx::query_as(
+        let result: Option<(Option<Uuid>, Option<Uuid>, i64)> = sqlx::query_as(
             r#"
-            SELECT r.permissions FROM roles r
-            JOIN member_roles mr ON r.id = mr.role_id
-            WHERE mr.member_id = $1
+            SELECT
+                si.owner_user_id,
+                m.central_user_id,
+                COALESCE(SUM(r.permissions), 0) as total_permissions
+            FROM members m
+            LEFT JOIN server_identity si ON true
+            LEFT JOIN member_roles mr ON m.id = mr.member_id
+            LEFT JOIN roles r ON mr.role_id = r.id
+            WHERE m.id = $1
+            GROUP BY si.owner_user_id, m.central_user_id
             "#,
         )
         .bind(member_id)
-        .fetch_all(&self.pool)
+        .fetch_optional(&self.pool)
         .await?;
 
-        let mut permissions: i64 = DEFAULT_MEMBER;
-        for (p,) in roles {
-            permissions |= p;
+        match result {
+            Some((Some(owner_id), Some(central_user_id), _)) if owner_id == central_user_id => {
+                Ok(i64::MAX)
+            }
+            Some((_, _, perms)) => Ok(DEFAULT_MEMBER | perms),
+            None => Ok(DEFAULT_MEMBER),
         }
+    }
 
-        Ok(permissions)
+    pub async fn get_member_permissions(&self, member_id: Uuid) -> Result<i64> {
+        use crate::db::cache::cached_get;
+
+        let cache_key = format!("permissions:{}", member_id);
+
+        let db = self.clone();
+        let result = cached_get(self.redis_client(), &cache_key, 300, || async move {
+            db.get_member_permissions_uncached(member_id)
+                .await
+                .map_err(|e| anyhow::anyhow!("{:?}", e))
+        })
+        .await
+        .map_err(|e| e.into());
+
+        result
     }
 }

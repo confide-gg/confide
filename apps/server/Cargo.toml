@@ -33,3 +33,4 @@ nanoid.workspace = true
 rand.workspace = true
 reqwest.workspace = true
 argon2.workspace = true
+num_cpus = "1.16"
