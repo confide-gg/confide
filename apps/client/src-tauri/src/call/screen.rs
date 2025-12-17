@@ -538,6 +538,8 @@ pub struct FrameReassembler {
     last_complete_frame: u32,
 }
 
+pub type ReassembledFrame = (Vec<u8>, bool, u16, u16, u64, u32, u64);
+
 impl FrameReassembler {
     pub fn new() -> Self {
         Self {
@@ -548,10 +550,7 @@ impl FrameReassembler {
         }
     }
 
-    pub fn add_fragment(
-        &mut self,
-        frame: VideoFrame,
-    ) -> Option<(Vec<u8>, bool, u16, u16, u64, u32, u64)> {
+    pub fn add_fragment(&mut self, frame: VideoFrame) -> Option<ReassembledFrame> {
         let now = Instant::now();
         self.evict_expired(now);
 
@@ -609,7 +608,9 @@ impl FrameReassembler {
                 metadata.2,
                 metadata.3,
                 frame.frame_id,
-                first_seen.map(|t| now.duration_since(t).as_millis() as u64).unwrap_or(0),
+                first_seen
+                    .map(|t| now.duration_since(t).as_millis() as u64)
+                    .unwrap_or(0),
             ));
         }
 

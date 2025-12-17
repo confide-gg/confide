@@ -25,6 +25,7 @@ export function useChatMessages(friendsList: Friend[]) {
 
     const activeChatRef = useRef<ActiveChat | null>(null);
     const processedMessageIds = useRef<Set<string>>(new Set());
+    const groupMemberNameCache = useRef<Map<string, Map<string, string>>>(new Map());
 
     useEffect(() => {
         activeChatRef.current = activeChat;
@@ -112,7 +113,12 @@ export function useChatMessages(friendsList: Friend[]) {
             }
 
             previews.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
-            setDmPreviews(previews);
+            setDmPreviews((prev) => {
+                const groups = prev.filter((p) => p.isGroup);
+                const merged = [...groups, ...previews];
+                merged.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+                return merged;
+            });
         } catch (err) {
             console.error("Failed to load DM previews:", err);
         }
@@ -146,8 +152,8 @@ export function useChatMessages(friendsList: Friend[]) {
             if (!isSystemMessage) {
                 setUnreadCounts((prev) => {
                     const next = new Map(prev);
-                    const current = next.get(msgData.sender_id) || 0;
-                    next.set(msgData.sender_id, current + 1);
+                    const current = next.get(msgData.conversation_id) || 0;
+                    next.set(msgData.conversation_id, current + 1);
                     return next;
                 });
 
@@ -158,17 +164,73 @@ export function useChatMessages(friendsList: Friend[]) {
                     showMessageNotification("Someone", "sent you a message", profile?.status);
                 }
             }
-            loadDmPreviews();
+            setDmPreviews((prev) => {
+                const idx = prev.findIndex((p) => p.conversationId === msgData.conversation_id);
+                const updated = [...prev];
+                if (idx >= 0) {
+                    updated[idx] = {
+                        ...updated[idx],
+                        lastMessage: isSystemMessage ? updated[idx].lastMessage : "New message",
+                        lastMessageTime: msgData.created_at,
+                        isLastMessageMine: false,
+                    };
+                } else {
+                    const senderFriend = friendsList.find((f) => f.id === msgData.sender_id);
+                    if (senderFriend) {
+                        updated.unshift({
+                            conversationId: msgData.conversation_id,
+                            visitorId: senderFriend.id,
+                            visitorUsername: senderFriend.username,
+                            lastMessage: "New message",
+                            lastMessageTime: msgData.created_at,
+                            isLastMessageMine: false,
+                        });
+                    }
+                }
+                updated.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+                return updated;
+            });
             return;
         }
 
         if (isSystemMessage) {
             const systemType = msgData.message_type as SystemMessageType;
+            let content = "";
+            if (currentChat?.isGroup) {
+                let nameMap = groupMemberNameCache.current.get(msgData.conversation_id);
+                if (!nameMap) {
+                    try {
+                        const members = await conversationService.getMembers(msgData.conversation_id);
+                        nameMap = new Map(members.map((m) => [m.user.id, m.user.username]));
+                        groupMemberNameCache.current.set(msgData.conversation_id, nameMap);
+                    } catch {
+                        nameMap = new Map();
+                    }
+                }
+                const actorName = msgData.sender_id === user?.id ? "You" : (nameMap.get(msgData.sender_id) || "Someone");
+                try {
+                    const payload = JSON.parse(cryptoService.bytesToString(msgData.encrypted_content));
+                    if (msgData.message_type === "group_member_added" && Array.isArray(payload.added_user_ids)) {
+                        const names = payload.added_user_ids.map((id: string) => nameMap.get(id) || "Someone");
+                        content = `${actorName} added ${names.join(", ")}`;
+                    } else if (msgData.message_type === "group_member_removed" && payload.removed_user_id) {
+                        const name = nameMap.get(payload.removed_user_id) || "Someone";
+                        content = `${actorName} removed ${name}`;
+                    } else if (msgData.message_type === "group_member_left" && payload.user_id) {
+                        const name = payload.user_id === user?.id ? "You" : (nameMap.get(payload.user_id) || "Someone");
+                        content = `${name} left the group`;
+                    } else if (msgData.message_type === "group_owner_changed" && payload.new_owner_id) {
+                        const name = nameMap.get(payload.new_owner_id) || "Someone";
+                        content = `${actorName} made ${name} the owner`;
+                    }
+                } catch {
+                }
+            }
             const systemMsg: DecryptedMessage = {
                 id: msgData.id,
                 senderId: msgData.sender_id,
                 senderName: "",
-                content: "",
+                content,
                 createdAt: msgData.created_at,
                 isMine: msgData.sender_id === user?.id,
                 isSystem: true,
@@ -188,21 +250,27 @@ export function useChatMessages(friendsList: Friend[]) {
         const senderName = senderFriend?.username || "Unknown";
 
         try {
-            const keyResponse = await messageService.getMessageKey(msgData.conversation_id, msgData.id);
-            if (!keyResponse.encrypted_key || !userKeys) {
-                throw new Error("No message key available");
+            let content = "";
+            if (currentChat.isGroup) {
+                const decryptedBytes = await cryptoService.decryptWithKey(currentChat.conversationKey, msgData.encrypted_content);
+                content = cryptoService.bytesToString(decryptedBytes);
+            } else {
+                const keyResponse = await messageService.getMessageKey(msgData.conversation_id, msgData.id);
+                if (!keyResponse.encrypted_key || !userKeys) {
+                    throw new Error("No message key available");
+                }
+
+                const messageKey = await cryptoService.decryptFromSender(userKeys.kem_secret_key, keyResponse.encrypted_key);
+
+                if (!messageKey || messageKey.length !== 32) {
+                    throw new Error(`Invalid message key length: ${messageKey?.length || 0} bytes (expected 32)`);
+                }
+
+                const ratchetMsgJson = cryptoService.bytesToString(msgData.encrypted_content);
+                const ratchetMsg = JSON.parse(ratchetMsgJson);
+                const contentBytes = await cryptoService.decryptWithMessageKey(messageKey, ratchetMsg.ciphertext);
+                content = cryptoService.bytesToString(contentBytes);
             }
-
-            const messageKey = await cryptoService.decryptFromSender(userKeys.kem_secret_key, keyResponse.encrypted_key);
-
-            if (!messageKey || messageKey.length !== 32) {
-                throw new Error(`Invalid message key length: ${messageKey?.length || 0} bytes (expected 32)`);
-            }
-
-            const ratchetMsgJson = cryptoService.bytesToString(msgData.encrypted_content);
-            const ratchetMsg = JSON.parse(ratchetMsgJson);
-            const contentBytes = await cryptoService.decryptWithMessageKey(messageKey, ratchetMsg.ciphertext);
-            const content = cryptoService.bytesToString(contentBytes);
 
             let replyToMsg: DecryptedMessage["replyTo"];
             if (msgData.reply_to_id) {
@@ -266,11 +334,6 @@ export function useChatMessages(friendsList: Friend[]) {
         setIsLoadingChat(true);
         setChatMessages([]);
         setActiveChat(null);
-        setUnreadCounts(prev => {
-            const next = new Map(prev);
-            next.delete(friend.id);
-            return next;
-        });
 
         try {
             const allConvs = await conversationService.getConversations();
@@ -417,17 +480,23 @@ export function useChatMessages(friendsList: Friend[]) {
                 theirDsaKey: friendDsaKey,
             });
 
+            setUnreadCounts(prev => {
+                const next = new Map(prev);
+                next.delete(conversationId);
+                return next;
+            });
+
             setDmPreviews((prev) => {
                 const exists = prev.some((p) => p.conversationId === conversationId);
                 if (exists) return prev;
-                return [{
+                return [...prev, {
                     conversationId,
                     visitorId: friend.id,
                     visitorUsername: friend.username,
                     lastMessage: "",
                     lastMessageTime: new Date().toISOString(),
                     isLastMessageMine: false,
-                }, ...prev];
+                }];
             });
 
             centralWebSocketService.subscribeConversation(conversationId);
@@ -539,7 +608,7 @@ export function useChatMessages(friendsList: Friend[]) {
         const msgContent = content || messageInput.trim();
         if (!activeChat || !msgContent || !userKeys || !user) return;
 
-        if (!activeChat.ratchetState) {
+        if (!activeChat.isGroup && !activeChat.ratchetState) {
             console.error("Cannot send message: no ratchet session established");
             alert("Encryption session not ready. Please wait or reopen the chat.");
             return;
@@ -557,40 +626,11 @@ export function useChatMessages(friendsList: Friend[]) {
             const expiresAt = currentDuration ? new Date(Date.now() + currentDuration * 1000).toISOString() : null;
 
             let encrypted: number[];
-            let messageKeys: Array<{ user_id: string; encrypted_key: number[] }>;
-            let newState: number[];
+            let messageKeys: Array<{ user_id: string; encrypted_key: number[] }> | undefined;
+            let newState: number[] | undefined;
 
             if (activeChat.isGroup) {
-                const currentState = activeChat.ratchetState;
-                if (!currentState) {
-                    throw new Error("Group chat missing ratchet state");
-                }
-                const groupResult = await cryptoService.encryptGroupMessage(currentState, msgBytes);
-                const groupMessage = {
-                    ciphertext: groupResult.ciphertext,
-                    chain_id: groupResult.chain_id,
-                    iteration: groupResult.iteration,
-                };
-                encrypted = cryptoService.stringToBytes(JSON.stringify(groupMessage));
-                newState = groupResult.new_state;
-
-                const myEncryptedKey = await cryptoService.encryptForRecipient(userKeys.kem_public_key, currentState);
-                messageKeys = [{ user_id: user.id, encrypted_key: myEncryptedKey }];
-
-                const members = await conversationService.getMembers(activeChat.conversationId);
-                for (const member of members) {
-                    if (member.user.id !== user.id) {
-                        try {
-                            const memberEncryptedKey = await cryptoService.encryptForRecipient(member.user.kem_public_key, currentState);
-                            messageKeys.push({
-                                user_id: member.user.id,
-                                encrypted_key: memberEncryptedKey,
-                            });
-                        } catch (err) {
-                            console.warn(`Failed to encrypt for member ${member.user.id}:`, err);
-                        }
-                    }
-                }
+                encrypted = await cryptoService.encryptWithKey(activeChat.conversationKey, msgBytes);
             } else {
                 const currentState = activeChat.ratchetState;
                 if (!currentState) {
@@ -624,7 +664,9 @@ export function useChatMessages(friendsList: Friend[]) {
                 }).catch(err => console.warn("Failed to save session state:", err));
             }
 
-            setActiveChat(prev => prev ? { ...prev, ratchetState: newState } : null);
+            if (!activeChat.isGroup && newState) {
+                setActiveChat(prev => prev ? { ...prev, ratchetState: newState } : null);
+            }
 
             const signature = await cryptoService.dsaSign(userKeys.dsa_secret_key, encrypted);
 
@@ -722,38 +764,10 @@ export function useChatMessages(friendsList: Friend[]) {
             const msgBytes = cryptoService.stringToBytes(newContent);
 
             let encrypted: number[];
-            let messageKeys: Array<{ user_id: string; encrypted_key: number[] }> = [];
+            let messageKeys: Array<{ user_id: string; encrypted_key: number[] }> | undefined;
 
             if (activeChat.isGroup) {
-                const currentState = activeChat.ratchetState;
-                if (!currentState) {
-                    throw new Error("Group chat missing ratchet state");
-                }
-                const groupResult = await cryptoService.encryptGroupMessage(currentState, msgBytes);
-                const groupMessage = {
-                    ciphertext: groupResult.ciphertext,
-                    chain_id: groupResult.chain_id,
-                    iteration: groupResult.iteration,
-                };
-                encrypted = cryptoService.stringToBytes(JSON.stringify(groupMessage));
-
-                const myEncryptedKey = await cryptoService.encryptForRecipient(userKeys.kem_public_key, currentState);
-                messageKeys = [{ user_id: user.id, encrypted_key: myEncryptedKey }];
-
-                const members = await conversationService.getMembers(activeChat.conversationId);
-                for (const member of members) {
-                    if (member.user.id !== user.id) {
-                        try {
-                            const memberEncryptedKey = await cryptoService.encryptForRecipient(member.user.kem_public_key, currentState);
-                            messageKeys.push({
-                                user_id: member.user.id,
-                                encrypted_key: memberEncryptedKey,
-                            });
-                        } catch (err) {
-                            console.warn(`Failed to encrypt for member ${member.user.id}:`, err);
-                        }
-                    }
-                }
+                encrypted = await cryptoService.encryptWithKey(activeChat.conversationKey, msgBytes);
             } else {
                 const messageKey = await cryptoService.generateConversationKey();
                 const encryptedBytes = await cryptoService.encryptWithKey(messageKey, msgBytes);
@@ -876,6 +890,7 @@ export function useChatMessages(friendsList: Friend[]) {
         chatMessages,
         setChatMessages,
         isLoadingChat,
+        setIsLoadingChat,
         messageInput,
         setMessageInput,
         isSending,

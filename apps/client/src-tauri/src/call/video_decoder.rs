@@ -1,6 +1,6 @@
+use base64::{engine::general_purpose, Engine as _};
 use crossbeam_channel::{Receiver, Sender};
 use serde::{Deserialize, Serialize};
-use base64::{engine::general_purpose, Engine as _};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::call::h264::H264Decoder;

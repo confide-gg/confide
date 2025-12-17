@@ -1012,6 +1012,13 @@ impl CallManager {
             .clone();
         drop(datagram_guard);
 
+        let video_send_guard = self.video_send.read().await;
+        let video_send = video_send_guard
+            .as_ref()
+            .ok_or("No video send stream available")?
+            .clone();
+        drop(video_send_guard);
+
         let frame_tx = VIDEO_SEND_CHANNEL.0.clone();
         let frame_rx = VIDEO_SEND_CHANNEL.1.clone();
 
@@ -1062,38 +1069,39 @@ impl CallManager {
 
         let send_enc = enc_clone.clone();
         let send_stats = self.stats.clone();
-        std::thread::spawn(move || {
-            loop {
-                match frame_rx.recv_timeout(std::time::Duration::from_millis(50)) {
-                    Ok(frame_data) => {
-                        let encrypted = {
-                            let mut e = send_enc.lock().unwrap();
-                            match e.encrypt_video_frame(&frame_data) {
-                                Ok(data) => data,
-                                Err(err) => {
-                                    eprintln!("[Video] Encrypt error: {}", err);
-                                    continue;
-                                }
+        let video_send_for_reliable = video_send.clone();
+        std::thread::spawn(move || loop {
+            match frame_rx.recv_timeout(std::time::Duration::from_millis(50)) {
+                Ok(frame_data) => {
+                    let encrypted = {
+                        let mut e = send_enc.lock().unwrap();
+                        match e.encrypt_video_frame(&frame_data) {
+                            Ok(data) => data,
+                            Err(err) => {
+                                eprintln!("[Video] Encrypt error: {}", err);
+                                continue;
                             }
-                        };
-                        match datagram_channel.send_video_lossy(&encrypted) {
-                            Ok(_) => {
-                                if let Ok(mut stats) = send_stats.lock() {
-                                    stats.packets_sent += 1;
-                                }
+                        }
+                    };
+                    match datagram_channel.send_video_lossy(&encrypted) {
+                        Ok(_) => {
+                            if let Ok(mut stats) = send_stats.lock() {
+                                stats.packets_sent += 1;
                             }
-                            Err(_) => {
-                                if let Ok(mut stats) = send_stats.lock() {
-                                    stats.packets_lost += 1;
-                                }
+                        }
+                        Err(_) => {
+                            let rt = tokio::runtime::Handle::current();
+                            let _ = rt.block_on(video_send_for_reliable.send(&encrypted));
+                            if let Ok(mut stats) = send_stats.lock() {
+                                stats.packets_lost += 1;
                             }
                         }
                     }
-                    Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
-                    Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
-                        eprintln!("[Video] Channel disconnected, stopping");
-                        break;
-                    }
+                }
+                Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
+                Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
+                    eprintln!("[Video] Channel disconnected, stopping");
+                    break;
                 }
             }
         });

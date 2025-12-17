@@ -1,4 +1,4 @@
-import { Phone, PhoneOff, PhoneMissed, PhoneIncoming, Pin } from "lucide-react";
+import { Crown, LogOut, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Pin, UserMinus, UserPlus } from "lucide-react";
 import { formatDate } from "../../utils/formatters";
 import type { DecryptedMessage } from "../../types";
 
@@ -35,6 +35,14 @@ export function SystemMessage({ message, peerName }: SystemMessageProps) {
         return <PhoneOff className="w-4 h-4" />;
       case "channel_pin":
         return <Pin className="w-4 h-4" />;
+      case "group_member_added":
+        return <UserPlus className="w-4 h-4" />;
+      case "group_member_removed":
+        return <UserMinus className="w-4 h-4" />;
+      case "group_member_left":
+        return <LogOut className="w-4 h-4" />;
+      case "group_owner_changed":
+        return <Crown className="w-4 h-4" />;
       default:
         return <Phone className="w-4 h-4" />;
     }
@@ -50,6 +58,11 @@ export function SystemMessage({ message, peerName }: SystemMessageProps) {
       case "call_rejected":
         return "text-red-400";
       case "channel_pin":
+        return "text-muted-foreground";
+      case "group_member_added":
+      case "group_member_removed":
+      case "group_member_left":
+      case "group_owner_changed":
         return "text-muted-foreground";
       default:
         return "text-muted-foreground";
@@ -78,6 +91,11 @@ export function SystemMessage({ message, peerName }: SystemMessageProps) {
         return `${actor} declined`;
       case "channel_pin":
         return `${actor} pinned a message to this channel.`;
+      case "group_member_added":
+      case "group_member_removed":
+      case "group_member_left":
+      case "group_owner_changed":
+        return "";
       default:
         return "";
     }

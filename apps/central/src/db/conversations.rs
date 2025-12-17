@@ -13,16 +13,18 @@ impl Database {
         &self,
         conversation_type: ConversationType,
         encrypted_metadata: Option<Vec<u8>>,
+        owner_id: Option<Uuid>,
     ) -> Result<Conversation> {
         let conv = sqlx::query_as::<_, Conversation>(
             r#"
-            INSERT INTO conversations (conversation_type, encrypted_metadata)
-            VALUES ($1, $2)
+            INSERT INTO conversations (conversation_type, encrypted_metadata, owner_id)
+            VALUES ($1, $2, $3)
             RETURNING *
             "#,
         )
         .bind(conversation_type.as_str())
         .bind(encrypted_metadata)
+        .bind(owner_id)
         .fetch_one(&self.pool)
         .await?;
         Ok(conv)
@@ -151,7 +153,7 @@ impl Database {
         super::cache::cached_get(&self.redis, &cache_key, 300, || async move {
             let rows = sqlx::query_as::<_, ConversationWithRouting>(
                 r#"
-                    SELECT c.id, c.conversation_type, c.encrypted_metadata, c.created_at,
+                    SELECT c.id, c.conversation_type, c.encrypted_metadata, c.owner_id, c.created_at,
                            cm.encrypted_sender_key, cm.encrypted_role
                     FROM conversations c
                     JOIN conversation_members cm ON c.id = cm.conversation_id
@@ -178,19 +180,66 @@ impl Database {
             .bind(user_id)
             .execute(&self.pool)
             .await?;
+
+        let cache_key = format!("user:convos:{}", user_id);
+        let _ = super::cache::invalidate_cache(&self.redis, &cache_key).await;
+
         Ok(())
     }
 
     pub async fn update_conversation_metadata(
         &self,
         conversation_id: Uuid,
-        encrypted_metadata: Vec<u8>,
+        encrypted_metadata: Option<Vec<u8>>,
     ) -> Result<()> {
         sqlx::query("UPDATE conversations SET encrypted_metadata = $1 WHERE id = $2")
             .bind(encrypted_metadata)
             .bind(conversation_id)
             .execute(&self.pool)
             .await?;
+        Ok(())
+    }
+
+    pub async fn update_conversation_owner(
+        &self,
+        conversation_id: Uuid,
+        owner_id: Option<Uuid>,
+    ) -> Result<()> {
+        sqlx::query("UPDATE conversations SET owner_id = $1 WHERE id = $2")
+            .bind(owner_id)
+            .bind(conversation_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_conversation(&self, conversation_id: Uuid) -> Result<()> {
+        sqlx::query("DELETE FROM conversations WHERE id = $1")
+            .bind(conversation_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn add_group_event(
+        &self,
+        conversation_id: Uuid,
+        event_type: &str,
+        actor_id: Option<Uuid>,
+        target_user_id: Option<Uuid>,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO group_events (conversation_id, event_type, actor_id, target_user_id)
+            VALUES ($1, $2, $3, $4)
+            "#,
+        )
+        .bind(conversation_id)
+        .bind(event_type)
+        .bind(actor_id)
+        .bind(target_user_id)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 

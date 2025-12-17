@@ -24,6 +24,20 @@ pub enum WsMessage {
     ReactionAdded(ReactionAddedData),
     #[serde(rename = "reaction_removed")]
     ReactionRemoved(ReactionRemovedData),
+    #[serde(rename = "group_created")]
+    GroupCreated(GroupCreatedData),
+    #[serde(rename = "group_member_added")]
+    GroupMemberAdded(GroupMemberAddedData),
+    #[serde(rename = "group_member_removed")]
+    GroupMemberRemoved(GroupMemberRemovedData),
+    #[serde(rename = "group_member_left")]
+    GroupMemberLeft(GroupMemberLeftData),
+    #[serde(rename = "group_owner_changed")]
+    GroupOwnerChanged(GroupOwnerChangedData),
+    #[serde(rename = "group_deleted")]
+    GroupDeleted(GroupDeletedData),
+    #[serde(rename = "group_metadata_updated")]
+    GroupMetadataUpdated(GroupMetadataUpdatedData),
     #[serde(rename = "friend_request")]
     FriendRequest(FriendRequestData),
     #[serde(rename = "friend_accepted")]
@@ -208,6 +222,52 @@ pub struct TypingData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct GroupCreatedData {
+    pub conversation_id: Uuid,
+    pub owner_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GroupMemberAddedData {
+    pub conversation_id: Uuid,
+    pub user_id: Uuid,
+    pub added_by: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GroupMemberRemovedData {
+    pub conversation_id: Uuid,
+    pub user_id: Uuid,
+    pub removed_by: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GroupMemberLeftData {
+    pub conversation_id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GroupOwnerChangedData {
+    pub conversation_id: Uuid,
+    pub old_owner_id: Uuid,
+    pub new_owner_id: Uuid,
+    pub changed_by: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GroupDeletedData {
+    pub conversation_id: Uuid,
+    pub deleted_by: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GroupMetadataUpdatedData {
+    pub conversation_id: Uuid,
+    pub updated_by: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PresenceData {
     #[serde(rename = "member_id")]
     pub user_id: Uuid,
@@ -378,10 +438,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
         }
     };
 
-    let mut initial_channels = vec![format!("user:{}", user_id)];
-    for conv in &conversations {
-        initial_channels.push(format!("conversation:{}", conv.id));
-    }
+    let initial_channels = vec![format!("user:{}", user_id)];
 
     if let Ok(Some(recovered_state)) =
         crate::ws::call_recovery::handle_websocket_reconnection(&state, user_id).await
@@ -556,20 +613,14 @@ async fn handle_client_message(
                         is_typing: data.is_typing,
                     });
                     if let Ok(json) = serde_json::to_string(&typing_msg) {
-                        let channel = format!("conversation:{}", data.conversation_id);
-                        let _ = publish_message(&state.redis, &channel, &json).await;
-
                         if let Ok(members) = state
                             .db
                             .get_conversation_members(data.conversation_id)
                             .await
                         {
                             for member in members {
-                                if member.user_id != user_id {
-                                    let user_channel = format!("user:{}", member.user_id);
-                                    let _ =
-                                        publish_message(&state.redis, &user_channel, &json).await;
-                                }
+                                let user_channel = format!("user:{}", member.user_id);
+                                let _ = publish_message(&state.redis, &user_channel, &json).await;
                             }
                         }
                     }
@@ -707,9 +758,16 @@ async fn broadcast_presence(
         let user_channel = format!("user:{}", user_id);
         let _ = publish_message(redis, &user_channel, &json).await;
 
-        for conv in conversations {
-            let channel = format!("conversation:{}", conv.id);
-            let _ = publish_message(redis, &channel, &json).await;
+        let conversation_ids: Vec<Uuid> = conversations.iter().map(|c| c.id).collect();
+        if let Ok(user_ids) = state
+            .db
+            .get_members_for_conversations(&conversation_ids, user_id)
+            .await
+        {
+            for uid in user_ids {
+                let channel = format!("user:{}", uid);
+                let _ = publish_message(redis, &channel, &json).await;
+            }
         }
     }
 }
@@ -732,9 +790,16 @@ pub async fn broadcast_key_update(state: &AppState, user_id: Uuid, kem_public_ke
     });
 
     if let Ok(json) = serde_json::to_string(&key_update_msg) {
-        for conv in conversations {
-            let channel = format!("conversation:{}", conv.id);
-            let _ = publish_message(&state.redis, &channel, &json).await;
+        let conversation_ids: Vec<Uuid> = conversations.iter().map(|c| c.id).collect();
+        if let Ok(user_ids) = state
+            .db
+            .get_members_for_conversations(&conversation_ids, user_id)
+            .await
+        {
+            for uid in user_ids {
+                let channel = format!("user:{}", uid);
+                let _ = publish_message(&state.redis, &channel, &json).await;
+            }
         }
     }
 }

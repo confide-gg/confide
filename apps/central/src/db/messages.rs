@@ -145,6 +145,48 @@ impl Database {
         })
     }
 
+    pub async fn create_system_message_with_content(
+        &self,
+        conversation_id: Uuid,
+        sender_id: Uuid,
+        message_type: &str,
+        encrypted_content: Vec<u8>,
+    ) -> Result<Message> {
+        let row = sqlx::query_as::<_, MessageRow>(
+            r#"
+            INSERT INTO messages (conversation_id, sender_id, encrypted_content, signature, message_type)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *
+            "#,
+        )
+        .bind(conversation_id)
+        .bind(sender_id)
+        .bind(encrypted_content)
+        .bind(Vec::<u8>::new())
+        .bind(message_type)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(Message {
+            id: row.id,
+            conversation_id: row.conversation_id,
+            sender_id: row.sender_id,
+            encrypted_content: row.encrypted_content,
+            signature: row.signature,
+            reply_to_id: row.reply_to_id,
+            expires_at: row.expires_at,
+            sender_chain_id: row.sender_chain_id,
+            sender_chain_iteration: row.sender_chain_iteration,
+            edited_at: row.edited_at,
+            message_type: row.message_type,
+            call_id: row.call_id,
+            call_duration_seconds: row.call_duration_seconds,
+            pinned_at: row.pinned_at,
+            reactions: vec![],
+            created_at: row.created_at,
+        })
+    }
+
     pub async fn has_call_message(&self, call_id: Uuid, message_type: &str) -> Result<bool> {
         let count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM messages WHERE call_id = $1 AND message_type = $2",

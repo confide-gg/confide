@@ -1,10 +1,18 @@
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { useChat } from "../../context/ChatContext";
 import { SidebarNav } from "./SidebarNav";
 import { DmList } from "./DmList";
 import { UserProfile } from "./UserProfile";
 import { ActiveCallIndicator } from "../calls/ActiveCallIndicator";
 import { Panel } from "../layout/Panel";
+import { Button } from "../ui/button";
+import { CreateGroupModal } from "../groups/CreateGroupModal";
 
 export function Sidebar() {
+  const { friendsList, createGroup } = useChat();
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+
   return (
     <aside className="w-56 h-full overflow-hidden shrink-0">
       <Panel className="h-full flex flex-col">
@@ -18,10 +26,18 @@ export function Sidebar() {
           </div>
 
           <div className="mt-2">
-            <div className="flex items-center px-4 py-1">
+            <div className="flex items-center justify-between px-4 py-1">
               <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 Direct Messages
               </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setIsCreateGroupOpen(true)}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
             <div className="px-2 mt-1">
               <DmList />
@@ -34,6 +50,15 @@ export function Sidebar() {
           <UserProfile />
         </div>
       </Panel>
+
+      <CreateGroupModal
+        isOpen={isCreateGroupOpen}
+        onClose={() => setIsCreateGroupOpen(false)}
+        friends={friendsList}
+        onCreate={async ({ name, icon, memberIds }) => {
+          await createGroup({ name, icon, memberIds });
+        }}
+      />
     </aside>
   );
 }

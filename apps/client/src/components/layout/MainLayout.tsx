@@ -5,6 +5,7 @@ import { useServer } from "../../context/ServerContext";
 import { cn } from "../../lib/utils";
 import { Sidebar } from "../sidebar/Sidebar";
 import { ChatArea } from "../chat/ChatArea";
+import { GroupChatArea } from "../groups/GroupChatArea";
 import { FriendsPage, DiscoveryPage } from "../pages";
 import { Panel } from "./Panel";
 import {
@@ -16,6 +17,7 @@ import {
 } from "../ui/dialog";
 import { ContextMenu } from "../common/ContextMenu";
 import { DmContextMenu } from "../sidebar/DmContextMenu";
+import { GroupContextMenu } from "../groups/GroupContextMenu";
 import { ProfileModal } from "../profile/ProfileModal";
 import { VerifyModal } from "../common/VerifyModal";
 import { toast } from "sonner";
@@ -25,11 +27,23 @@ import { ChannelList } from "../servers/ChannelList";
 import { ChannelChat } from "../servers/ChannelChat";
 import { MemberList } from "../servers/MemberList";
 import { ServerOfflineOverlay } from "../common/ServerOfflineOverlay";
+import { groupService } from "../../features/groups/groupService";
+import { AddGroupMembersModal } from "../groups/AddGroupMembersModal";
+import { conversationService } from "../../features/chat/conversations";
+import { cryptoService } from "../../core/crypto/crypto";
 
 export function MainLayout() {
   const { user, keys } = useAuth();
   const { activeServer, activeChannel, setActiveServer } = useServer();
   const [showDiscovery, setShowDiscovery] = useState(false);
+  const [confirmGroupAction, setConfirmGroupAction] = useState<{
+    type: "leave" | "delete";
+    conversationId: string;
+  } | null>(null);
+  const [addMembersTarget, setAddMembersTarget] = useState<{
+    conversationId: string;
+    conversationKey: number[];
+  } | null>(null);
   const {
     activeChat,
     sidebarView,
@@ -38,6 +52,8 @@ export function MainLayout() {
     setContextMenu,
     dmContextMenu,
     setDmContextMenu,
+    groupContextMenu,
+    setGroupContextMenu,
     profileView,
     setProfileView,
     confirmRemove,
@@ -59,10 +75,11 @@ export function MainLayout() {
     const handleClick = () => {
       setContextMenu(null);
       setDmContextMenu(null);
+      setGroupContextMenu(null);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [setContextMenu, setDmContextMenu]);
+  }, [setContextMenu, setDmContextMenu, setGroupContextMenu]);
 
   useEffect(() => {
     if (error) {
@@ -96,7 +113,7 @@ export function MainLayout() {
     }
 
     if (activeChat) {
-      return <ChatArea />;
+      return activeChat.isGroup ? <GroupChatArea /> : <ChatArea />;
     }
 
     switch (sidebarView) {
@@ -214,6 +231,98 @@ export function MainLayout() {
           }}
         />
       )}
+
+      {groupContextMenu && (
+        <GroupContextMenu
+          data={groupContextMenu}
+          onClose={() => setGroupContextMenu(null)}
+          onAddMember={async () => {
+            try {
+              if (!keys || !user) return;
+              const convs = await conversationService.getConversations();
+              const conv = convs.find((c) => c.id === groupContextMenu.conversationId);
+              if (!conv) throw new Error("Conversation not found");
+              const conversationKey = await cryptoService.decryptFromSender(
+                keys.kem_secret_key,
+                conv.encrypted_sender_key
+              );
+              setAddMembersTarget({ conversationId: conv.id, conversationKey });
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Failed to open add member");
+            } finally {
+              setGroupContextMenu(null);
+            }
+          }}
+          onLeave={() => {
+            setConfirmGroupAction({ type: "leave", conversationId: groupContextMenu.conversationId });
+            setGroupContextMenu(null);
+          }}
+          onDelete={() => {
+            setConfirmGroupAction({ type: "delete", conversationId: groupContextMenu.conversationId });
+            setGroupContextMenu(null);
+          }}
+        />
+      )}
+
+      {addMembersTarget && (
+        <AddGroupMembersModal
+          isOpen={true}
+          onClose={() => setAddMembersTarget(null)}
+          conversationId={addMembersTarget.conversationId}
+          conversationKey={addMembersTarget.conversationKey}
+          friends={friendsList}
+          maxTotalMembers={10}
+          onAdded={() => setAddMembersTarget(null)}
+        />
+      )}
+
+      <Dialog open={!!confirmGroupAction} onOpenChange={(open) => !open && setConfirmGroupAction(null)}>
+        <DialogContent className="max-w-[460px] bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmGroupAction?.type === "delete" ? "Delete Group" : "Leave Group"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {confirmGroupAction?.type === "delete" ? (
+              <>
+                <p>Are you sure you want to delete this group?</p>
+                <p className="text-muted-foreground text-sm">This will remove it for everyone.</p>
+              </>
+            ) : (
+              <>
+                <p>Are you sure you want to leave this group?</p>
+                <p className="text-muted-foreground text-sm">You can be added back later.</p>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setConfirmGroupAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={confirmGroupAction?.type === "delete" ? "destructive" : "default"}
+              onClick={async () => {
+                if (!confirmGroupAction) return;
+                try {
+                  if (confirmGroupAction.type === "delete") {
+                    await groupService.deleteGroup(confirmGroupAction.conversationId);
+                  } else {
+                    await groupService.leaveGroup(confirmGroupAction.conversationId);
+                  }
+                  closeDm(confirmGroupAction.conversationId);
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Action failed");
+                } finally {
+                  setConfirmGroupAction(null);
+                }
+              }}
+            >
+              {confirmGroupAction?.type === "delete" ? "Delete Group" : "Leave Group"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!confirmRemove} onOpenChange={(open) => !open && setConfirmRemove(null)}>
         <DialogContent className="max-w-[460px] bg-card border-border">

@@ -6,6 +6,7 @@ export interface ConversationWithRouting {
     id: string;
     conversation_type: string;
     encrypted_metadata: number[] | null;
+    owner_id?: string | null;
     encrypted_sender_key: number[];
     encrypted_role: number[];
     created_at: string;
@@ -241,6 +242,40 @@ export interface WsGroupMemberLeft {
     };
 }
 
+export interface WsGroupCreated {
+    type: "group_created";
+    data: {
+        conversation_id: string;
+        owner_id: string;
+    };
+}
+
+export interface WsGroupOwnerChanged {
+    type: "group_owner_changed";
+    data: {
+        conversation_id: string;
+        old_owner_id: string;
+        new_owner_id: string;
+        changed_by: string;
+    };
+}
+
+export interface WsGroupDeleted {
+    type: "group_deleted";
+    data: {
+        conversation_id: string;
+        deleted_by: string;
+    };
+}
+
+export interface WsGroupMetadataUpdated {
+    type: "group_metadata_updated";
+    data: {
+        conversation_id: string;
+        updated_by: string;
+    };
+}
+
 export interface WsTyping {
     type: "typing";
     data: {
@@ -309,7 +344,16 @@ export interface WsTypingStop {
 
 // --- Domain/UI Models ---
 
-export type SystemMessageType = 'call_started' | 'call_ended' | 'call_missed' | 'call_rejected' | 'channel_pin';
+export type SystemMessageType =
+    | 'call_started'
+    | 'call_ended'
+    | 'call_missed'
+    | 'call_rejected'
+    | 'channel_pin'
+    | 'group_member_added'
+    | 'group_member_removed'
+    | 'group_member_left'
+    | 'group_owner_changed';
 
 export interface ReplyTo {
     id: string;
@@ -342,6 +386,10 @@ export interface ActiveChat {
     conversationId: string;
     conversationKey: number[];
     isGroup?: boolean;
+    groupName?: string;
+    groupOwnerId?: string | null;
+    groupIcon?: string;
+    memberUsernames?: string[];
     ratchetState?: number[];
     isVerified?: boolean;
     theirIdentityKey?: number[];
@@ -355,6 +403,12 @@ export interface DmPreview {
     lastMessage: string;
     lastMessageTime: string;
     isLastMessageMine: boolean;
+    isGroup?: boolean;
+    groupName?: string;
+    groupOwnerId?: string | null;
+    groupIcon?: string;
+    memberIds?: string[];
+    memberUsernames?: string[];
 }
 
 export interface TenorGif {

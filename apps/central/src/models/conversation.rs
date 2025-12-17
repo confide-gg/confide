@@ -7,6 +7,7 @@ pub struct Conversation {
     pub id: Uuid,
     pub conversation_type: String,
     pub encrypted_metadata: Option<Vec<u8>>,
+    pub owner_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -55,6 +56,7 @@ pub struct ConversationWithRouting {
     pub id: Uuid,
     pub conversation_type: String,
     pub encrypted_metadata: Option<Vec<u8>>,
+    pub owner_id: Option<Uuid>,
     pub encrypted_sender_key: Vec<u8>,
     pub encrypted_role: Vec<u8>,
     pub created_at: DateTime<Utc>,
