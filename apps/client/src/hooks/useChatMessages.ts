@@ -9,9 +9,24 @@ import { cryptoService } from "../core/crypto/crypto";
 import { useAuth, getPrekeySecrets } from "../context/AuthContext";
 import { showMessageNotification } from "../utils/notifications";
 import { toast } from "sonner";
+import {
+  useSendMessage,
+  useEditMessage,
+  useDeleteMessage,
+  usePinMessage,
+  useUnpinMessage,
+  useAddReaction,
+  useRemoveReaction,
+  useConversations
+} from "./useQueries";
+import { useDecryptedMessages } from "./useDecryptedMessages";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "./useQueries";
+import type { SendMessageRequest, EditMessageRequest } from "../features/chat/types";
 
 export function useChatMessages(friendsList: Friend[]) {
     const { user, keys: userKeys, profile } = useAuth();
+    const queryClient = useQueryClient();
 
     const [activeChat, setActiveChat] = useState<ActiveChat | null>(null);
     const [chatMessages, setChatMessages] = useState<DecryptedMessage[]>([]);
@@ -28,9 +43,41 @@ export function useChatMessages(friendsList: Friend[]) {
     const processedMessageIds = useRef<Set<string>>(new Set());
     const groupMemberNameCache = useRef<Map<string, Map<string, string>>>(new Map());
 
+    useConversations();
+
+    const decryptionContext = activeChat && userKeys && user ? {
+        userId: user.id,
+        username: user.username,
+        kemSecretKey: userKeys.kem_secret_key,
+        isGroup: activeChat.isGroup || false,
+        conversationKey: activeChat.conversationKey,
+        visitorUsername: activeChat.visitorUsername,
+        visitorId: activeChat.visitorId,
+    } : null;
+
+    const { data: cachedDecryptedMessages, isLoading: isLoadingDecrypted } = useDecryptedMessages(
+        activeChat?.conversationId || null,
+        decryptionContext
+    );
+
+    const sendMessageMutation = useSendMessage(activeChat?.conversationId || "");
+    const editMessageMutation = useEditMessage(activeChat?.conversationId || "");
+    const deleteMessageMutation = useDeleteMessage(activeChat?.conversationId || "");
+    const pinMessageMutation = usePinMessage(activeChat?.conversationId || "");
+    const unpinMessageMutation = useUnpinMessage(activeChat?.conversationId || "");
+    const addReactionMutation = useAddReaction(activeChat?.conversationId || "");
+    const removeReactionMutation = useRemoveReaction(activeChat?.conversationId || "");
+
     useEffect(() => {
         activeChatRef.current = activeChat;
     }, [activeChat]);
+
+    useEffect(() => {
+        if (cachedDecryptedMessages && activeChat) {
+            setChatMessages(cachedDecryptedMessages);
+            setIsLoadingChat(isLoadingDecrypted);
+        }
+    }, [cachedDecryptedMessages, activeChat, isLoadingDecrypted]);
 
     const loadFavoriteGifs = useCallback(async () => {
         try {
@@ -333,8 +380,6 @@ export function useChatMessages(friendsList: Friend[]) {
         }
 
         setIsLoadingChat(true);
-        setChatMessages([]);
-        setActiveChat(null);
 
         try {
             const allConvs = await conversationService.getConversations();
@@ -471,7 +516,7 @@ export function useChatMessages(friendsList: Friend[]) {
                 console.warn("Failed to initialize ratchet session, falling back to conversation key:", ratchetErr);
             }
 
-            setActiveChat({
+            const newActiveChat = {
                 visitorId: friend.id,
                 visitorUsername: friend.username,
                 conversationId,
@@ -479,7 +524,19 @@ export function useChatMessages(friendsList: Friend[]) {
                 ratchetState,
                 theirIdentityKey: theirIdentityKey || friendPublicKey,
                 theirDsaKey: friendDsaKey,
-            });
+            };
+
+            const cacheKey = [...queryKeys.messages.list(conversationId), "decrypted", user.id];
+            const cachedMessages = queryClient.getQueryData<DecryptedMessage[]>(cacheKey);
+
+            if (cachedMessages && cachedMessages.length > 0) {
+                setChatMessages(cachedMessages);
+                setIsLoadingChat(false);
+            } else {
+                setChatMessages([]);
+            }
+
+            setActiveChat(newActiveChat);
 
             setUnreadCounts(prev => {
                 const next = new Map(prev);
@@ -502,100 +559,6 @@ export function useChatMessages(friendsList: Friend[]) {
 
             centralWebSocketService.subscribeConversation(conversationId);
 
-            const msgs = await messageService.getMessages(conversationId, { limit: 50 });
-            const decryptedMsgs: DecryptedMessage[] = [];
-            const msgMap = new Map<string, { content: string; senderName: string; isSystem?: boolean; messageType?: string }>();
-
-            for (const msg of msgs) {
-                const isSystemMessage = msg.message_type && msg.message_type !== "text";
-
-                if (isSystemMessage) {
-                    msgMap.set(msg.id, { content: "", senderName: "System", isSystem: true, messageType: msg.message_type });
-                    continue;
-                }
-
-                try {
-                    const senderName = msg.sender_id === user.id ? user.username : friend.username;
-
-                    if (!msg.encrypted_key || msg.encrypted_key.length === 0) {
-                        console.error(`[Crypto] Message ${msg.id}: No encrypted_key in database`);
-                        throw new Error("No message key available");
-                    }
-
-                    const messageKey = await cryptoService.decryptFromSender(userKeys.kem_secret_key, msg.encrypted_key);
-
-                    if (!messageKey || messageKey.length !== 32) {
-                        throw new Error(`Invalid message key length: ${messageKey?.length || 0} bytes (expected 32)`);
-                    }
-
-                    const ratchetMsgJson = cryptoService.bytesToString(msg.encrypted_content);
-                    const ratchetMsg = JSON.parse(ratchetMsgJson);
-                    const contentBytes = await cryptoService.decryptWithMessageKey(messageKey, ratchetMsg.ciphertext);
-                    const content = cryptoService.bytesToString(contentBytes);
-
-                    msgMap.set(msg.id, { content, senderName, isSystem: false });
-                } catch (err) {
-                    console.error(`Failed to decrypt message ${msg.id}:`, err);
-                    msgMap.set(msg.id, { content: "[Unable to decrypt]", senderName: "Unknown", isSystem: false });
-                }
-            }
-
-            for (const msg of msgs) {
-                const decrypted = msgMap.get(msg.id)!;
-
-                if (decrypted.isSystem) {
-                    decryptedMsgs.push({
-                        id: msg.id,
-                        senderId: msg.sender_id,
-                        senderName: "",
-                        content: "",
-                        createdAt: msg.created_at,
-                        isMine: msg.sender_id === user.id,
-                        isSystem: true,
-                        systemType: msg.message_type as SystemMessageType,
-                        callDurationSeconds: msg.call_duration_seconds,
-                        reactions: [],
-                    });
-                    continue;
-                }
-
-                let replyToMsg: DecryptedMessage["replyTo"];
-
-                if (msg.reply_to_id) {
-                    const replyData = msgMap.get(msg.reply_to_id);
-                    if (replyData && !replyData.isSystem) {
-                        replyToMsg = {
-                            id: msg.reply_to_id,
-                            content: replyData.content,
-                            senderName: replyData.senderName,
-                        };
-                    }
-                }
-
-                decryptedMsgs.push({
-                    id: msg.id,
-                    senderId: msg.sender_id,
-                    senderName: decrypted.senderName,
-                    content: decrypted.content,
-                    createdAt: msg.created_at,
-                    isMine: msg.sender_id === user.id,
-                    isGif: decrypted.content.startsWith("https://") && decrypted.content.includes("tenor"),
-                    expiresAt: msg.expires_at,
-                    replyToId: msg.reply_to_id,
-                    replyTo: replyToMsg,
-                    reactions: msg.reactions.map((r) => ({
-                        id: r.id,
-                        userId: r.user_id,
-                        messageId: r.message_id,
-                        emoji: r.emoji,
-                        createdAt: r.created_at
-                    })),
-                    editedAt: msg.edited_at,
-                    pinnedAt: msg.pinned_at,
-                });
-            }
-            setChatMessages(decryptedMsgs.reverse());
-
         } catch (err) {
             console.error("Failed to open chat:", err);
             const message = err instanceof Error ? err.message : String(err);
@@ -603,7 +566,7 @@ export function useChatMessages(friendsList: Friend[]) {
         } finally {
             setIsLoadingChat(false);
         }
-    }, [userKeys, user, friendsList]);
+    }, [userKeys, user, friendsList, queryClient]);
 
     const sendMessage = useCallback(async (content?: string) => {
         const msgContent = content || messageInput.trim();
@@ -671,13 +634,15 @@ export function useChatMessages(friendsList: Friend[]) {
 
             const signature = await cryptoService.dsaSign(userKeys.dsa_secret_key, encrypted);
 
-            const response = await messageService.sendMessage(activeChat.conversationId, {
+            const sendData: SendMessageRequest = {
                 encrypted_content: encrypted,
                 signature,
                 reply_to_id: currentReplyTo?.id || null,
                 expires_at: expiresAt,
                 message_keys: messageKeys,
-            });
+            };
+
+            const response = await sendMessageMutation.mutateAsync(sendData);
 
             const newMsg: DecryptedMessage = {
                 id: response.id,
@@ -733,35 +698,35 @@ export function useChatMessages(friendsList: Friend[]) {
         } finally {
             setIsSending(false);
         }
-    }, [activeChat, messageInput, userKeys, user, replyTo, timedMessageDuration, friendsList]);
+    }, [activeChat, messageInput, userKeys, user, replyTo, timedMessageDuration, friendsList, sendMessageMutation]);
 
     const deleteMessage = useCallback(async (messageId: string) => {
         if (!activeChat) return;
         try {
-            await messageService.deleteMessage(activeChat.conversationId, messageId);
+            await deleteMessageMutation.mutateAsync(messageId);
             setChatMessages((prev) => prev.filter((m) => m.id !== messageId));
         } catch (err) {
             console.error("Failed to delete message:", err);
         }
-    }, [activeChat]);
+    }, [activeChat, deleteMessageMutation]);
 
     const pinMessage = useCallback(async (messageId: string) => {
         if (!activeChat) return;
         try {
-            await messageService.pinMessage(activeChat.conversationId, messageId);
+            await pinMessageMutation.mutateAsync(messageId);
         } catch (err) {
             console.error("Failed to pin message:", err);
         }
-    }, [activeChat]);
+    }, [activeChat, pinMessageMutation]);
 
     const unpinMessage = useCallback(async (messageId: string) => {
         if (!activeChat) return;
         try {
-            await messageService.unpinMessage(activeChat.conversationId, messageId);
+            await unpinMessageMutation.mutateAsync(messageId);
         } catch (err) {
             console.error("Failed to unpin message:", err);
         }
-    }, [activeChat]);
+    }, [activeChat, unpinMessageMutation]);
 
     const editMessage = useCallback(async (messageId: string, newContent: string) => {
         if (!activeChat || !userKeys || !user) return;
@@ -804,11 +769,13 @@ export function useChatMessages(friendsList: Friend[]) {
 
             const signature = await cryptoService.dsaSign(userKeys.dsa_secret_key, encrypted);
 
-            const response = await messageService.editMessage(activeChat.conversationId, messageId, {
+            const editData: EditMessageRequest = {
                 encrypted_content: encrypted,
                 signature,
                 message_keys: messageKeys,
-            });
+            };
+
+            const response = await editMessageMutation.mutateAsync({ messageId, data: editData });
 
             setChatMessages((prev) =>
                 prev.map((m) =>
@@ -839,7 +806,7 @@ export function useChatMessages(friendsList: Friend[]) {
             console.error("Failed to edit message:", error.status, error.message, err);
             throw err;
         }
-    }, [activeChat, userKeys, user, chatMessages, friendsList]);
+    }, [activeChat, userKeys, user, chatMessages, friendsList, editMessageMutation]);
 
     const addReaction = useCallback(async (messageId: string, emoji: string) => {
         if (!user || !activeChat) return;
@@ -849,14 +816,14 @@ export function useChatMessages(friendsList: Friend[]) {
 
         try {
             if (existingReaction) {
-                await messageService.removeReaction(activeChat.conversationId, messageId, emoji);
+                await removeReactionMutation.mutateAsync({ messageId, emoji });
             } else {
-                await messageService.addReaction(activeChat.conversationId, messageId, { emoji });
+                await addReactionMutation.mutateAsync({ messageId, emoji });
             }
         } catch (err) {
             console.error("Failed to toggle reaction", err);
         }
-    }, [user, activeChat, chatMessages]);
+    }, [user, activeChat, chatMessages, addReactionMutation, removeReactionMutation]);
 
     const addSystemMessage = useCallback((conversationId: string, content: string, systemType: SystemMessageType) => {
         const currentChat = activeChatRef.current;

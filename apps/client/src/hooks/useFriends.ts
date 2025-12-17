@@ -4,53 +4,73 @@ import { friendService } from "../features/friends/friends";
 import { cryptoService } from "../core/crypto/crypto";
 import { useAuth } from "../context/AuthContext";
 import { usePresence } from "../context/PresenceContext";
+import {
+    useFriends as useFriendsQuery,
+    useFriendRequests as useFriendRequestsQuery,
+    useSendFriendRequest as useSendFriendRequestMutation,
+    useRejectFriendRequest as useRejectFriendRequestMutation,
+} from "./useQueries";
 
 export function useFriends() {
     const { keys } = useAuth();
     const { subscribeToUsers, isWsConnected } = usePresence();
-    const [friendsList, setFriendsList] = useState<Friend[]>([]);
     const friendsListRef = useRef<Friend[]>([]);
-    const [friendRequests, setFriendRequests] = useState<FriendRequestResponse[]>([]);
     const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
     const [searchResults, setSearchResults] = useState<{ id: string; username: string; kem_public_key: number[] }[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [confirmRemove, setConfirmRemove] = useState<Friend | null>(null);
 
-    // Keep ref in sync with state
+    const { data: friendsData } = useFriendsQuery();
+    const { data: friendRequestsData } = useFriendRequestsQuery();
+
+    const sendFriendRequestMutation = useSendFriendRequestMutation();
+    const rejectFriendRequestMutation = useRejectFriendRequestMutation();
+
+    const [friendsList, setFriendsList] = useState<Friend[]>([]);
+
+    useEffect(() => {
+        if (!friendsData || !keys) {
+            setFriendsList([]);
+            return;
+        }
+
+        const decryptFriends = async () => {
+            try {
+                if (friendsData.encrypted_friends.length > 0) {
+                    const decrypted = await cryptoService.decryptData(keys.kem_secret_key, friendsData.encrypted_friends);
+                    const friendsDataParsed = JSON.parse(cryptoService.bytesToString(decrypted)) as Friend[];
+                    const seen = new Set<string>();
+                    const deduped = friendsDataParsed.filter((f) => {
+                        if (seen.has(f.id)) return false;
+                        seen.add(f.id);
+                        return true;
+                    });
+                    setFriendsList(deduped);
+                } else {
+                    setFriendsList([]);
+                }
+            } catch (err) {
+                console.error("Failed to decrypt friends:", err);
+                setFriendsList([]);
+            }
+        };
+
+        decryptFriends();
+    }, [friendsData, keys]);
+
+    const friendRequests = friendRequestsData || [];
+
     useEffect(() => {
         friendsListRef.current = friendsList;
     }, [friendsList]);
 
     const loadFriends = useCallback(async () => {
-        if (!keys) return;
-        try {
-            const response = await friendService.getFriends();
-            if (response.encrypted_friends.length > 0) {
-                const decrypted = await cryptoService.decryptData(keys.kem_secret_key, response.encrypted_friends);
-                const friendsData = JSON.parse(cryptoService.bytesToString(decrypted)) as Friend[];
-                const seen = new Set<string>();
-                const deduped = friendsData.filter((f) => {
-                    if (seen.has(f.id)) return false;
-                    seen.add(f.id);
-                    return true;
-                });
-                setFriendsList(deduped);
-            } else {
-                setFriendsList([]);
-            }
-        } catch (err) {
-            console.error("Failed to load friends:", err);
-        }
-    }, [keys]);
+        return Promise.resolve();
+    }, []);
 
     const loadFriendRequests = useCallback(async () => {
-        try {
-            const requests = await friendService.getFriendRequests();
-            setFriendRequests(requests);
-        } catch (err) {
-            console.error("Failed to load friend requests:", err);
-        }
+        return Promise.resolve();
     }, []);
 
     const searchUsers = useCallback(async (query: string) => {
@@ -71,14 +91,13 @@ export function useFriends() {
 
     const handleSendFriendRequest = useCallback(async (toUser: { id: string; username: string }) => {
         try {
-            await friendService.sendFriendRequest({ to_user_id: toUser.id, encrypted_message: null });
+            await sendFriendRequestMutation.mutateAsync({ to_user_id: toUser.id, encrypted_message: null });
             setSentRequests((prev) => new Set([...prev, toUser.id]));
-            // Success handling usually done in UI via toast/result
         } catch (err) {
             console.error("Failed to send friend request:", err);
             throw err;
         }
-    }, []);
+    }, [sendFriendRequestMutation]);
 
     const handleAcceptRequest = useCallback(async (request: FriendRequestResponse) => {
         if (!keys) {
@@ -88,7 +107,6 @@ export function useFriends() {
 
         const alreadyFriend = friendsListRef.current.some((f) => f.id === request.from_user.id);
         if (alreadyFriend) {
-            setFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
             return;
         }
 
@@ -107,8 +125,6 @@ export function useFriends() {
 
             await friendService.acceptFriendRequest(request.id, { encrypted_friends: encryptedFriends });
 
-            setFriendsList(updatedFriends);
-            setFriendRequests((prev) => prev.filter((r) => r.id !== request.id));
             subscribeToUsers([newFriend.id]);
         } catch (err) {
             console.error("Failed to accept friend request:", err);
@@ -118,13 +134,12 @@ export function useFriends() {
 
     const handleRejectRequest = useCallback(async (requestId: string) => {
         try {
-            await friendService.rejectFriendRequest(requestId);
-            setFriendRequests((prev) => prev.filter((r) => r.id !== requestId));
+            await rejectFriendRequestMutation.mutateAsync(requestId);
         } catch (err) {
             console.error("Failed to reject friend request:", err);
             throw err;
         }
-    }, []);
+    }, [rejectFriendRequestMutation]);
 
     const removeFriend = useCallback(async (friendToRemove: Friend) => {
         if (!keys) return;
@@ -138,7 +153,6 @@ export function useFriends() {
                 removed_friend_id: friendToRemove.id
             });
 
-            setFriendsList(updatedFriends);
             setConfirmRemove(null);
         } catch (err) {
             console.error("Failed to remove friend:", err);
@@ -228,7 +242,6 @@ export function useFriends() {
         friendsList,
         setFriendsList,
         friendRequests,
-        setFriendRequests,
         searchResults,
         isSearching,
         searchQuery,

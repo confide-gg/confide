@@ -6,12 +6,18 @@ import { ChatProvider } from "../../context/ChatContext";
 import { ServerProvider } from "../../context/ServerContext";
 import { CallProvider, ActiveCallOverlay, IncomingCallDialog } from "../calls";
 import { useIdleDetection } from "../../hooks/useIdleDetection";
+import { useCacheSync } from "../../hooks/useCacheSync";
 import { preferenceService } from "../../features/settings/preferences";
 import { applyTheme, type Theme } from "../../lib/themes";
 import { SnowEffect } from "../common";
 
 function IdleDetector() {
   useIdleDetection();
+  return null;
+}
+
+function CacheSync() {
+  useCacheSync();
   return null;
 }
 
@@ -36,6 +42,7 @@ function GlobalProviders({ children, userId, dsaSecretKey }: { children: React.R
           <CallProvider currentUserId={userId}>
             <IdleDetector />
             <PreferencesLoader />
+            <CacheSync />
             <SnowEffect />
             {children}
             <ActiveCallOverlay />

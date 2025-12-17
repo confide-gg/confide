@@ -1,5 +1,7 @@
 import { useEffect, Profiler, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Toaster, toast } from "sonner";
 import { check } from "@tauri-apps/plugin-updater";
@@ -7,6 +9,18 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { SnowEffect } from "./components/common";
 import { measureRenderTime } from "./utils/performance";
 import "./App.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+    },
+  },
+});
 
 const Login = lazy(() => import("./pages/Login").then(m => ({ default: m.Login })));
 const Register = lazy(() => import("./pages/Register").then(m => ({ default: m.Register })));
@@ -129,24 +143,27 @@ function App() {
   }, []);
 
   return (
-    <Profiler id="App" onRender={(id, phase, actualDuration) => measureRenderTime(id, phase, actualDuration)}>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-          <SnowEffect />
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: "var(--card)",
-                border: "1px solid var(--border)",
-                color: "var(--foreground)",
-              },
-            }}
-          />
-        </AuthProvider>
-      </BrowserRouter>
-    </Profiler>
+    <QueryClientProvider client={queryClient}>
+      <Profiler id="App" onRender={(id, phase, actualDuration) => measureRenderTime(id, phase, actualDuration)}>
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+            <SnowEffect />
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  color: "var(--foreground)",
+                },
+              }}
+            />
+          </AuthProvider>
+        </BrowserRouter>
+      </Profiler>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }
 

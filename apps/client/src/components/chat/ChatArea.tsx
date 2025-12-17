@@ -8,6 +8,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { MessageContextMenu } from "./MessageContextMenu";
 import { ProfileSidePanel } from "../profile/ProfileSidePanel";
 import { CallHeader } from "../calls/CallHeader";
+import { useMessages } from "../../hooks/useQueries";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 
@@ -28,6 +29,8 @@ export function ChatArea() {
   } = useChat();
   const { callState } = useCall();
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+
+  useMessages(activeChat?.conversationId || null);
 
   const isInCallWithActiveChat =
     (callState.status === "active" || callState.status === "left") &&

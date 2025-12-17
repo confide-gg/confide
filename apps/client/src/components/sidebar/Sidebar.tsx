@@ -8,10 +8,15 @@ import { ActiveCallIndicator } from "../calls/ActiveCallIndicator";
 import { Panel } from "../layout/Panel";
 import { Button } from "../ui/button";
 import { CreateGroupModal } from "../groups/CreateGroupModal";
+import { useConversations, useFriends, useFriendRequests } from "../../hooks/useQueries";
 
 export function Sidebar() {
   const { friendsList, createGroup } = useChat();
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+
+  useConversations();
+  useFriends();
+  useFriendRequests();
 
   return (
     <aside className="w-56 h-full overflow-hidden shrink-0">
