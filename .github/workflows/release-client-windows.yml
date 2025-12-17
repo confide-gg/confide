@@ -15,7 +15,7 @@ on:
 jobs:
   build-windows:
     name: Windows (x86_64)
-    runs-on: blacksmith-4vcpu-windows-2025
+    runs-on: windows-latest
     env:
       VCPKG_ROOT: ${{ github.workspace }}\vcpkg
       VCPKG_DEFAULT_TRIPLET: x64-windows-release
