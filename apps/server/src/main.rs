@@ -13,7 +13,7 @@ use axum::routing::get;
 use axum::Router;
 use reqwest::Client as HttpClient;
 use sqlx::postgres::PgPoolOptions;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -77,10 +77,28 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Heartbeat service started");
     }
 
+    let allowed_origins: Vec<axum::http::HeaderValue> = state
+        .config
+        .server
+        .allowed_origins
+        .iter()
+        .filter_map(|origin| origin.parse().ok())
+        .collect();
+
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_origin(allowed_origins)
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+            axum::http::Method::OPTIONS,
+        ])
+        .allow_headers([
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::CONTENT_TYPE,
+        ])
+        .allow_credentials(true);
 
     let app = Router::new()
         .route("/health", get(|| async { "OK" }))

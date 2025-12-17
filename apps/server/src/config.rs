@@ -17,6 +17,8 @@ pub struct ServerConfig {
     pub public_domain: String,
     #[serde(default = "default_central_url")]
     pub central_url: String,
+    #[serde(default = "default_allowed_origins")]
+    pub allowed_origins: Vec<String>,
 }
 
 fn default_central_url() -> String {
@@ -25,6 +27,14 @@ fn default_central_url() -> String {
     } else {
         "https://central.confide.gg/api".to_string()
     }
+}
+
+fn default_allowed_origins() -> Vec<String> {
+    vec![
+        "http://localhost:3000".to_string(),
+        "http://127.0.0.1:3000".to_string(),
+        "tauri://localhost".to_string(),
+    ]
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -57,6 +67,7 @@ impl Config {
                         port: 8080,
                         public_domain: "localhost:8080".to_string(),
                         central_url: default_central_url(),
+                        allowed_origins: default_allowed_origins(),
                     },
                     database: DatabaseConfig::default(),
                     redis: RedisConfig::default(),
@@ -95,6 +106,11 @@ impl Config {
 
         if let Ok(domain) = env::var("SERVER_PUBLIC_DOMAIN") {
             config.server.public_domain = domain;
+        }
+
+        if let Ok(origins) = env::var("ALLOWED_ORIGINS") {
+            config.server.allowed_origins =
+                origins.split(',').map(|s| s.trim().to_string()).collect();
         }
 
         if config.database.url.is_empty() {
