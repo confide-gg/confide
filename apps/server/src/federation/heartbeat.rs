@@ -1,7 +1,6 @@
 use chrono::Utc;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::interval;
@@ -70,8 +69,22 @@ impl HeartbeatService {
 
         let timestamp = Utc::now().timestamp();
 
-        let signature_data = format!("{}:{}:{}", server_id, member_count, timestamp);
-        let signature = Sha256::digest(signature_data.as_bytes()).to_vec();
+        let message_data = format!("{}:{}:{}", server_id, member_count, timestamp);
+
+        use confide_sdk::crypto::keys::DsaKeyPair;
+        use confide_sdk::decrypt_aes_gcm;
+
+        let encryption_key = [0u8; 32];
+
+        let private_bytes = decrypt_aes_gcm(&encryption_key, &identity.dsa_private_key_encrypted)
+            .map_err(|e| format!("Failed to decrypt private key: {}", e))?;
+
+        let keypair = DsaKeyPair::from_bytes(&identity.dsa_public_key, &private_bytes)
+            .map_err(|e| format!("Invalid keypair: {}", e))?;
+
+        let signature = keypair
+            .sign(message_data.as_bytes())
+            .map_err(|e| format!("Failed to sign: {}", e))?;
 
         let request = HeartbeatRequest {
             server_id,

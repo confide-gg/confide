@@ -230,18 +230,26 @@ pub async fn heartbeat(
         .await?
         .ok_or(AppError::NotFound("Server not found".into()))?;
 
-    let expected_data = format!("{}:{}:{}", req.server_id, req.member_count, req.timestamp);
-    let expected_hash = Sha256::digest(expected_data.as_bytes()).to_vec();
-
-    if req.signature != expected_hash {
-        return Err(AppError::Unauthorized);
-    }
-
     let now = Utc::now().timestamp();
     if (now - req.timestamp).abs() > 300 {
         return Err(AppError::BadRequest(
             "Timestamp too old or in future".into(),
         ));
+    }
+
+    let message_data = format!("{}:{}:{}", req.server_id, req.member_count, req.timestamp);
+
+    use confide_sdk::crypto::keys::DsaKeyPair;
+
+    let signature_valid = DsaKeyPair::verify(
+        &server.dsa_public_key,
+        message_data.as_bytes(),
+        &req.signature,
+    )
+    .unwrap_or(false);
+
+    if !signature_valid {
+        return Err(AppError::Unauthorized);
     }
 
     state
