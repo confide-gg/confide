@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Crown, LogOut, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Pin, UserMinus, UserPlus } from "lucide-react";
 import { formatDate } from "../../utils/formatters";
 import type { DecryptedMessage } from "../../types";
@@ -22,7 +23,7 @@ function formatDuration(seconds: number): string {
   return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
 }
 
-export function SystemMessage({ message, peerName }: SystemMessageProps) {
+export const SystemMessage = memo(function SystemMessage({ message, peerName }: SystemMessageProps) {
   const getIcon = () => {
     switch (message.systemType) {
       case "call_started":
@@ -114,4 +115,4 @@ export function SystemMessage({ message, peerName }: SystemMessageProps) {
       </span>
     </div>
   );
-}
+});

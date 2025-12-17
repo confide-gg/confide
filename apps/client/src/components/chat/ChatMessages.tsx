@@ -16,7 +16,7 @@ function shouldShowHeader(msg: DecryptedMessage, idx: number, messages: Decrypte
 }
 
 export function ChatMessages() {
-  const { activeChat, chatMessages, isLoadingChat } = useChat();
+  const { activeChat, chatMessages } = useChat();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
@@ -49,35 +49,8 @@ export function ChatMessages() {
 
   if (!activeChat) return null;
 
-  if (isLoadingChat) {
-    return (
-      <div className="flex-1 overflow-y-auto min-h-0 flex flex-col p-8 gap-1 items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-muted-foreground">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-          <span className="text-sm font-medium">Loading conversation...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (chatMessages.length === 0) {
-    return (
-      <div className="flex-1 overflow-y-auto min-h-0 flex flex-col p-8 gap-1">
-        <div className="flex flex-col items-center justify-center h-full gap-4 text-center text-muted-foreground p-8">
-          <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-2">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">Start a conversation</h3>
-          <p className="text-sm max-w-sm">Send a message, emoji, or GIF to @{activeChat.visitorUsername}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 flex flex-col py-6" ref={messagesContainerRef} onScroll={handleScroll}>
+    <div className="flex-1 overflow-y-auto min-h-0 flex flex-col py-6 animate-in fade-in duration-100" ref={messagesContainerRef} onScroll={handleScroll}>
       {chatMessages.map((msg, idx) => (
         msg.isSystem ? (
           <SystemMessage key={msg.id} message={msg} peerName={activeChat.visitorUsername} />

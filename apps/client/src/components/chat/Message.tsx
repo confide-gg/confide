@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useMemo } from "react";
 import { Avatar } from "../ui/avatar";
 import { formatDate } from "../../utils/formatters";
 import { useChat } from "../../context/ChatContext";
@@ -13,7 +13,7 @@ interface MessageProps {
   showHeader: boolean;
 }
 
-export function Message({ message, showHeader }: MessageProps) {
+export const Message = memo(function Message({ message, showHeader }: MessageProps) {
   const { setMessageContextMenu, addReaction, favoriteGifUrls, toggleFavoriteGif, setProfileView, editMessage, editingMessageId, setEditingMessageId } = useChat();
   const { isOnline } = usePresence();
   const { user, profile } = useAuth();
@@ -152,26 +152,28 @@ export function Message({ message, showHeader }: MessageProps) {
     return `${seconds}s`;
   };
 
-  const groupedReactions = message.reactions.reduce((acc, r) => {
-    if (!acc[r.emoji]) {
-      acc[r.emoji] = [];
-    }
-    acc[r.emoji].push(r.userId);
-    return acc;
-  }, {} as Record<string, string[]>);
+  const groupedReactions = useMemo(() => {
+    return message.reactions.reduce((acc, r) => {
+      if (!acc[r.emoji]) {
+        acc[r.emoji] = [];
+      }
+      acc[r.emoji].push(r.userId);
+      return acc;
+    }, {} as Record<string, string[]>);
+  }, [message.reactions]);
 
   return (
     <div
       id={message.id}
       className={`
-        group relative flex gap-3 hover:bg-secondary/20 px-6 py-1 transition-colors duration-500
+        group relative flex gap-3 hover:bg-secondary/20 px-6 py-1 transition-colors duration-150
         ${showHeader ? "mt-2" : "mt-0"}
         ${message.expiresAt ? "opacity-90" : ""}
       `}
       onContextMenu={handleContextMenu}
     >
       {message.isMine && !message.isGif && !isEditing && (
-        <div className="absolute right-6 top-0 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-card border border-border rounded-sm shadow-md p-0.5">
+        <div className="absolute right-6 top-0 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex gap-1 bg-card border border-border rounded-sm shadow-md p-0.5">
           <button
             onClick={handleStartEdit}
             className="p-1 hover:bg-secondary/50 rounded transition-colors"
@@ -290,4 +292,4 @@ export function Message({ message, showHeader }: MessageProps) {
       )}
     </div>
   );
-}
+});

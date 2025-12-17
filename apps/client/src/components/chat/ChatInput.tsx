@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useChat } from "../../context/ChatContext";
 import { GifPicker } from "./GifPicker";
 import data from "@emoji-mart/data";
@@ -32,6 +32,7 @@ export function ChatInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const timedMenuRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -60,6 +61,40 @@ export function ChatInput() {
     }
   }, [activeChat?.conversationId]);
 
+  const debouncedHandleTyping = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      handleTyping();
+    }, 300);
+  }, [handleTyping]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+      setActivePicker(null);
+    } else if (e.key === "Escape" && replyTo) {
+      setReplyTo(null);
+    }
+  }, [sendMessage, replyTo, setReplyTo]);
+
+  const handleEmojiSelect = useCallback((emoji: { native: string }) => {
+    setMessageInput(messageInput + emoji.native);
+    inputRef.current?.focus();
+  }, [messageInput, setMessageInput]);
+
+  const handleGifSelect = useCallback((gifUrl: string) => {
+    sendMessage(gifUrl);
+    setActivePicker(null);
+  }, [sendMessage]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessageInput(e.target.value);
+    debouncedHandleTyping();
+  }, [setMessageInput, debouncedHandleTyping]);
+
   if (!activeChat) return null;
 
   // Check if we can send messages
@@ -80,26 +115,6 @@ export function ChatInput() {
       </div>
     );
   }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-      setActivePicker(null);
-    } else if (e.key === "Escape" && replyTo) {
-      setReplyTo(null);
-    }
-  };
-
-  const handleEmojiSelect = (emoji: { native: string }) => {
-    setMessageInput(messageInput + emoji.native);
-    inputRef.current?.focus();
-  };
-
-  const handleGifSelect = (gifUrl: string) => {
-    sendMessage(gifUrl);
-    setActivePicker(null);
-  };
 
   return (
 
@@ -209,10 +224,7 @@ export function ChatInput() {
           type="text"
           value={messageInput}
           className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground h-full min-w-0"
-          onChange={(e) => {
-            setMessageInput(e.target.value);
-            handleTyping();
-          }}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder={replyTo ? `Reply to ${replyTo.senderName}...` : `Message @${activeChat?.visitorUsername}`}
           disabled={isSending}
