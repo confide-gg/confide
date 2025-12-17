@@ -117,13 +117,48 @@ fi
 blank
 info "Detecting public IP"
 PUBLIC_IP="$(curl -fsS https://api.ipify.org 2>/dev/null || echo "127.0.0.1")"
-DOMAIN="$PUBLIC_IP"
-success "Public IP: ${BOLD}${DOMAIN}${NC}"
+success "Public IP: ${BOLD}${PUBLIC_IP}${NC}"
+
+blank
+info "Domain configuration"
+read -r -p "  Domain (e.g., server.example.com): " DOMAIN || true
+if [[ -z "${DOMAIN}" ]]; then
+  die "Domain is required."
+fi
+
+CERT_DIR="$INSTALL_DIR/certs"
 
 blank
 info "Server configuration"
 SERVER_NAME="$(prompt_default "Server Name" "My Community Server")"
-EMAIL="$(prompt_default "Email for SSL" "admin@$DOMAIN")"
+EMAIL="$(prompt_default "Email" "admin@${DOMAIN}")"
+
+blank
+info "SSL certificate setup"
+
+if lsof -Pi :80 -sTCP:LISTEN -t >/dev/null 2>&1; then
+  warn "Port 80 is in use. Certbot needs it temporarily."
+  read -r -p "  Stop services and continue? (y/n): " yn || true
+  if [[ ! "${yn:-}" =~ ^[Yy]$ ]]; then
+    die "Port 80 must be available for SSL certificate generation."
+  fi
+fi
+
+mkdir -p "$CERT_DIR"
+
+info "Obtaining SSL certificate from Let's Encrypt"
+docker run --rm -p 80:80 \
+  -v "$CERT_DIR/conf:/etc/letsencrypt" \
+  -v "$CERT_DIR/www:/var/www/certbot" \
+  certbot/certbot certonly --standalone \
+  --email "$EMAIL" --agree-tos --no-eff-email \
+  -d "$DOMAIN" --non-interactive || die "Certificate generation failed."
+
+if [[ ! -d "$CERT_DIR/conf/live/$DOMAIN" ]]; then
+  die "Certificate files not found after generation."
+fi
+
+success "SSL certificate obtained for ${BOLD}${DOMAIN}${NC}"
 
 blank
 info "Generating secrets"
@@ -137,10 +172,50 @@ run_step "Creating folders at $INSTALL_DIR" mkdir -p "$INSTALL_DIR" "$INSTALL_DI
 
 blank
 info "Downloading configuration"
-run_step "Fetching Caddyfile + docker-compose.yml" bash -lc \
-  "curl -fsS '$REPO_URL/infrastructure/deployment/config/Caddyfile' -o '$INSTALL_DIR/config/Caddyfile' && \
-   curl -fsS '$REPO_URL/infrastructure/deployment/server-compose.yml' -o '$INSTALL_DIR/docker-compose.yml'"
-success "Configuration downloaded."
+run_step "Fetching docker-compose.yml" curl -fsS "$REPO_URL/infrastructure/deployment/server-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
+success "docker-compose.yml downloaded."
+
+blank
+info "Configuring docker-compose for SSL"
+
+if [[ "${OSTYPE:-}" == "darwin"* ]]; then
+  sed -i '' '/- \.\/config\/Caddyfile:\/etc\/caddy\/Caddyfile/a\
+      - ./certs/conf:/etc/caddy/certs:ro
+' "$INSTALL_DIR/docker-compose.yml"
+else
+  sed -i '/- \.\/config\/Caddyfile:\/etc\/caddy\/Caddyfile/a\      - ./certs/conf:/etc/caddy/certs:ro' "$INSTALL_DIR/docker-compose.yml"
+fi
+
+success "docker-compose.yml updated for SSL."
+
+blank
+info "Generating Caddyfile"
+cat > "$INSTALL_DIR/config/Caddyfile" <<EOF
+${DOMAIN} {
+    tls /etc/caddy/certs/live/${DOMAIN}/fullchain.pem /etc/caddy/certs/live/${DOMAIN}/privkey.pem
+    reverse_proxy server:8080 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    encode gzip zstd
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+    header {
+        -Server
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+}
+EOF
+success "Caddyfile configured."
 
 blank
 info "Writing environment (.env)"
