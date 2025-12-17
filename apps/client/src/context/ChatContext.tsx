@@ -62,6 +62,7 @@ interface ChatContextType {
 
   // Connection / Status
   isConnected: boolean;
+  hasConnectedOnce: boolean;
   onlineUsers: Set<string>;
   typingUsers: Map<string, ReturnType<typeof setTimeout>>;
 
@@ -129,6 +130,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // --- Local State ---
   const [isConnected, setIsConnected] = useState(centralWebSocketService.isConnected());
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(centralWebSocketService.isConnected());
   const [typingUsers, setTypingUsers] = useState<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [sidebarView, setSidebarView] = useState<SidebarView>("friends");
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
@@ -380,11 +382,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // --- WebSocket Listener ---
   useEffect(() => {
-    const unsubConnect = centralWebSocketService.onConnect(() => setIsConnected(true));
+    const unsubConnect = centralWebSocketService.onConnect(() => {
+      setIsConnected(true);
+      setHasConnectedOnce(true);
+    });
     const unsubDisconnect = centralWebSocketService.onDisconnect(() => setIsConnected(false));
 
     // Initial check
-    setIsConnected(centralWebSocketService.isConnected());
+    const initiallyConnected = centralWebSocketService.isConnected();
+    setIsConnected(initiallyConnected);
+    if (initiallyConnected) {
+      setHasConnectedOnce(true);
+    }
 
     return () => {
       unsubConnect();
@@ -666,6 +675,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     // Connection
     isConnected,
+    hasConnectedOnce,
     onlineUsers,
     typingUsers,
 

@@ -69,6 +69,7 @@ export function MainLayout() {
     successMessage,
     setSuccessMessage,
     isConnected,
+    hasConnectedOnce,
   } = useChat();
 
   useEffect(() => {
@@ -137,7 +138,7 @@ export function MainLayout() {
 
   return (
     <div className="flex h-screen bg-background text-foreground p-3 gap-3">
-      {!isConnected && <ServerOfflineOverlay />}
+      {!isConnected && hasConnectedOnce && <ServerOfflineOverlay />}
       <aside className="w-16 h-full shrink-0">
         <Panel className="h-full flex flex-col items-center">
         <div className="h-14 w-full flex items-center justify-center shrink-0">
