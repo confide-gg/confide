@@ -17,7 +17,7 @@ interface Snowflake {
 export function SnowEffect() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const snowflakesRef = useRef<Snowflake[]>([]);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const lastSpawnRef = useRef<number>(0);
   const isVisibleRef = useRef<boolean>(true);
 

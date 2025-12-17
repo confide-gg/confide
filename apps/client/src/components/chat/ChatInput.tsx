@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
 import { useChat } from "../../context/ChatContext";
 import { GifPicker } from "./GifPicker";
 import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
 import type { PickerType, TimedMessageDuration } from "../../types";
+
+const Picker = lazy(() => import("@emoji-mart/react"));
 
 const TIMED_OPTIONS: { label: string; value: TimedMessageDuration }[] = [
   { label: "Off", value: null },
@@ -32,7 +33,7 @@ export function ChatInput() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const timedMenuRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -144,13 +145,15 @@ export function ChatInput() {
           ref={pickerRef}
         >
           {activePicker === "emoji" && (
-            <Picker
-              data={data}
-              onEmojiSelect={handleEmojiSelect}
-              theme="dark"
-              previewPosition="none"
-              skinTonePosition="none"
-            />
+            <Suspense fallback={<div className="w-[350px] h-[400px] flex items-center justify-center bg-background">Loading...</div>}>
+              <Picker
+                data={data}
+                onEmojiSelect={handleEmojiSelect}
+                theme="dark"
+                previewPosition="none"
+                skinTonePosition="none"
+              />
+            </Suspense>
           )}
           {activePicker === "gif" && (
             <GifPicker onSelect={handleGifSelect} />

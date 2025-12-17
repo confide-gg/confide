@@ -53,6 +53,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
                     src={server.icon_url}
                     alt={server.name}
                     className="w-full h-full object-cover rounded-lg"
+                    loading="lazy"
                   />
                 ) : (
                   <span className="text-lg">
@@ -87,6 +88,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
                         src={server.icon_url}
                         alt={server.name}
                         className="w-full h-full object-cover rounded-lg"
+                        loading="lazy"
                       />
                     ) : (
                       <span className="text-lg">

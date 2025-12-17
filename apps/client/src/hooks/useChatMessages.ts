@@ -874,6 +874,9 @@ export function useChatMessages(friendsList: Friend[]) {
     }, [loadDmPreviews, loadFavoriteGifs]);
 
     useEffect(() => {
+        const hasTimedMessages = chatMessages.some(msg => msg.expiresAt);
+        if (!hasTimedMessages) return;
+
         const interval = setInterval(() => {
             const now = Date.now();
             setChatMessages((prev) =>
@@ -882,7 +885,7 @@ export function useChatMessages(friendsList: Friend[]) {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [chatMessages.length, chatMessages.some(msg => msg.expiresAt)]);
 
     return {
         activeChat,

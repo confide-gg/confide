@@ -7,7 +7,17 @@ const host = process.env.TAURI_DEV_HOST;
 const port = process.env.PORT ? parseInt(process.env.PORT) : 1420;
 
 export default defineConfig(async () => ({
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [
+          ['babel-plugin-react-compiler', {
+            target: '19'
+          }]
+        ]
+      }
+    })
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
@@ -33,6 +43,13 @@ export default defineConfig(async () => ({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover'],
+        }
+      }
+    }
   },
 }));

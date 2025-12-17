@@ -1,17 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, Profiler, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { Login } from "./pages/Login";
-import { Register } from "./pages/Register";
-import { Chat } from "./pages/Chat";
-import { RecoveryKit } from "./pages/RecoveryKit";
-import { ResetPassword } from "./pages/ResetPassword";
-import { Settings } from "./pages/Settings";
 import { Toaster, toast } from "sonner";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { SnowEffect } from "./components/common";
+import { measureRenderTime } from "./utils/performance";
 import "./App.css";
+
+const Login = lazy(() => import("./pages/Login").then(m => ({ default: m.Login })));
+const Register = lazy(() => import("./pages/Register").then(m => ({ default: m.Register })));
+const Chat = lazy(() => import("./pages/Chat").then(m => ({ default: m.Chat })));
+const RecoveryKit = lazy(() => import("./pages/RecoveryKit").then(m => ({ default: m.RecoveryKit })));
+const ResetPassword = lazy(() => import("./pages/ResetPassword").then(m => ({ default: m.ResetPassword })));
+const Settings = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
+const AuthenticatedLayout = lazy(() => import("./components/layout/AuthenticatedLayout").then(m => ({ default: m.AuthenticatedLayout })));
 
 function ProtectedRoute({ children, allowRecoverySetup = false }: { children: React.ReactNode; allowRecoverySetup?: boolean }) {
   const { isAuthenticated, isLoading, keys, needsRecoverySetup } = useAuth();
@@ -48,49 +51,53 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-import { AuthenticatedLayout } from "./components/layout/AuthenticatedLayout";
+function LoadingFallback() {
+  return <div className="loading">Loading...</div>;
+}
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/reset-password"
-        element={
-          <PublicRoute>
-            <ResetPassword />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/recovery-kit"
-        element={
-          <ProtectedRoute allowRecoverySetup={true}>
-            <RecoveryKit />
-          </ProtectedRoute>
-        }
-      />
-      <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
-        <Route path="/chat" element={<Chat />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/recovery-kit"
+          element={
+            <ProtectedRoute allowRecoverySetup={true}>
+              <RecoveryKit />
+            </ProtectedRoute>
+          }
+        />
+        <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -122,22 +129,24 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-        <SnowEffect />
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            },
-          }}
-        />
-      </AuthProvider>
-    </BrowserRouter>
+    <Profiler id="App" onRender={(id, phase, actualDuration) => measureRenderTime(id, phase, actualDuration)}>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+          <SnowEffect />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                color: "var(--foreground)",
+              },
+            }}
+          />
+        </AuthProvider>
+      </BrowserRouter>
+    </Profiler>
   );
 }
 

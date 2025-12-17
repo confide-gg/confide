@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Activity } from "react";
 import { useNavigate } from "react-router-dom";
 import { VoiceSettings } from "../components/settings/VoiceSettings";
 import { ProfileSettings } from "../components/settings/ProfileSettings";
@@ -126,14 +126,23 @@ export function Settings() {
         <ScrollArea className="flex-1">
           <div className="p-6 min-h-full flex items-center justify-center">
             <div className="w-full max-w-4xl">
-              {activeTab === "profile" && <ProfileSettings />}
-              {activeTab === "voice" && <VoiceSettings />}
-              {activeTab === "account" && (
+              <Activity mode={activeTab === "profile" ? 'visible' : 'hidden'}>
+                <ProfileSettings />
+              </Activity>
+
+              <Activity mode={activeTab === "voice" ? 'visible' : 'hidden'}>
+                <VoiceSettings />
+              </Activity>
+
+              <Activity mode={activeTab === "account" ? 'visible' : 'hidden'}>
                 <div className="space-y-4 text-sm text-muted-foreground">
                   <p>Account settings coming soon...</p>
                 </div>
-              )}
-              {activeTab === "appearance" && <AppearanceSettings />}
+              </Activity>
+
+              <Activity mode={activeTab === "appearance" ? 'visible' : 'hidden'}>
+                <AppearanceSettings />
+              </Activity>
             </div>
           </div>
         </ScrollArea>
