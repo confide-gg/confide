@@ -29,16 +29,22 @@
           "url": "http://127.0.0.1:*/**"
         },
         {
-          "url": "http://**"
+          "url": "https://central.confide.gg/**"
         },
         {
-          "url": "https://**"
+          "url": "https://*.confide.gg/**"
         },
         {
-          "url": "ws://**"
+          "url": "ws://localhost:*/**"
         },
         {
-          "url": "wss://**"
+          "url": "ws://127.0.0.1:*/**"
+        },
+        {
+          "url": "wss://central.confide.gg/**"
+        },
+        {
+          "url": "wss://*.confide.gg/**"
         }
       ]
     },
