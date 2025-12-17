@@ -8,6 +8,7 @@ import { centralWebSocketService } from "../core/network/CentralWebSocketService
 import { cryptoService } from "../core/crypto/crypto";
 import { useAuth, getPrekeySecrets } from "../context/AuthContext";
 import { showMessageNotification } from "../utils/notifications";
+import { toast } from "sonner";
 
 export function useChatMessages(friendsList: Friend[]) {
     const { user, keys: userKeys, profile } = useAuth();
@@ -718,8 +719,16 @@ export function useChatMessages(friendsList: Friend[]) {
                 }, ...prev.filter(p => p.conversationId !== activeChat.conversationId)];
             });
 
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to send message", err);
+
+            const errorMessage = err?.message || err?.error || String(err);
+            if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many')) {
+                toast.error("Wow! Wait a little there.", {
+                    description: "You're sending messages too quickly. Please slow down."
+                });
+            }
+
             if (!content) setMessageInput(msgContent);
         } finally {
             setIsSending(false);
