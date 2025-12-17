@@ -3,15 +3,18 @@ import { X } from "lucide-react";
 import { useChat } from "../../context/ChatContext";
 import { usePresence } from "../../context/PresenceContext";
 import { Avatar } from "../ui/avatar";
+import { AvatarPile } from "../ui/avatar-pile";
+import { useAuth } from "../../context/AuthContext";
 import type { DmPreview } from "../../types/index";
 
 export function DmList() {
-  const { dmPreviews, friendsList, activeChat, unreadCounts, openDmFromPreview, closeDm, setDmContextMenu } = useChat();
+  const { user } = useAuth();
+  const { dmPreviews, friendsList, activeChat, unreadCounts, openDmFromPreview, openGroupFromPreview, closeDm, setDmContextMenu, setGroupContextMenu } = useChat();
   const { getUserPresence, subscribeToUsers, isWsConnected, isOnline } = usePresence();
 
   useEffect(() => {
     if (dmPreviews.length > 0 && isWsConnected) {
-      const userIds = dmPreviews.map(p => p.visitorId);
+      const userIds = dmPreviews.filter(p => !p.isGroup).map(p => p.visitorId);
       subscribeToUsers(userIds);
     }
   }, [dmPreviews, isWsConnected, subscribeToUsers]);
@@ -39,24 +42,35 @@ export function DmList() {
 
   const handleContextMenu = (e: React.MouseEvent, preview: DmPreview) => {
     e.preventDefault();
-    setDmContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      conversationId: preview.conversationId,
-      visitorId: preview.visitorId,
-      visitorUsername: preview.visitorUsername,
-      isMuted: false, // TODO: Implement mute status for DMs
-    });
+    if (preview.isGroup) {
+      setGroupContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        conversationId: preview.conversationId,
+        isOwner: !!(user?.id && preview.groupOwnerId && user.id === preview.groupOwnerId),
+      });
+    } else {
+      setDmContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        conversationId: preview.conversationId,
+        visitorId: preview.visitorId,
+        visitorUsername: preview.visitorUsername,
+        isMuted: false,
+      });
+    }
   };
 
   return (
     <div className="space-y-0.5">
       {dmPreviews.map((preview) => {
-        const unreadCount = unreadCounts.get(preview.visitorId) || 0;
+        const unreadCount = unreadCounts.get(preview.conversationId) || 0;
         const isActive = activeChat?.conversationId === preview.conversationId;
-        const presence = getUserPresence(preview.visitorId);
-        const userIsOnline = isOnline(preview.visitorId);
-        const displayStatus = userIsOnline ? (presence?.status || "online") : "offline";
+        const presence = preview.isGroup ? null : getUserPresence(preview.visitorId);
+        const userIsOnline = preview.isGroup ? false : isOnline(preview.visitorId);
+        const displayStatus = preview.isGroup ? undefined : (userIsOnline ? (presence?.status || "online") : "offline");
+        const displayName = preview.isGroup ? (preview.groupName || "Group") : preview.visitorUsername;
+        const memberCount = preview.isGroup ? (preview.memberUsernames?.length || 0) : 0;
 
         return (
           <button
@@ -65,18 +79,35 @@ export function DmList() {
               ? "bg-secondary text-foreground"
               : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
-            onClick={() => openDmFromPreview(preview)}
+            onClick={() => (preview.isGroup ? openGroupFromPreview(preview) : openDmFromPreview(preview))}
             onContextMenu={(e) => handleContextMenu(e, preview)}
           >
-            <Avatar
-              fallback={preview.visitorUsername}
-              status={displayStatus as "online" | "away" | "dnd" | "invisible" | "offline"}
-              size="sm"
-            />
+            {preview.isGroup ? (
+              <AvatarPile
+                users={(preview.memberUsernames || []).slice(0, 10).map((n, idx) => ({
+                  id: `${preview.conversationId}-${idx}`,
+                  name: n,
+                }))}
+                size="sm"
+              />
+            ) : (
+              <Avatar
+                fallback={preview.visitorUsername}
+                status={displayStatus as "online" | "away" | "dnd" | "invisible" | "offline"}
+                size="sm"
+              />
+            )}
 
             <div className="flex-1 min-w-0">
-              <div className="truncate text-sm font-medium">
-                {preview.visitorUsername}
+              <div className="flex flex-col min-w-0">
+                <div className="truncate text-sm font-medium flex items-center gap-2">
+                  <span className="truncate">{displayName}</span>
+                </div>
+                {preview.isGroup && (
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {memberCount} member{memberCount === 1 ? "" : "s"}
+                  </div>
+                )}
               </div>
             </div>
 

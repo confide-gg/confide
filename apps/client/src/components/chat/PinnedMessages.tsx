@@ -17,7 +17,7 @@ export function PinnedMessages({ conversationId, onClose, onJump }: PinnedMessag
   const [isLoading, setIsLoading] = useState(true);
   const [decryptedContent, setDecryptedContent] = useState<Record<string, string>>({});
   const { keys } = useAuth();
-  const { unpinMessage } = useChat();
+  const { unpinMessage, activeChat } = useChat();
 
   useEffect(() => {
     const fetchPinned = async () => {
@@ -25,11 +25,17 @@ export function PinnedMessages({ conversationId, onClose, onJump }: PinnedMessag
         const msgs = await messageService.getPinnedMessages(conversationId);
         setPinnedMessages(msgs);
 
-        if (keys) {
+        const isGroup = !!(activeChat?.isGroup && activeChat.conversationId === conversationId);
+        if (keys || isGroup) {
           const decrypted: Record<string, string> = {};
           for (const msg of msgs) {
             try {
-              if (msg.encrypted_key && msg.encrypted_key.length > 0) {
+              if (msg.message_type && msg.message_type !== "text") {
+                decrypted[msg.id] = "[System message]";
+              } else if (isGroup && activeChat) {
+                const contentBytes = await cryptoService.decryptWithKey(activeChat.conversationKey, msg.encrypted_content);
+                decrypted[msg.id] = cryptoService.bytesToString(contentBytes);
+              } else if (msg.encrypted_key && msg.encrypted_key.length > 0 && keys) {
                 const messageKey = await cryptoService.decryptFromSender(keys.kem_secret_key, msg.encrypted_key);
                 const ratchetMsgJson = cryptoService.bytesToString(msg.encrypted_content);
                 const ratchetMsg = JSON.parse(ratchetMsgJson);
@@ -53,7 +59,7 @@ export function PinnedMessages({ conversationId, onClose, onJump }: PinnedMessag
     };
 
     fetchPinned();
-  }, [conversationId, keys]);
+  }, [conversationId, keys, activeChat]);
 
   const handleUnpin = async (e: React.MouseEvent, messageId: string) => {
     e.stopPropagation();

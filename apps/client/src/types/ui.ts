@@ -27,3 +27,10 @@ export interface DmContextMenuData {
     isMuted: boolean;
 }
 
+export interface GroupContextMenuData {
+    x: number;
+    y: number;
+    conversationId: string;
+    isOwner: boolean;
+}
+

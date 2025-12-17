@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { useAuth, getPrekeySecrets } from "./AuthContext";
 import { usePresence } from "./PresenceContext";
 import { centralWebSocketService } from "../core/network/CentralWebSocketService";
@@ -9,7 +9,7 @@ import { initNotifications, playFriendRequestSound, NotificationService } from "
 import { messageService } from "../features/chat/messages";
 import type {
   Friend, FriendRequestResponse, ActiveChat, DecryptedMessage, SidebarView,
-  ContextMenuData, MessageContextMenuData, DmContextMenuData, ReplyTo,
+  ContextMenuData, MessageContextMenuData, DmContextMenuData, GroupContextMenuData, ReplyTo,
   TimedMessageDuration, ProfileViewData, DmPreview, SystemMessageType,
 } from "../types/index";
 import type {
@@ -18,6 +18,9 @@ import type {
 
 import { useFriends } from "../hooks/useFriends";
 import { useChatMessages } from "../hooks/useChatMessages";
+import { useGroups } from "../hooks/useGroups";
+import { groupService } from "../features/groups/groupService";
+import { conversationService } from "../features/chat/conversations";
 
 
 interface VerifyModalData {
@@ -43,7 +46,7 @@ interface ChatContextType {
 
   // Chat
   activeChat: ActiveChat | null;
-  setActiveChat: (chat: ActiveChat | null) => void;
+  setActiveChat: Dispatch<SetStateAction<ActiveChat | null>>;
   chatMessages: DecryptedMessage[];
   isLoadingChat: boolean;
   messageInput: string;
@@ -54,6 +57,7 @@ interface ChatContextType {
   timedMessageDuration: TimedMessageDuration;
   setTimedMessageDuration: (duration: TimedMessageDuration) => void;
   dmPreviews: DmPreview[];
+  setDmPreviews: Dispatch<SetStateAction<DmPreview[]>>;
   unreadCounts: Map<string, number>;
 
   // Connection / Status
@@ -70,6 +74,8 @@ interface ChatContextType {
   setEditingMessageId: (id: string | null) => void;
   dmContextMenu: DmContextMenuData | null;
   setDmContextMenu: (menu: DmContextMenuData | null) => void;
+  groupContextMenu: GroupContextMenuData | null;
+  setGroupContextMenu: (menu: GroupContextMenuData | null) => void;
   profileView: ProfileViewData | null;
   setProfileView: (data: ProfileViewData | null) => void;
   showProfilePanel: boolean;
@@ -84,6 +90,7 @@ interface ChatContextType {
 
   // Methods
   openChat: (friend: Friend) => Promise<void>;
+  createGroup: (data: { name: string; icon?: string; memberIds: string[] }) => Promise<void>;
   removeFriend: (friend: Friend) => Promise<void>;
   sendMessage: (content?: string) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => Promise<void>;
@@ -98,6 +105,7 @@ interface ChatContextType {
   handleSendFriendRequest: (toUser: { id: string; username: string }) => Promise<void>;
   searchUsers: (query: string) => Promise<void>;
   openDmFromPreview: (preview: DmPreview) => void;
+  openGroupFromPreview: (preview: DmPreview) => void;
   closeDm: (conversationId: string) => void;
   favoriteGifUrls: Set<string>;
   toggleFavoriteGif: (gifUrl: string, previewUrl?: string) => Promise<void>;
@@ -116,6 +124,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // --- Hooks ---
   const friendsLogic = useFriends();
   const chatLogic = useChatMessages(friendsLogic.friendsList);
+  const groupsLogic = useGroups();
+  const loadGroupPreviews = groupsLogic.loadGroupPreviews;
 
   // --- Local State ---
   const [isConnected, setIsConnected] = useState(centralWebSocketService.isConnected());
@@ -125,6 +135,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [messageContextMenu, setMessageContextMenu] = useState<MessageContextMenuData | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [dmContextMenu, setDmContextMenu] = useState<DmContextMenuData | null>(null);
+  const [groupContextMenu, setGroupContextMenu] = useState<GroupContextMenuData | null>(null);
   const [profileView, setProfileView] = useState<ProfileViewData | null>(null);
   const [showProfilePanel, setShowProfilePanel] = useState(true);
   const [verifyModal, setVerifyModal] = useState<VerifyModalData | null>(null);
@@ -147,6 +158,220 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
     setSidebarView("dms");
   };
+
+  const openGroupFromPreview = async (preview: DmPreview) => {
+    if (!user || !keys) return;
+    setSidebarView("dms");
+    chatLogic.setIsLoadingChat(true);
+    chatLogic.setChatMessages([]);
+    chatLogic.setActiveChat(null);
+    try {
+      const convs = await conversationService.getConversations();
+      const conv = convs.find((c) => c.id === preview.conversationId);
+      if (!conv) throw new Error("Conversation not found");
+
+      const conversationKey = await cryptoService.decryptFromSender(
+        keys.kem_secret_key,
+        conv.encrypted_sender_key
+      );
+
+      let groupName = preview.groupName || "Group";
+      let groupIcon = preview.groupIcon;
+      if (conv.encrypted_metadata && conv.encrypted_metadata.length > 0) {
+        try {
+          const plaintext = await cryptoService.decryptWithKey(conversationKey, conv.encrypted_metadata);
+          const parsed = JSON.parse(cryptoService.bytesToString(plaintext));
+          if (parsed && typeof parsed.name === "string" && parsed.name.trim()) {
+            groupName = parsed.name.trim();
+          }
+          if (parsed && typeof parsed.icon === "string" && parsed.icon.trim()) {
+            groupIcon = parsed.icon.trim();
+          }
+        } catch {
+        }
+      }
+
+      let memberUsernames: string[] = preview.memberUsernames || [];
+      try {
+        const members = await groupService.getMembers(preview.conversationId);
+        memberUsernames = members.map((m) => m.user.username);
+      } catch {
+      }
+
+      chatLogic.setActiveChat({
+        visitorId: preview.conversationId,
+        visitorUsername: groupName,
+        conversationId: preview.conversationId,
+        conversationKey,
+        isGroup: true,
+        groupName,
+        groupOwnerId: conv.owner_id || null,
+        groupIcon,
+        memberUsernames,
+      });
+
+      chatLogic.setUnreadCounts((prev) => {
+        const next = new Map(prev);
+        next.delete(preview.conversationId);
+        return next;
+      });
+
+      chatLogic.setDmPreviews((prev) => {
+        const idx = prev.findIndex((p) => p.conversationId === preview.conversationId);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = {
+            ...next[idx],
+            isGroup: true,
+            groupName,
+            groupOwnerId: conv.owner_id || null,
+            groupIcon,
+            memberUsernames,
+            visitorId: preview.conversationId,
+            visitorUsername: groupName,
+          };
+          return next;
+        }
+        return [...prev, {
+          ...preview,
+          isGroup: true,
+          groupName,
+          groupOwnerId: conv.owner_id || null,
+          groupIcon,
+          memberUsernames,
+          visitorId: preview.conversationId,
+          visitorUsername: groupName,
+        }];
+      });
+
+      centralWebSocketService.subscribeConversation(preview.conversationId);
+
+      const msgs = await messageService.getMessages(preview.conversationId, { limit: 50 });
+      const decryptedMsgs: DecryptedMessage[] = [];
+
+      const members = await groupService.getMembers(preview.conversationId);
+      const nameMap = new Map(members.map((m) => [m.user.id, m.user.username]));
+
+      const msgMap = new Map<string, { content: string; senderName: string; isSystem?: boolean; messageType?: string }>();
+      for (const msg of msgs) {
+        const isSystemMessage = msg.message_type && msg.message_type !== "text";
+        if (isSystemMessage) {
+          const actorName = msg.sender_id === user.id ? "You" : (nameMap.get(msg.sender_id) || "Someone");
+          let content = "";
+          try {
+            const payload = JSON.parse(cryptoService.bytesToString(msg.encrypted_content));
+            if (msg.message_type === "group_member_added" && Array.isArray(payload.added_user_ids)) {
+              const names = payload.added_user_ids.map((id: string) => nameMap.get(id) || "Someone");
+              content = `${actorName} added ${names.join(", ")}`;
+            } else if (msg.message_type === "group_member_removed" && payload.removed_user_id) {
+              const name = nameMap.get(payload.removed_user_id) || "Someone";
+              content = `${actorName} removed ${name}`;
+            } else if (msg.message_type === "group_member_left" && payload.user_id) {
+              const name = payload.user_id === user.id ? "You" : (nameMap.get(payload.user_id) || "Someone");
+              content = `${name} left the group`;
+            } else if (msg.message_type === "group_owner_changed" && payload.new_owner_id) {
+              const name = nameMap.get(payload.new_owner_id) || "Someone";
+              content = `${actorName} made ${name} the owner`;
+            }
+          } catch {
+          }
+          msgMap.set(msg.id, { content, senderName: actorName, isSystem: true, messageType: msg.message_type });
+          continue;
+        }
+        try {
+          const decrypted = await cryptoService.decryptWithKey(conversationKey, msg.encrypted_content);
+          const content = cryptoService.bytesToString(decrypted);
+          const senderName = nameMap.get(msg.sender_id) || "Unknown";
+          msgMap.set(msg.id, { content, senderName, isSystem: false });
+        } catch {
+          msgMap.set(msg.id, { content: "[Unable to decrypt]", senderName: "Unknown", isSystem: false });
+        }
+      }
+
+      for (const msg of msgs) {
+        const decrypted = msgMap.get(msg.id)!;
+        if (decrypted.isSystem) {
+          decryptedMsgs.push({
+            id: msg.id,
+            senderId: msg.sender_id,
+            senderName: decrypted.senderName,
+            content: decrypted.content,
+            createdAt: msg.created_at,
+            isMine: msg.sender_id === user.id,
+            isSystem: true,
+            systemType: msg.message_type as SystemMessageType,
+            callDurationSeconds: msg.call_duration_seconds,
+            reactions: [],
+          });
+          continue;
+        }
+
+        let replyToMsg: DecryptedMessage["replyTo"];
+        if (msg.reply_to_id) {
+          const replyData = msgMap.get(msg.reply_to_id);
+          if (replyData && !replyData.isSystem) {
+            replyToMsg = {
+              id: msg.reply_to_id,
+              content: replyData.content,
+              senderName: replyData.senderName,
+            };
+          }
+        }
+
+        decryptedMsgs.push({
+          id: msg.id,
+          senderId: msg.sender_id,
+          senderName: decrypted.senderName,
+          content: decrypted.content,
+          createdAt: msg.created_at,
+          isMine: msg.sender_id === user.id,
+          isGif: decrypted.content.startsWith("https://") && decrypted.content.includes("tenor"),
+          expiresAt: msg.expires_at,
+          replyToId: msg.reply_to_id,
+          replyTo: replyToMsg,
+          reactions: msg.reactions.map((r) => ({
+            id: r.id,
+            userId: r.user_id,
+            messageId: r.message_id,
+            emoji: r.emoji,
+            createdAt: r.created_at,
+          })),
+          editedAt: msg.edited_at,
+          pinnedAt: msg.pinned_at,
+        });
+      }
+      chatLogic.setChatMessages(decryptedMsgs.reverse());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      chatLogic.setIsLoadingChat(false);
+    }
+  };
+
+  const createGroup = async (data: { name: string; icon?: string; memberIds: string[] }) => {
+    await groupsLogic.createGroup({
+      name: data.name,
+      icon: data.icon,
+      memberIds: data.memberIds,
+      friends: friendsLogic.friendsList,
+    });
+  };
+
+  useEffect(() => {
+    if (user && keys) {
+      groupsLogic.loadGroupPreviews();
+    }
+  }, [user, keys, groupsLogic.loadGroupPreviews]);
+
+  useEffect(() => {
+    if (groupsLogic.groupPreviews.length === 0) return;
+    chatLogic.setDmPreviews((prev) => {
+      const nonGroups = prev.filter((p) => !p.isGroup);
+      const merged = [...nonGroups, ...groupsLogic.groupPreviews];
+      merged.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+      return merged;
+    });
+  }, [groupsLogic.groupPreviews]);
 
   const closeDm = (conversationId: string) => {
     chatLogic.setDmPreviews(prev => prev.filter(p => p.conversationId !== conversationId));
@@ -353,10 +578,81 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             }
           }
           break;
+        case "group_created":
+        case "group_member_added":
+        case "group_metadata_updated":
+          loadGroupPreviews();
+          break;
+        case "group_owner_changed":
+          {
+            const { conversation_id, new_owner_id } = message.data;
+            chatLogic.setDmPreviews((prev) =>
+              prev.map((p) =>
+                p.conversationId === conversation_id ? { ...p, groupOwnerId: new_owner_id } : p
+              )
+            );
+            chatLogic.setActiveChat((prev) =>
+              prev && prev.isGroup && prev.conversationId === conversation_id
+                ? { ...prev, groupOwnerId: new_owner_id }
+                : prev
+            );
+            loadGroupPreviews();
+          }
+          break;
+        case "group_member_removed":
+          {
+            const { conversation_id, user_id } = message.data;
+            if (user && user_id === user.id) {
+              chatLogic.setDmPreviews((prev) => prev.filter((p) => p.conversationId !== conversation_id));
+              chatLogic.setUnreadCounts((prev) => {
+                const next = new Map(prev);
+                next.delete(conversation_id);
+                return next;
+              });
+              chatLogic.setActiveChat((prev) =>
+                prev && prev.isGroup && prev.conversationId === conversation_id ? null : prev
+              );
+            } else {
+              loadGroupPreviews();
+            }
+          }
+          break;
+        case "group_member_left":
+          {
+            const { conversation_id, user_id } = message.data;
+            if (user && user_id === user.id) {
+              chatLogic.setDmPreviews((prev) => prev.filter((p) => p.conversationId !== conversation_id));
+              chatLogic.setUnreadCounts((prev) => {
+                const next = new Map(prev);
+                next.delete(conversation_id);
+                return next;
+              });
+              chatLogic.setActiveChat((prev) =>
+                prev && prev.isGroup && prev.conversationId === conversation_id ? null : prev
+              );
+            } else {
+              loadGroupPreviews();
+            }
+          }
+          break;
+        case "group_deleted":
+          {
+            const { conversation_id } = message.data;
+            chatLogic.setDmPreviews((prev) => prev.filter((p) => p.conversationId !== conversation_id));
+            chatLogic.setUnreadCounts((prev) => {
+              const next = new Map(prev);
+              next.delete(conversation_id);
+              return next;
+            });
+            chatLogic.setActiveChat((prev) =>
+              prev && prev.isGroup && prev.conversationId === conversation_id ? null : prev
+            );
+          }
+          break;
       }
     });
     return () => unsubscribe();
-  }, [friendsLogic, chatLogic, user, keys]);
+  }, [friendsLogic, chatLogic, user, keys, loadGroupPreviews]);
 
   // Context Value
   const value: ChatContextType = {
@@ -378,6 +674,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     messageContextMenu, setMessageContextMenu,
     editingMessageId, setEditingMessageId,
     dmContextMenu, setDmContextMenu,
+    groupContextMenu, setGroupContextMenu,
     profileView, setProfileView,
     showProfilePanel, setShowProfilePanel,
     verifyModal, setVerifyModal,
@@ -387,6 +684,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     // Methods
     handleTyping,
     openDmFromPreview,
+    openGroupFromPreview,
+    createGroup,
     closeDm,
   };
 

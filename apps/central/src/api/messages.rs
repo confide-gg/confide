@@ -243,15 +243,10 @@ pub async fn send_message(
         created_at: message.created_at,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
-
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
             for member in members {
-                if member.user_id != auth.user_id {
-                    let user_channel = format!("user:{}", member.user_id);
-                    let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-                }
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
             }
         }
     }
@@ -345,8 +340,12 @@ pub async fn edit_message(
         edited_at,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+            for member in members {
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
+            }
+        }
     }
 
     Ok(Json(EditMessageResponse { edited_at }))
@@ -374,8 +373,12 @@ pub async fn delete_message(
         conversation_id,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+            for member in members {
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
+            }
+        }
     }
 
     Ok(Json(SuccessResponse { success: true }))
@@ -444,8 +447,12 @@ pub async fn add_reaction(
         emoji: req.emoji,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+            for member in members {
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
+            }
+        }
     }
 
     Ok(Json(reaction))
@@ -488,8 +495,12 @@ pub async fn remove_reaction(
         emoji,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+            for member in members {
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
+            }
+        }
     }
 
     Ok(Json(SuccessResponse { success: true }))
@@ -516,10 +527,6 @@ pub async fn pin_message(
         return Err(AppError::NotFound("Message not found".into()));
     }
 
-    if message.sender_id != auth.user_id {
-        return Err(AppError::Forbidden);
-    }
-
     let pinned_at = state.db.pin_message(message_id).await?;
 
     let ws_msg = WsMessage::MessagePinned(MessagePinnedData {
@@ -529,8 +536,12 @@ pub async fn pin_message(
         pinned_at,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+            for member in members {
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
+            }
+        }
     }
 
     // Create system message for pin
@@ -562,15 +573,10 @@ pub async fn pin_message(
     });
 
     if let Ok(json) = serde_json::to_string(&sys_ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
-
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
             for member in members {
-                if member.user_id != auth.user_id {
-                    let user_channel = format!("user:{}", member.user_id);
-                    let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-                }
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
             }
         }
     }
@@ -599,10 +605,6 @@ pub async fn unpin_message(
         return Err(AppError::NotFound("Message not found".into()));
     }
 
-    if message.sender_id != auth.user_id {
-        return Err(AppError::Forbidden);
-    }
-
     state.db.unpin_message(message_id).await?;
 
     let ws_msg = WsMessage::MessageUnpinned(MessageUnpinnedData {
@@ -611,8 +613,12 @@ pub async fn unpin_message(
         unpinner_id: auth.user_id,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+            for member in members {
+                let user_channel = format!("user:{}", member.user_id);
+                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
+            }
+        }
     }
 
     Ok(Json(SuccessResponse { success: true }))

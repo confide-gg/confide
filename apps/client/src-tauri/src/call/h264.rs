@@ -124,7 +124,12 @@ impl H264Encoder {
 
                 let min_keyint = std::ffi::CString::new("min-keyint").unwrap();
                 let min_keyint_val = std::ffi::CString::new(gop.to_string()).unwrap();
-                ffmpeg::ffi::av_opt_set((*ctx).priv_data, min_keyint.as_ptr(), min_keyint_val.as_ptr(), 0);
+                ffmpeg::ffi::av_opt_set(
+                    (*ctx).priv_data,
+                    min_keyint.as_ptr(),
+                    min_keyint_val.as_ptr(),
+                    0,
+                );
 
                 let scenecut = std::ffi::CString::new("scenecut").unwrap();
                 ffmpeg::ffi::av_opt_set((*ctx).priv_data, scenecut.as_ptr(), zero.as_ptr(), 0);
