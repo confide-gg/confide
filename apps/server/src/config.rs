@@ -43,6 +43,14 @@ pub struct DatabaseConfig {
     pub url: String,
     #[serde(default = "default_max_connections")]
     pub max_connections: u32,
+    #[serde(default = "default_min_connections")]
+    pub min_connections: u32,
+    #[serde(default = "default_acquire_timeout_seconds")]
+    pub acquire_timeout_seconds: u64,
+    #[serde(default = "default_idle_timeout_seconds")]
+    pub idle_timeout_seconds: u64,
+    #[serde(default = "default_max_lifetime_seconds")]
+    pub max_lifetime_seconds: u64,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -52,7 +60,24 @@ pub struct RedisConfig {
 }
 
 fn default_max_connections() -> u32 {
-    50
+    let cores = num_cpus::get() as u32;
+    (cores * 2 + 5).min(50).max(10)
+}
+
+fn default_min_connections() -> u32 {
+    5
+}
+
+fn default_acquire_timeout_seconds() -> u64 {
+    5
+}
+
+fn default_idle_timeout_seconds() -> u64 {
+    300
+}
+
+fn default_max_lifetime_seconds() -> u64 {
+    1800
 }
 
 impl Config {

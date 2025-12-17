@@ -1,7 +1,8 @@
+use sqlx::Row;
 use uuid::Uuid;
 
 use crate::error::Result;
-use crate::models::{Message, Upload};
+use crate::models::{Member, Message, Upload};
 
 use super::Database;
 
@@ -74,6 +75,83 @@ impl Database {
             .await?
         };
         Ok(messages)
+    }
+
+    pub async fn get_channel_messages_with_senders(
+        &self,
+        channel_id: Uuid,
+        limit: i64,
+        before: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<Vec<(Message, Member)>> {
+        let query = if let Some(before_time) = before {
+            sqlx::query(
+                r#"
+                SELECT
+                    m.id as msg_id, m.channel_id, m.sender_id, m.encrypted_content,
+                    m.signature, m.reply_to_id, m.created_at as msg_created_at,
+                    mem.id as mem_id, mem.central_user_id, mem.username, mem.kem_public_key,
+                    mem.dsa_public_key, mem.display_name, mem.avatar_url,
+                    mem.joined_at, mem.encrypted_channel_keys
+                FROM messages m
+                INNER JOIN members mem ON m.sender_id = mem.id
+                WHERE m.channel_id = $1 AND m.created_at < $2
+                ORDER BY m.created_at DESC
+                LIMIT $3
+                "#,
+            )
+            .bind(channel_id)
+            .bind(before_time)
+            .bind(limit)
+        } else {
+            sqlx::query(
+                r#"
+                SELECT
+                    m.id as msg_id, m.channel_id, m.sender_id, m.encrypted_content,
+                    m.signature, m.reply_to_id, m.created_at as msg_created_at,
+                    mem.id as mem_id, mem.central_user_id, mem.username, mem.kem_public_key,
+                    mem.dsa_public_key, mem.display_name, mem.avatar_url,
+                    mem.joined_at, mem.encrypted_channel_keys
+                FROM messages m
+                INNER JOIN members mem ON m.sender_id = mem.id
+                WHERE m.channel_id = $1
+                ORDER BY m.created_at DESC
+                LIMIT $2
+                "#,
+            )
+            .bind(channel_id)
+            .bind(limit)
+        };
+
+        let rows = query.fetch_all(&self.pool).await?;
+
+        let mut results = Vec::with_capacity(rows.len());
+        for row in rows {
+            let message = Message {
+                id: row.try_get("msg_id")?,
+                channel_id: row.try_get("channel_id")?,
+                sender_id: row.try_get("sender_id")?,
+                encrypted_content: row.try_get("encrypted_content")?,
+                signature: row.try_get("signature")?,
+                reply_to_id: row.try_get("reply_to_id")?,
+                created_at: row.try_get("msg_created_at")?,
+            };
+
+            let member = Member {
+                id: row.try_get("mem_id")?,
+                central_user_id: row.try_get("central_user_id")?,
+                username: row.try_get("username")?,
+                kem_public_key: row.try_get("kem_public_key")?,
+                dsa_public_key: row.try_get("dsa_public_key")?,
+                display_name: row.try_get("display_name")?,
+                avatar_url: row.try_get("avatar_url")?,
+                joined_at: row.try_get("joined_at")?,
+                encrypted_channel_keys: row.try_get("encrypted_channel_keys")?,
+            };
+
+            results.push((message, member));
+        }
+
+        Ok(results)
     }
 
     pub async fn delete_message(&self, message_id: Uuid) -> Result<()> {

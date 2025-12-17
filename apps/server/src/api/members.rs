@@ -79,16 +79,15 @@ pub async fn get_all_member_roles(
     State(state): State<Arc<AppState>>,
     _auth: AuthMember,
 ) -> Result<Json<Vec<MemberRolesResponse>>> {
-    let members = state.db.get_all_members().await?;
-    let mut result = Vec::new();
+    let members_with_roles = state.db.get_all_members_with_roles().await?;
 
-    for member in members {
-        let role_ids = state.db.get_member_role_ids(member.id).await?;
-        result.push(MemberRolesResponse {
+    let result = members_with_roles
+        .into_iter()
+        .map(|(member, role_ids)| MemberRolesResponse {
             member_id: member.id,
             role_ids,
-        });
-    }
+        })
+        .collect();
 
     Ok(Json(result))
 }
