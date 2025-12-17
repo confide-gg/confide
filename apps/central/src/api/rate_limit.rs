@@ -64,7 +64,7 @@ pub async fn rate_limit_middleware(
     let user_identifier = if let Some(token) = token {
         if let Ok(token_bytes) = hex::decode(&token) {
             let token_hash = Sha256::digest(&token_bytes);
-            format!("user:{}", hex::encode(&token_hash[..8]))
+            format!("user:{}", hex::encode(token_hash))
         } else {
             "anon".to_string()
         }
