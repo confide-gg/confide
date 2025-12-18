@@ -90,6 +90,7 @@ services:
       - RUST_LOG=info,confide_server=debug
       - RUST_BACKTRACE=full
       - CENTRAL_API_URL=http://central:3000/api
+      - DSA_ENCRYPTION_KEY=${DSA_ENCRYPTION_KEY}
     depends_on:
       server-postgres:
         condition: service_healthy

@@ -171,4 +171,15 @@ impl Database {
         let hash = self.get_server_password_hash().await?;
         Ok(hash.is_some())
     }
+
+    pub async fn update_dsa_private_key_encrypted(
+        &self,
+        dsa_private_key_encrypted: Vec<u8>,
+    ) -> Result<()> {
+        sqlx::query("UPDATE server_identity SET dsa_private_key_encrypted = $1")
+            .bind(dsa_private_key_encrypted)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }

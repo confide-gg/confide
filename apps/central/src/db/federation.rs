@@ -224,4 +224,34 @@ impl Database {
             .await?;
         Ok(())
     }
+
+    pub async fn validate_and_store_heartbeat_nonce(
+        &self,
+        nonce: Uuid,
+        server_id: Uuid,
+    ) -> Result<bool> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO heartbeat_nonces (nonce, server_id)
+            VALUES ($1, $2)
+            ON CONFLICT (nonce) DO NOTHING
+            RETURNING nonce
+            "#,
+        )
+        .bind(nonce)
+        .bind(server_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(result.is_some())
+    }
+
+    pub async fn cleanup_expired_heartbeat_nonces(&self) -> Result<u64> {
+        let result = sqlx::query(
+            "DELETE FROM heartbeat_nonces WHERE received_at < NOW() - INTERVAL '10 minutes'",
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected())
+    }
 }

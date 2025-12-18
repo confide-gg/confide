@@ -212,6 +212,7 @@ pub struct HeartbeatRequest {
     pub server_id: Uuid,
     pub member_count: i32,
     pub timestamp: i64,
+    pub nonce: Uuid,
     pub signature: Vec<u8>,
 }
 
@@ -237,7 +238,24 @@ pub async fn heartbeat(
         ));
     }
 
-    let message_data = format!("{}:{}:{}", req.server_id, req.member_count, req.timestamp);
+    let nonce_valid = state
+        .db
+        .validate_and_store_heartbeat_nonce(req.nonce, req.server_id)
+        .await?;
+
+    if !nonce_valid {
+        tracing::warn!(
+            "Replay attack detected: duplicate nonce {} from server {}",
+            req.nonce,
+            req.server_id
+        );
+        return Err(AppError::Unauthorized);
+    }
+
+    let message_data = format!(
+        "{}:{}:{}:{}",
+        req.server_id, req.member_count, req.timestamp, req.nonce
+    );
 
     use confide_sdk::crypto::keys::DsaKeyPair;
 

@@ -82,10 +82,8 @@ async fn main() -> anyhow::Result<()> {
     });
 
     if db.is_setup_complete().await? {
-        let heartbeat_service = Arc::new(HeartbeatService::new(
-            db.clone(),
-            config.server.central_url.clone(),
-        ));
+        let heartbeat_service =
+            Arc::new(HeartbeatService::new(db.clone(), Arc::new(config.clone())));
         heartbeat_service.start();
         tracing::info!("Heartbeat service started");
     }
@@ -170,8 +168,7 @@ async fn run_setup(db: &Database, config: &Config) -> anyhow::Result<()> {
     let setup_token = hex::encode(setup_token_bytes);
     let setup_token_hash = Sha256::digest(setup_token_bytes).to_vec();
 
-    let mut encryption_key = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut encryption_key);
+    let encryption_key = config.security.dsa_encryption_key;
 
     let dsa_private_encrypted = encrypt_aes_gcm(&encryption_key, dsa_keypair.secret_bytes())?;
 

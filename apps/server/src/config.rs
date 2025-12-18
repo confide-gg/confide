@@ -1,8 +1,16 @@
 use serde::Deserialize;
 use std::{env, fs};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Config {
+    pub server: ServerConfig,
+    pub database: DatabaseConfig,
+    pub redis: RedisConfig,
+    pub security: SecurityConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ConfigFile {
     pub server: ServerConfig,
     #[serde(default)]
     pub database: DatabaseConfig,
@@ -80,74 +88,110 @@ fn default_max_lifetime_seconds() -> u64 {
     1800
 }
 
+#[derive(Debug, Clone)]
+pub struct SecurityConfig {
+    pub dsa_encryption_key: [u8; 32],
+}
+
+impl SecurityConfig {
+    pub fn load() -> anyhow::Result<Self> {
+        let key_hex = env::var("DSA_ENCRYPTION_KEY").map_err(|_| {
+            anyhow::anyhow!(
+                "CRITICAL: DSA_ENCRYPTION_KEY environment variable not set. \
+                 Server cannot start without encryption key."
+            )
+        })?;
+
+        if key_hex.len() != 64 {
+            anyhow::bail!(
+                "CRITICAL: DSA_ENCRYPTION_KEY must be exactly 64 hexadecimal characters (32 bytes)"
+            );
+        }
+
+        let key_bytes = hex::decode(&key_hex).map_err(|_| {
+            anyhow::anyhow!("CRITICAL: DSA_ENCRYPTION_KEY contains invalid hexadecimal characters")
+        })?;
+
+        let mut key = [0u8; 32];
+        key.copy_from_slice(&key_bytes);
+
+        Ok(Self {
+            dsa_encryption_key: key,
+        })
+    }
+}
+
 impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
-        let mut config = match fs::read_to_string(path) {
-            Ok(contents) => toml::from_str(&contents)?,
-            Err(_) => {
-                // Return default config if file missing, to be overridden by env vars
-                Config {
-                    server: ServerConfig {
-                        host: "0.0.0.0".to_string(),
-                        port: 8080,
-                        public_domain: "localhost:8080".to_string(),
-                        central_url: default_central_url(),
-                        allowed_origins: default_allowed_origins(),
-                    },
-                    database: DatabaseConfig::default(),
-                    redis: RedisConfig::default(),
-                }
-            }
+        let mut config_file = match fs::read_to_string(path) {
+            Ok(contents) => toml::from_str::<ConfigFile>(&contents)?,
+            Err(_) => ConfigFile {
+                server: ServerConfig {
+                    host: "0.0.0.0".to_string(),
+                    port: 8080,
+                    public_domain: "localhost:8080".to_string(),
+                    central_url: default_central_url(),
+                    allowed_origins: default_allowed_origins(),
+                },
+                database: DatabaseConfig::default(),
+                redis: RedisConfig::default(),
+            },
         };
 
-        // Override central_url from environment if set
         if let Ok(url) = env::var("CENTRAL_API_URL") {
-            config.server.central_url = url;
+            config_file.server.central_url = url;
         }
 
         if let Ok(url) = env::var("DATABASE_URL") {
-            config.database.url = url;
+            config_file.database.url = url;
         }
 
         if let Ok(max_conn) = env::var("DATABASE_MAX_CONNECTIONS") {
             if let Ok(n) = max_conn.parse() {
-                config.database.max_connections = n;
+                config_file.database.max_connections = n;
             }
         }
 
         if let Ok(url) = env::var("REDIS_URL") {
-            config.redis.url = url;
+            config_file.redis.url = url;
         }
 
         if let Ok(host) = env::var("SERVER_HOST") {
-            config.server.host = host;
+            config_file.server.host = host;
         }
 
         if let Ok(port) = env::var("SERVER_PORT") {
             if let Ok(p) = port.parse() {
-                config.server.port = p;
+                config_file.server.port = p;
             }
         }
 
         if let Ok(domain) = env::var("SERVER_PUBLIC_DOMAIN") {
-            config.server.public_domain = domain;
+            config_file.server.public_domain = domain;
         }
 
         if let Ok(origins) = env::var("ALLOWED_ORIGINS") {
-            config.server.allowed_origins =
+            config_file.server.allowed_origins =
                 origins.split(',').map(|s| s.trim().to_string()).collect();
         }
 
-        if config.database.url.is_empty() {
+        if config_file.database.url.is_empty() {
             anyhow::bail!(
                 "DATABASE_URL must be set (either in config.toml or environment variable)"
             );
         }
 
-        if config.redis.url.is_empty() {
+        if config_file.redis.url.is_empty() {
             anyhow::bail!("REDIS_URL must be set (either in config.toml or environment variable)");
         }
 
-        Ok(config)
+        let security = SecurityConfig::load()?;
+
+        Ok(Config {
+            server: config_file.server,
+            database: config_file.database,
+            redis: config_file.redis,
+            security,
+        })
     }
 }

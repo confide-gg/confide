@@ -164,6 +164,7 @@ blank
 info "Generating secrets"
 POSTGRES_PASSWORD="$(openssl rand -hex 16)"
 REDIS_PASSWORD="$(openssl rand -hex 16)"
+DSA_ENCRYPTION_KEY="$(openssl rand -hex 32)"
 success "Secrets generated."
 
 blank
@@ -225,6 +226,7 @@ DOMAIN=${DOMAIN}
 EMAIL=${EMAIL}
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
+DSA_ENCRYPTION_KEY=${DSA_ENCRYPTION_KEY}
 SERVER_VERSION=latest
 
 LIMITS_MAX_USERS=100

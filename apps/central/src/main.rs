@@ -126,6 +126,28 @@ async fn main() -> anyhow::Result<()> {
         spotify_worker::run_spotify_worker(spotify_worker_state).await;
     });
 
+    let nonce_cleanup_state = state.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(5 * 60));
+        loop {
+            interval.tick().await;
+            match nonce_cleanup_state
+                .db
+                .cleanup_expired_heartbeat_nonces()
+                .await
+            {
+                Ok(count) => {
+                    if count > 0 {
+                        tracing::debug!("Cleaned up {} expired heartbeat nonces", count);
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to cleanup heartbeat nonces: {}", e);
+                }
+            }
+        }
+    });
+
     if config.calls.enabled {
         let relay_config = media::MediaRelayConfig {
             bind_addr: format!(

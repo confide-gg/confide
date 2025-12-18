@@ -6,6 +6,7 @@ use std::time::Duration;
 use tokio::time::interval;
 use uuid::Uuid;
 
+use crate::config::Config;
 use crate::db::Database;
 
 #[derive(Debug, Serialize)]
@@ -13,6 +14,7 @@ struct HeartbeatRequest {
     server_id: Uuid,
     member_count: i32,
     timestamp: i64,
+    nonce: Uuid,
     signature: Vec<u8>,
 }
 
@@ -25,15 +27,15 @@ struct HeartbeatResponse {
 pub struct HeartbeatService {
     client: Client,
     db: Database,
-    central_url: String,
+    config: Arc<Config>,
 }
 
 impl HeartbeatService {
-    pub fn new(db: Database, central_url: String) -> Self {
+    pub fn new(db: Database, config: Arc<Config>) -> Self {
         Self {
             client: Client::new(),
             db,
-            central_url,
+            config,
         }
     }
 
@@ -68,13 +70,14 @@ impl HeartbeatService {
             .map_err(|e| format!("DB error: {}", e))?;
 
         let timestamp = Utc::now().timestamp();
+        let nonce = Uuid::new_v4();
 
-        let message_data = format!("{}:{}:{}", server_id, member_count, timestamp);
+        let message_data = format!("{}:{}:{}:{}", server_id, member_count, timestamp, nonce);
 
         use confide_sdk::crypto::keys::DsaKeyPair;
         use confide_sdk::decrypt_aes_gcm;
 
-        let encryption_key = [0u8; 32];
+        let encryption_key = self.config.security.dsa_encryption_key;
 
         let private_bytes = decrypt_aes_gcm(&encryption_key, &identity.dsa_private_key_encrypted)
             .map_err(|e| format!("Failed to decrypt private key: {}", e))?;
@@ -90,12 +93,16 @@ impl HeartbeatService {
             server_id,
             member_count,
             timestamp,
+            nonce,
             signature,
         };
 
         let response = self
             .client
-            .post(format!("{}/federation/heartbeat", self.central_url))
+            .post(format!(
+                "{}/federation/heartbeat",
+                self.config.server.central_url
+            ))
             .json(&request)
             .send()
             .await
