@@ -8,6 +8,7 @@ import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { SnowEffect } from "./components/common";
 import { measureRenderTime } from "./utils/performance";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./App.css";
 
 const queryClient = new QueryClient({
@@ -146,20 +147,22 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Profiler id="App" onRender={(id, phase, actualDuration) => measureRenderTime(id, phase, actualDuration)}>
         <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-            <SnowEffect />
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  color: "var(--foreground)",
-                },
-              }}
-            />
-          </AuthProvider>
+          <ErrorBoundary>
+            <AuthProvider>
+              <AppRoutes />
+              <SnowEffect />
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  style: {
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    color: "var(--foreground)",
+                  },
+                }}
+              />
+            </AuthProvider>
+          </ErrorBoundary>
         </BrowserRouter>
       </Profiler>
       <ReactQueryDevtools initialIsOpen={false} />

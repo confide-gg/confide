@@ -10,6 +10,7 @@ import { useCacheSync } from "../../hooks/useCacheSync";
 import { preferenceService } from "../../features/settings/preferences";
 import { applyTheme, type Theme } from "../../lib/themes";
 import { SnowEffect } from "../common";
+import { ErrorBoundary } from "../ErrorBoundary";
 
 function IdleDetector() {
   useIdleDetection();
@@ -36,21 +37,29 @@ function PreferencesLoader() {
 
 function GlobalProviders({ children, userId, dsaSecretKey }: { children: React.ReactNode; userId: string; dsaSecretKey: number[] }) {
   return (
-    <PresenceProvider>
-      <ChatProvider>
-        <ServerProvider>
-          <CallProvider currentUserId={userId}>
-            <IdleDetector />
-            <PreferencesLoader />
-            <CacheSync />
-            <SnowEffect />
-            {children}
-            <ActiveCallOverlay />
-            <IncomingCallDialog dsaSecretKey={dsaSecretKey} />
-          </CallProvider>
-        </ServerProvider>
-      </ChatProvider>
-    </PresenceProvider>
+    <ErrorBoundary>
+      <PresenceProvider>
+        <ErrorBoundary>
+          <ChatProvider>
+            <ErrorBoundary>
+              <ServerProvider>
+                <ErrorBoundary>
+                  <CallProvider currentUserId={userId}>
+                    <IdleDetector />
+                    <PreferencesLoader />
+                    <CacheSync />
+                    <SnowEffect />
+                    {children}
+                    <ActiveCallOverlay />
+                    <IncomingCallDialog dsaSecretKey={dsaSecretKey} />
+                  </CallProvider>
+                </ErrorBoundary>
+              </ServerProvider>
+            </ErrorBoundary>
+          </ChatProvider>
+        </ErrorBoundary>
+      </PresenceProvider>
+    </ErrorBoundary>
   );
 }
 
