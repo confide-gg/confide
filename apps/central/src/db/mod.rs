@@ -1,3 +1,4 @@
+mod activities;
 pub mod audio_settings;
 pub mod cache;
 mod calls;
@@ -12,6 +13,7 @@ mod preferences;
 mod profiles;
 mod servers;
 mod sessions;
+mod spotify;
 mod uploads;
 mod users;
 

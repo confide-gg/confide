@@ -4,6 +4,8 @@ import { usePresence } from "../../context/PresenceContext";
 import { Avatar } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { Search } from "lucide-react";
+import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { useUserActivity } from "../../hooks/useUserActivity";
 import { type Friend } from "../../types";
 
 type FriendsTab = "online" | "all" | "pending" | "blocked" | "add_friend";
@@ -68,6 +70,7 @@ export function FriendsPage() {
   // Render Helpers
   const renderFriendRow = (friend: Friend) => {
     const presence = getUserPresence(friend.id);
+    const activity = useUserActivity(friend.id);
     const userIsOnline = isOnline(friend.id);
     const displayStatus = userIsOnline ? (presence?.status || "online") : "offline";
 
@@ -77,21 +80,25 @@ export function FriendsPage() {
         onClick={() => openChat(friend)}
         className="group flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border hover:bg-accent/50 cursor-pointer transition-all mb-3 relative overflow-hidden"
       >
-        <div className="flex items-center gap-4 relative">
-          <div className="relative">
-            <Avatar 
-              fallback={friend.username} 
+        <div className="flex items-center gap-4 relative flex-1 min-w-0">
+          <div className="relative shrink-0">
+            <Avatar
+              fallback={friend.username}
               status={displayStatus as "online" | "away" | "dnd" | "invisible" | "offline"}
-              className="w-12 h-12 border-2 border-background" 
+              className="w-12 h-12 border-2 border-background"
             />
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-1 min-w-0">
             <span className="font-semibold text-foreground text-base tracking-tight">
               {friend.username}
             </span>
-            <span className={`text-xs font-medium ${userIsOnline ? "text-green-500" : "text-muted-foreground"}`}>
-              {STATUS_LABELS[displayStatus] || "Offline"}
-            </span>
+            {activity ? (
+              <ActivityDisplay activity={activity} compact className="mt-1" />
+            ) : (
+              <span className={`text-xs font-medium ${userIsOnline ? "text-green-500" : "text-muted-foreground"}`}>
+                {STATUS_LABELS[displayStatus] || "Offline"}
+              </span>
+            )}
           </div>
         </div>
       <div className="flex items-center gap-2 relative">

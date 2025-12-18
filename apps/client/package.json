@@ -48,6 +48,7 @@
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-os": "^2.3.2",
     "@tauri-apps/plugin-process": "^2",
+    "@tauri-apps/plugin-shell": "^2.3.3",
     "@tauri-apps/plugin-updater": "^2",
     "@uiw/react-textarea-code-editor": "^3.1.1",
     "class-variance-authority": "^0.7.1",

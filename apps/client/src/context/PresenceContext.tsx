@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import { centralWebSocketService } from "../core/network/CentralWebSocketService";
 import { useAuth } from "./AuthContext";
+import type { UserActivity } from "../features/profiles/types";
 
 export interface UserPresence {
   status: string; // "online", "idle", "dnd", "invisible"
@@ -10,8 +11,10 @@ export interface UserPresence {
 
 interface PresenceContextType {
   userPresence: Map<string, UserPresence>;
+  userActivities: Map<string, UserActivity | null>;
   isOnline: (userId: string) => boolean;
   getUserPresence: (userId: string) => UserPresence | undefined;
+  getUserActivity: (userId: string) => UserActivity | null | undefined;
   updateMyPresence: (status: string, customStatus?: string) => void;
   subscribeToUsers: (userIds: string[]) => void;
   isWsConnected: boolean;
@@ -22,6 +25,7 @@ const PresenceContext = createContext<PresenceContextType | null>(null);
 export function PresenceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [userPresence, setUserPresence] = useState<Map<string, UserPresence>>(new Map());
+  const [userActivities, setUserActivities] = useState<Map<string, UserActivity | null>>(new Map());
   const [isWsConnected, setIsWsConnected] = useState(false);
   const subscribedUsersRef = useRef<Set<string>>(new Set());
   const pendingSubscriptionsRef = useRef<Set<string>>(new Set());
@@ -64,6 +68,15 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
                 isOnline: true,
               });
             });
+            return next;
+          });
+          break;
+
+        case "activity_update":
+          setUserActivities((prev) => {
+            const next = new Map(prev);
+            const activityData = message.data as { user_id: string; activity: UserActivity | null };
+            next.set(activityData.user_id, activityData.activity);
             return next;
           });
           break;
@@ -124,6 +137,8 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   const getUserPresence = (userId: string) => userPresence.get(userId);
 
+  const getUserActivity = (userId: string) => userActivities.get(userId);
+
   const updateMyPresence = (status: string, customStatus?: string) => {
     if (user) {
       setUserPresence(prev => {
@@ -151,8 +166,10 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   const value = {
     userPresence,
+    userActivities,
     isOnline,
     getUserPresence,
+    getUserActivity,
     updateMyPresence,
     subscribeToUsers,
     isWsConnected,

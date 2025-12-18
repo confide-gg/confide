@@ -7,6 +7,7 @@ import { AvatarRoot, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import type { UserStatus, UserProfile as UserProfileType } from "../../types";
+import { ActivityDisplay } from "../activity/ActivityDisplay";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,10 +29,11 @@ const STATUS_OPTIONS: { value: UserStatus; label: string; color: string }[] = [
 export function UserProfile() {
   const navigate = useNavigate();
   const { user, logout, refreshProfile } = useAuth();
-  const { updateMyPresence } = usePresence();
+  const { updateMyPresence, getUserActivity } = usePresence();
   const { callState, setMuted, setDeafened } = useCall();
   const [status, setStatus] = useState<UserStatus>("online");
   const [profile, setProfile] = useState<UserProfileType | null>(null);
+  const activity = user ? getUserActivity(user.id) : null;
 
 
   useEffect(() => {
@@ -120,6 +122,12 @@ export function UserProfile() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          </div>
+        )}
+
+        {activity && (
+          <div className="px-2">
+            <ActivityDisplay activity={activity} compact />
           </div>
         )}
 

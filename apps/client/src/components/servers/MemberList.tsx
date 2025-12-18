@@ -6,7 +6,7 @@ import { UserAvatar } from "../ui/user-avatar";
 import type { FederatedMember as Member } from "../../features/servers/federatedClient";
 import type { ServerRole } from "../../features/servers/types";
 import { FederatedMemberContextMenu } from "./FederatedMemberContextMenu";
-
+import { ActivityDisplay } from "../activity/ActivityDisplay";
 import { MemberProfileCard } from "./MemberProfileCard";
 import { Panel } from "../layout/Panel";
 
@@ -18,7 +18,7 @@ type MemberWithRoles = Member & {
 export function MemberList() {
   const { activeServer, federatedClient, federatedWs } = useServer();
   const { user } = useAuth();
-  const { getUserPresence, subscribeToUsers, isWsConnected, isOnline: isUserOnline } = usePresence();
+  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline: isUserOnline } = usePresence();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -221,6 +221,7 @@ export function MemberList() {
     const memberIsOnline = isUserOnline(member.central_user_id);
     const status = memberIsOnline ? (presence?.status || "online") : "offline";
     const displayColor = member.highestRole?.color;
+    const activity = getUserActivity(member.central_user_id);
 
     return (
       <div
@@ -241,7 +242,7 @@ export function MemberList() {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p 
+            <p
               className="text-sm font-medium truncate"
               style={{ color: displayColor || (isCurrentUser ? undefined : undefined) }}
             >
@@ -253,6 +254,7 @@ export function MemberList() {
               @{member.username}
             </p>
           )}
+          {activity && <ActivityDisplay activity={activity} compact className="mt-0.5" />}
         </div>
       </div>
     );

@@ -5,6 +5,7 @@ mod db;
 mod error;
 mod media;
 mod models;
+mod spotify_worker;
 mod ws;
 
 use axum::http::header;
@@ -118,6 +119,11 @@ async fn main() -> anyhow::Result<()> {
     let call_cleanup_state = state.clone();
     tokio::spawn(async move {
         db::cleanup::run_call_cleanup_task(call_cleanup_state).await;
+    });
+
+    let spotify_worker_state = state.clone();
+    tokio::spawn(async move {
+        spotify_worker::run_spotify_worker(spotify_worker_state).await;
     });
 
     if config.calls.enabled {

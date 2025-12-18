@@ -1,3 +1,4 @@
+mod activities;
 mod audio_settings;
 mod auth;
 pub mod calls;
@@ -14,6 +15,7 @@ mod profiles;
 pub mod rate_limit;
 mod recovery;
 mod servers;
+mod spotify;
 mod uploads;
 
 use axum::{routing::get, Json, Router};
@@ -51,4 +53,6 @@ pub fn routes() -> Router<Arc<AppState>> {
         .nest("/calls", calls::routes())
         .nest("/audio-settings", audio_settings::routes())
         .nest("/preferences", preferences::routes())
+        .nest("/activities", activities::routes())
+        .nest("/spotify", spotify::routes())
 }

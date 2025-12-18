@@ -6,11 +6,12 @@ import { Avatar } from "../ui/avatar";
 import { AvatarPile } from "../ui/avatar-pile";
 import { useAuth } from "../../context/AuthContext";
 import type { DmPreview } from "../../types/index";
+import { ActivityDisplay } from "../activity/ActivityDisplay";
 
 export function DmList() {
   const { user } = useAuth();
   const { dmPreviews, friendsList, activeChat, unreadCounts, openDmFromPreview, openGroupFromPreview, closeDm, setDmContextMenu, setGroupContextMenu } = useChat();
-  const { getUserPresence, subscribeToUsers, isWsConnected, isOnline } = usePresence();
+  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } = usePresence();
 
   useEffect(() => {
     if (dmPreviews.length > 0 && isWsConnected) {
@@ -71,6 +72,7 @@ export function DmList() {
         const displayStatus = preview.isGroup ? undefined : (userIsOnline ? (presence?.status || "online") : "offline");
         const displayName = preview.isGroup ? (preview.groupName || "Group") : preview.visitorUsername;
         const memberCount = preview.isGroup ? (preview.memberUsernames?.length || 0) : 0;
+        const activity = preview.isGroup ? null : getUserActivity(preview.visitorId);
 
         return (
           <button
@@ -103,10 +105,12 @@ export function DmList() {
                 <div className="truncate text-sm font-medium flex items-center gap-2">
                   <span className="truncate">{displayName}</span>
                 </div>
-                {preview.isGroup && (
+                {preview.isGroup ? (
                   <div className="text-[11px] text-muted-foreground truncate">
                     {memberCount} member{memberCount === 1 ? "" : "s"}
                   </div>
+                ) : (
+                  activity && <ActivityDisplay activity={activity} compact className="mt-0.5" />
                 )}
               </div>
             </div>

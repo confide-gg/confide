@@ -41,3 +41,43 @@ export interface ProfileViewData {
     username: string;
     isOnline: boolean;
 }
+
+export type ActivityType = "playing" | "listening" | "watching" | "streaming" | "custom";
+
+export interface UserActivity {
+    user_id: string;
+    activity_type: ActivityType;
+    name?: string;
+    details?: string;
+    state?: string;
+    start_timestamp?: number;
+    end_timestamp?: number;
+    large_image_url?: string;
+    small_image_url?: string;
+    large_image_text?: string;
+    small_image_text?: string;
+    track_url?: string;
+}
+
+export interface SpotifyStatus {
+    connected: boolean;
+    display_in_profile: boolean;
+}
+
+export interface CurrentTrack {
+    is_playing: boolean;
+    track_name?: string;
+    artist_name?: string;
+    album_name?: string;
+    album_image_url?: string;
+    duration_ms?: number;
+    progress_ms?: number;
+}
+
+export interface WsActivityUpdate {
+    type: "activity_update";
+    data: {
+        user_id: string;
+        activity: UserActivity | null;
+    };
+}

@@ -6,20 +6,22 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { VoiceSettings } from "./VoiceSettings";
+import { SpotifySettings } from "./SpotifySettings";
 import { X } from "lucide-react";
 import { Panel } from "../layout/Panel";
 
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
-  defaultTab?: "voice" | "account" | "appearance";
+  defaultTab?: "voice" | "account" | "appearance" | "connections";
 }
 
-type Tab = "voice" | "account" | "appearance";
+type Tab = "voice" | "account" | "appearance" | "connections";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "account", label: "My Account" },
   { id: "voice", label: "Voice & Audio" },
+  { id: "connections", label: "Connections" },
   { id: "appearance", label: "Appearance" },
 ];
 
@@ -64,6 +66,7 @@ export function SettingsModal({ open, onClose, defaultTab = "voice" }: SettingsM
 
           <Panel className="flex-1 flex flex-col overflow-hidden">
             {activeTab === "voice" && <VoiceSettings />}
+            {activeTab === "connections" && <SpotifySettings />}
             {activeTab === "account" && (
               <div className="p-6 text-sm text-muted-foreground">
                 Account settings coming soon...

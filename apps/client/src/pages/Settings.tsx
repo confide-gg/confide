@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { VoiceSettings } from "../components/settings/VoiceSettings";
 import { ProfileSettings } from "../components/settings/ProfileSettings";
 import { AppearanceSettings } from "../components/settings/AppearanceSettings";
+import { SpotifySettings } from "../components/settings/SpotifySettings";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Button } from "../components/ui/button";
-import { Mic, User, Palette, ArrowLeft, Shield } from "lucide-react";
+import { Mic, User, Palette, ArrowLeft, Shield, Link } from "lucide-react";
 import { CLIENT_VERSION, CENTRAL_API_URL } from "../config";
 import { Panel } from "../components/layout/Panel";
 
-type Tab = "profile" | "account" | "voice" | "appearance";
+type Tab = "profile" | "account" | "voice" | "appearance" | "connections";
 
 interface TabItem {
   id: Tab;
@@ -38,6 +39,7 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
     tabs: [
       { id: "appearance", label: "Appearance", icon: <Palette className="w-4 h-4" /> },
       { id: "voice", label: "Voice & Audio", icon: <Mic className="w-4 h-4" /> },
+      { id: "connections", label: "Connections", icon: <Link className="w-4 h-4" /> },
     ],
   },
 ];
@@ -142,6 +144,10 @@ export function Settings() {
 
               <Activity mode={activeTab === "appearance" ? 'visible' : 'hidden'}>
                 <AppearanceSettings />
+              </Activity>
+
+              <Activity mode={activeTab === "connections" ? 'visible' : 'hidden'}>
+                <SpotifySettings />
               </Activity>
             </div>
           </div>

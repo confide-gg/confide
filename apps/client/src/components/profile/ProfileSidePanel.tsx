@@ -6,6 +6,7 @@ import { usePresence } from "../../context/PresenceContext";
 import type { PublicProfile, UserStatus } from "../../types";
 import { Avatar } from "../ui/avatar";
 import { Panel } from "../layout/Panel";
+import { ActivityDisplay } from "../activity/ActivityDisplay";
 
 interface ProfileSidePanelProps {
   userId: string;
@@ -30,7 +31,7 @@ const STATUS_LABELS: Record<UserStatus, string> = {
 };
 
 export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanelProps) {
-  const { getUserPresence, subscribeToUsers, isWsConnected } = usePresence();
+  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected } = usePresence();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,6 +45,7 @@ export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanel
   const userIsOnline = presence !== undefined;
   const displayStatus = (userIsOnline ? (presence?.status || "online") : "offline") as UserStatus;
   const customStatus = presence?.customStatus || profile?.custom_status;
+  const activity = getUserActivity(userId);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -133,6 +135,8 @@ export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanel
           </div>
 
           <div className="space-y-3">
+            {activity && <ActivityDisplay activity={activity} />}
+
             {profile?.bio && (
               <div className="p-3 rounded-xl bg-secondary/50">
                 <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1.5">
