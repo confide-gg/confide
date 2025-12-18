@@ -141,7 +141,7 @@ impl Database {
             SELECT
                 si.owner_user_id,
                 m.central_user_id,
-                COALESCE(SUM(r.permissions), 0) as total_permissions
+                COALESCE(SUM(r.permissions), 0)::BIGINT as total_permissions
             FROM members m
             LEFT JOIN server_identity si ON true
             LEFT JOIN member_roles mr ON m.id = mr.member_id
