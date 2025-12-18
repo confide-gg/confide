@@ -33,6 +33,13 @@ pub async fn update_my_profile(
     Json(req): Json<UpdateProfileRequest>,
 ) -> Result<Json<UserProfile>> {
     let profile = state.db.update_profile(auth.user_id, &req).await?;
+
+    if let Some(status) = &req.status {
+        if status == "offline" || status == "invisible" {
+            crate::ws::broadcast_activity_update(&state, auth.user_id, None).await;
+        }
+    }
+
     Ok(Json(profile))
 }
 

@@ -102,6 +102,17 @@ async fn update_user_spotify_activity(
         None
     };
 
+    let profile = state.db.get_profile(integration.user_id).await?;
+    let status = profile
+        .as_ref()
+        .map(|p| p.status.as_str())
+        .unwrap_or("offline");
+
+    if status == "offline" || status == "invisible" {
+        state.db.delete_user_activity(integration.user_id).await?;
+        return Ok(());
+    }
+
     let activity_request = UpdateActivityRequest {
         activity_type: Some("listening".to_string()),
         name: Some("Spotify".to_string()),

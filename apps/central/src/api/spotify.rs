@@ -177,6 +177,7 @@ pub async fn spotify_disconnect(
 ) -> Result<StatusCode> {
     state.db.delete_spotify_integration(auth.user_id).await?;
     state.db.delete_user_activity(auth.user_id).await?;
+    crate::ws::broadcast_activity_update(&state, auth.user_id, None).await;
     Ok(StatusCode::NO_CONTENT)
 }
 

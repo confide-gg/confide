@@ -921,6 +921,21 @@ pub async fn broadcast_activity_update(
     user_id: Uuid,
     activity: Option<crate::models::PublicActivity>,
 ) {
+    if activity.is_some() {
+        let profile = match state.db.get_profile(user_id).await {
+            Ok(Some(p)) => p,
+            Ok(None) => return,
+            Err(e) => {
+                tracing::error!("Failed to get user profile for activity broadcast: {}", e);
+                return;
+            }
+        };
+
+        if profile.status == "offline" || profile.status == "invisible" {
+            return;
+        }
+    }
+
     let conversations = match state.db.get_user_conversations(user_id).await {
         Ok(convs) => convs,
         Err(e) => {

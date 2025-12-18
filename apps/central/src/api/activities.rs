@@ -35,6 +35,7 @@ pub async fn update_my_activity(
     Json(req): Json<UpdateActivityRequest>,
 ) -> Result<Json<UserActivity>> {
     let activity = state.db.upsert_user_activity(auth.user_id, &req).await?;
+    crate::ws::broadcast_activity_update(&state, auth.user_id, Some(activity.clone().into())).await;
     Ok(Json(activity))
 }
 
@@ -43,6 +44,7 @@ pub async fn delete_my_activity(
     auth: AuthUser,
 ) -> Result<StatusCode> {
     state.db.delete_user_activity(auth.user_id).await?;
+    crate::ws::broadcast_activity_update(&state, auth.user_id, None).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -51,6 +53,16 @@ pub async fn get_user_activity(
     _auth: AuthUser,
     Path(user_id): Path<Uuid>,
 ) -> Result<Json<Option<PublicActivity>>> {
+    let profile = state.db.get_profile(user_id).await?;
+
+    let status = profile
+        .as_ref()
+        .map(|p| p.status.as_str())
+        .unwrap_or("offline");
+    if status == "offline" || status == "invisible" {
+        return Ok(Json(None));
+    }
+
     let activity = state.db.get_user_activity(user_id).await?;
     Ok(Json(activity.map(|a| a.into())))
 }
