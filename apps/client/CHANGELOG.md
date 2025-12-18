@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.21.1](https://github.com/confide-gg/confide/compare/confide-client-v0.21.0...confide-client-v0.21.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* issue where groups sometimes duplicate ([072ef8f](https://github.com/confide-gg/confide/commit/072ef8f64dc12fc539568470c635b59757a89ec0))
+* separate presence channel from user events to prevent friend duplication ([45692af](https://github.com/confide-gg/confide/commit/45692af00c42457ce7f02b7b8e69524feb494672))
+* show online members without roles in member list ([b24d17d](https://github.com/confide-gg/confide/commit/b24d17d615b9c27a50ad8f400243a159101d5f30))
+
 ## [0.21.0](https://github.com/confide-gg/confide/compare/confide-client-v0.20.0...confide-client-v0.21.0) (2025-12-18)
 
 

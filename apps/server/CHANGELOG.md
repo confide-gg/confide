@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/confide-gg/confide/compare/confide-server-v0.6.0...confide-server-v0.7.0) (2025-12-18)
+
+
+### Features
+
+* implement secure heartbeat with ML-DSA-87 and replay protection ([7610cb4](https://github.com/confide-gg/confide/commit/7610cb42c529c0a6ad3351c402660dcb7a76bc8c))
+
+
+### Bug Fixes
+
+* cast SUM() result to BIGINT in permissions query ([3a6059f](https://github.com/confide-gg/confide/commit/3a6059f9ecf350abd7b8e2f24f3e615c44cd25ed))
+
 ## [0.6.0](https://github.com/confide-gg/confide/compare/confide-server-v0.5.0...confide-server-v0.6.0) (2025-12-18)
 
 
