@@ -370,8 +370,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     chatLogic.setDmPreviews((prev) => {
       const nonGroups = prev.filter((p) => !p.isGroup);
       const merged = [...nonGroups, ...groupsLogic.groupPreviews];
-      merged.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
-      return merged;
+      const seen = new Set<string>();
+      const deduped = merged.filter((p) => {
+        if (seen.has(p.conversationId)) return false;
+        seen.add(p.conversationId);
+        return true;
+      });
+      deduped.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+      return deduped;
     });
   }, [groupsLogic.groupPreviews]);
 

@@ -223,16 +223,23 @@ export function useChatMessages(friendsList: Friend[]) {
                         isLastMessageMine: false,
                     };
                 } else {
-                    const senderFriend = friendsList.find((f) => f.id === msgData.sender_id);
-                    if (senderFriend) {
-                        updated.unshift({
-                            conversationId: msgData.conversation_id,
-                            visitorId: senderFriend.id,
-                            visitorUsername: senderFriend.username,
-                            lastMessage: "New message",
-                            lastMessageTime: msgData.created_at,
-                            isLastMessageMine: false,
-                        });
+                    const isGroupSystemMessage = msgData.message_type === 'group_member_added' ||
+                                                  msgData.message_type === 'group_created' ||
+                                                  msgData.message_type === 'group_member_removed' ||
+                                                  msgData.message_type === 'group_member_left' ||
+                                                  msgData.message_type === 'group_owner_changed';
+                    if (!isGroupSystemMessage) {
+                        const senderFriend = friendsList.find((f) => f.id === msgData.sender_id);
+                        if (senderFriend) {
+                            updated.unshift({
+                                conversationId: msgData.conversation_id,
+                                visitorId: senderFriend.id,
+                                visitorUsername: senderFriend.username,
+                                lastMessage: "New message",
+                                lastMessageTime: msgData.created_at,
+                                isLastMessageMine: false,
+                            });
+                        }
                     }
                 }
                 updated.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
