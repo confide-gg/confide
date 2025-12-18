@@ -141,9 +141,19 @@ pub async fn set_password(
 ) -> Result<Json<serde_json::Value>> {
     check_server_admin_or_owner(&state, auth.member_id).await?;
 
-    if req.password.len() < 4 {
+    if req.password.len() < 12 {
         return Err(AppError::BadRequest(
-            "Password must be at least 4 characters".into(),
+            "Password must be at least 12 characters".into(),
+        ));
+    }
+
+    let has_uppercase = req.password.chars().any(|c| c.is_uppercase());
+    let has_lowercase = req.password.chars().any(|c| c.is_lowercase());
+    let has_digit = req.password.chars().any(|c| c.is_numeric());
+
+    if !has_uppercase || !has_lowercase || !has_digit {
+        return Err(AppError::BadRequest(
+            "Password must contain uppercase, lowercase, and numeric characters".into(),
         ));
     }
 
