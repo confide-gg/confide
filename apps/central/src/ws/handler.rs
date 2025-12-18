@@ -96,6 +96,9 @@ pub enum WsMessage {
     ScreenShareStop(ScreenShareStopData),
     #[serde(rename = "call_mute_update")]
     CallMuteUpdate(CallMuteUpdateData),
+
+    #[serde(rename = "activity_update")]
+    ActivityUpdate(ActivityUpdateData),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -289,6 +292,12 @@ pub struct PresenceInfo {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PresenceSyncData {
     pub online_users: Vec<PresenceInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ActivityUpdateData {
+    pub user_id: Uuid,
+    pub activity: Option<crate::models::PublicActivity>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -902,6 +911,39 @@ pub async fn send_new_message(
                     let user_channel = format!("user:{}", member.user_id);
                     let _ = publish_message(&state.redis, &user_channel, &json).await;
                 }
+            }
+        }
+    }
+}
+
+pub async fn broadcast_activity_update(
+    state: &AppState,
+    user_id: Uuid,
+    activity: Option<crate::models::PublicActivity>,
+) {
+    let conversations = match state.db.get_user_conversations(user_id).await {
+        Ok(convs) => convs,
+        Err(e) => {
+            tracing::error!(
+                "Failed to get conversations for activity update broadcast: {}",
+                e
+            );
+            return;
+        }
+    };
+
+    let activity_msg = WsMessage::ActivityUpdate(ActivityUpdateData { user_id, activity });
+
+    if let Ok(json) = serde_json::to_string(&activity_msg) {
+        let conversation_ids: Vec<Uuid> = conversations.iter().map(|c| c.id).collect();
+        if let Ok(user_ids) = state
+            .db
+            .get_members_for_conversations(&conversation_ids, user_id)
+            .await
+        {
+            for uid in user_ids {
+                let channel = format!("user:{}", uid);
+                let _ = publish_message(&state.redis, &channel, &json).await;
             }
         }
     }

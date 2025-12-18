@@ -16,6 +16,7 @@ tauri-build = { version = "2", features = [] }
 confide-sdk = { workspace = true, features = ["client"] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
+tauri-plugin-shell = "2"
 tauri-plugin-http = "2"
 tauri-plugin-notification = "2"
 serde.workspace = true

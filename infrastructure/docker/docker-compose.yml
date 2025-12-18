@@ -16,6 +16,9 @@ services:
       - REDIS_URL=redis://central-redis:6379
       - RUST_LOG=info,confide_central=debug
       - SERVER_PORT=3000
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - SPOTIFY_REDIRECT_URI=${SPOTIFY_REDIRECT_URI:-http://localhost:3000/api/spotify/callback}
     depends_on:
       central-postgres:
         condition: service_healthy

@@ -3,8 +3,8 @@ pub mod handler;
 mod pubsub;
 
 pub use handler::{
-    broadcast_key_update, send_call_answer, send_call_cancel, send_call_end,
-    send_call_key_complete, send_call_leave, send_call_media_ready, send_call_offer,
+    broadcast_activity_update, broadcast_key_update, send_call_answer, send_call_cancel,
+    send_call_end, send_call_key_complete, send_call_leave, send_call_media_ready, send_call_offer,
     send_call_reject, send_call_rejoin, send_new_message, CallAnswerData, CallCancelData,
     CallEndData, CallKeyCompleteData, CallLeaveData, CallMediaReadyData, CallOfferData,
     CallRejectData, CallRejoinData, FriendAcceptedData, FriendRemovedData, FriendRequestData,

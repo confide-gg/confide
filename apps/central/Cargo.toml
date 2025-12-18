@@ -34,9 +34,11 @@ rustls.workspace = true
 rcgen.workspace = true
 hmac.workspace = true
 dotenvy.workspace = true
+reqwest.workspace = true
 
 dashmap = "6.0"
 bytes = "1.5"
 rustls-pemfile = "2.2"
 infer = "0.16"
 num_cpus = "1.16"
+urlencoding = "2.1"

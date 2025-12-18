@@ -5,6 +5,8 @@ import { Button } from "../ui/button";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
+import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { useUserActivity } from "../../hooks/useUserActivity";
 import type { PublicProfile, UserStatus } from "../../types";
 
 interface ProfilePopupProps {
@@ -52,6 +54,7 @@ export function ProfilePopup({
   }, [userId, isWsConnected, subscribeToUsers]);
 
   const presence = getUserPresence(userId);
+  const activity = useUserActivity(userId);
   const userIsOnline = presence !== undefined;
   const displayStatus = (userIsOnline ? (presence?.status || "online") : "offline") as UserStatus;
   const customStatus = presence?.customStatus || profile?.custom_status;
@@ -209,6 +212,10 @@ export function ProfilePopup({
               </div>
 
               <div className="space-y-3">
+                {activity && (
+                  <ActivityDisplay activity={activity} />
+                )}
+
                 {profile?.bio && (
                   <div className="p-3 rounded-xl bg-secondary/50">
                     <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1.5">

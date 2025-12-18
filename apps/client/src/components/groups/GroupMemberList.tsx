@@ -7,6 +7,7 @@ import { usePresence } from "../../context/PresenceContext";
 import { cn } from "@/lib/utils";
 import type { MemberResponse } from "../../features/chat/types";
 import { groupService } from "../../features/groups/groupService";
+import { ActivityDisplay } from "../activity/ActivityDisplay";
 
 interface GroupMemberListProps {
   conversationId: string;
@@ -16,7 +17,7 @@ interface GroupMemberListProps {
 
 export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: GroupMemberListProps) {
   const { user } = useAuth();
-  const { getUserPresence, subscribeToUsers, isWsConnected, isOnline } = usePresence();
+  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } = usePresence();
 
   const [members, setMembers] = useState<MemberResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +125,7 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
                   const presence = getUserPresence(m.user.id);
                   const userIsOnline = isOnline(m.user.id);
                   const status = userIsOnline ? (presence?.status || "online") : "offline";
+                  const activity = getUserActivity(m.user.id);
                   return (
                     <div
                       key={m.user.id}
@@ -153,6 +155,7 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
                           </div>
                           {memberIsOwner && <Crown className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
                         </div>
+                        {activity && <ActivityDisplay activity={activity} compact className="mt-0.5" />}
                       </div>
                     </div>
                   );

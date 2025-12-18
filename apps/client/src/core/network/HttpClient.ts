@@ -60,7 +60,12 @@ class HttpClient {
             }
             throw new ApiError(response.status, message);
         }
-        return response.json();
+
+        const text = await response.text();
+        if (!text || text.length === 0) {
+            return undefined as T;
+        }
+        return JSON.parse(text);
     }
 
     public async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {

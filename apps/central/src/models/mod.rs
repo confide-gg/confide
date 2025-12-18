@@ -1,3 +1,4 @@
+mod activity;
 mod audio_settings;
 mod call;
 mod conversation;
@@ -10,6 +11,7 @@ mod session;
 mod upload;
 mod user;
 
+pub use activity::*;
 pub use audio_settings::*;
 pub use call::*;
 pub use conversation::*;
