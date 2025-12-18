@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.2](https://github.com/confide-gg/confide/compare/confide-client-v0.21.1...confide-client-v0.21.2) (2025-12-18)
+
+
+### Bug Fixes
+
+* add error boundaries to context providers ([47cff75](https://github.com/confide-gg/confide/commit/47cff757dbb1e064e3f89b884bed036c9cdccc90))
+* cleanup typing indicator timeouts on unmount ([4915d05](https://github.com/confide-gg/confide/commit/4915d05e95dac864af96bf769c7b589f4ad27962))
+
 ## [0.21.1](https://github.com/confide-gg/confide/compare/confide-client-v0.21.0...confide-client-v0.21.1) (2025-12-18)
 
 

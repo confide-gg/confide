@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/confide-gg/confide/compare/confide-server-v0.7.0...confide-server-v0.7.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* add signature verification before message acceptance ([66805b9](https://github.com/confide-gg/confide/commit/66805b9f2193ae98c2bb06cc7ef77bccc8252d8b))
+* increase server password minimum to 12 characters with complexity requirements ([adcc17b](https://github.com/confide-gg/confide/commit/adcc17b43131a6df56473f8d4d2c7302d77fe2fe))
+
 ## [0.7.0](https://github.com/confide-gg/confide/compare/confide-server-v0.6.0...confide-server-v0.7.0) (2025-12-18)
 
 
