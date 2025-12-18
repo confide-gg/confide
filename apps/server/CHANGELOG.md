@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/confide-gg/confide/compare/confide-server-v0.5.0...confide-server-v0.6.0) (2025-12-18)
+
+
+### Features
+
+* add Spotify activity ([#32](https://github.com/confide-gg/confide/issues/32)) ([f37df12](https://github.com/confide-gg/confide/commit/f37df12fc0cdfec534baa9db0692e1bdb2601c98))
+
 ## [0.5.0](https://github.com/confide-gg/confide/compare/confide-server-v0.4.0...confide-server-v0.5.0) (2025-12-17)
 
 
