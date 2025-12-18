@@ -4,16 +4,20 @@ import { friendService } from "../features/friends/friends";
 import { cryptoService } from "../core/crypto/crypto";
 import { useAuth } from "../context/AuthContext";
 import { usePresence } from "../context/PresenceContext";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     useFriends as useFriendsQuery,
     useFriendRequests as useFriendRequestsQuery,
     useSendFriendRequest as useSendFriendRequestMutation,
     useRejectFriendRequest as useRejectFriendRequestMutation,
+    useAcceptFriendRequest as useAcceptFriendRequestMutation,
+    queryKeys,
 } from "./useQueries";
 
 export function useFriends() {
-    const { keys } = useAuth();
+    const { keys, user } = useAuth();
     const { subscribeToUsers, isWsConnected } = usePresence();
+    const queryClient = useQueryClient();
     const friendsListRef = useRef<Friend[]>([]);
     const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
     const [searchResults, setSearchResults] = useState<{ id: string; username: string; kem_public_key: number[] }[]>([]);
@@ -26,6 +30,7 @@ export function useFriends() {
 
     const sendFriendRequestMutation = useSendFriendRequestMutation();
     const rejectFriendRequestMutation = useRejectFriendRequestMutation();
+    const acceptFriendRequestMutation = useAcceptFriendRequestMutation();
 
     const [friendsList, setFriendsList] = useState<Friend[]>([]);
 
@@ -100,8 +105,13 @@ export function useFriends() {
     }, [sendFriendRequestMutation]);
 
     const handleAcceptRequest = useCallback(async (request: FriendRequestResponse) => {
-        if (!keys) {
-            console.error("No keys available");
+        if (!keys || !user) {
+            console.error("No keys or user available");
+            return;
+        }
+
+        if (request.from_user.id === user.id) {
+            console.error("Cannot add yourself as a friend");
             return;
         }
 
@@ -123,14 +133,17 @@ export function useFriends() {
             const jsonData = JSON.stringify(updatedFriends);
             const encryptedFriends = await cryptoService.encryptData(keys.kem_secret_key, cryptoService.stringToBytes(jsonData));
 
-            await friendService.acceptFriendRequest(request.id, { encrypted_friends: encryptedFriends });
+            await acceptFriendRequestMutation.mutateAsync({
+                requestId: request.id,
+                data: { encrypted_friends: encryptedFriends }
+            });
 
             subscribeToUsers([newFriend.id]);
         } catch (err) {
             console.error("Failed to accept friend request:", err);
             throw err;
         }
-    }, [keys, subscribeToUsers]);
+    }, [keys, user, subscribeToUsers, acceptFriendRequestMutation]);
 
     const handleRejectRequest = useCallback(async (requestId: string) => {
         try {
@@ -145,6 +158,8 @@ export function useFriends() {
         if (!keys) return;
         try {
             const updatedFriends = friendsListRef.current.filter((f) => f.id !== friendToRemove.id);
+            setFriendsList(updatedFriends);
+
             const jsonData = JSON.stringify(updatedFriends);
             const encryptedFriends = await cryptoService.encryptData(keys.kem_secret_key, cryptoService.stringToBytes(jsonData));
 
@@ -153,12 +168,13 @@ export function useFriends() {
                 removed_friend_id: friendToRemove.id
             });
 
+            queryClient.invalidateQueries({ queryKey: queryKeys.friends.list() });
             setConfirmRemove(null);
         } catch (err) {
             console.error("Failed to remove friend:", err);
             throw err;
         }
-    }, [keys]);
+    }, [keys, queryClient]);
 
     useEffect(() => {
         loadFriends();
@@ -173,7 +189,12 @@ export function useFriends() {
     }, [isWsConnected, friendsList, subscribeToUsers]);
 
     const onFriendAccepted = useCallback(async (userId: string, username: string) => {
-        if (!keys) return;
+        if (!keys || !user) return;
+
+        if (userId === user.id) {
+            console.error("Cannot add yourself as a friend via onFriendAccepted");
+            return;
+        }
 
         const alreadyFriend = friendsListRef.current.some((f) => f.id === userId);
         if (alreadyFriend) {
@@ -221,7 +242,7 @@ export function useFriends() {
             console.error("Failed to update friends after acceptance:", err);
             throw err;
         }
-    }, [keys, subscribeToUsers]);
+    }, [keys, user, subscribeToUsers]);
 
     const onFriendRemoved = useCallback(async (userId: string) => {
         if (!keys) return;
@@ -233,10 +254,11 @@ export function useFriends() {
             const jsonData = JSON.stringify(updatedFriends);
             const encryptedFriends = await cryptoService.encryptData(keys.kem_secret_key, cryptoService.stringToBytes(jsonData));
             await friendService.updateFriends({ encrypted_friends: encryptedFriends });
+            queryClient.invalidateQueries({ queryKey: queryKeys.friends.list() });
         } catch (err) {
             console.error("Failed to sync friend removal:", err);
         }
-    }, [keys]);
+    }, [keys, queryClient]);
 
     return {
         friendsList,

@@ -439,7 +439,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
         }
     };
 
-    let conversations = match state.db.get_user_conversations(user_id).await {
+    let _conversations = match state.db.get_user_conversations(user_id).await {
         Ok(convs) => convs,
         Err(e) => {
             tracing::error!("Failed to get user conversations for {}: {:?}", user_id, e);
@@ -537,7 +537,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
         _ = health_monitor_handle => {}
     }
 
-    broadcast_presence(&state, &conversations, user_id, false).await;
+    broadcast_presence(&state, user_id, false).await;
     tracing::debug!("websocket connection closed for user {}", user_id);
 }
 
@@ -575,11 +575,15 @@ async fn handle_client_message(
             }
         }
         WsMessage::SubscribeUser(data) => {
-            let channel = format!("user:{}", data.user_id);
+            let channel = format!("presence:{}", data.user_id);
             if let Err(e) = pubsub_handle.subscribe(&channel).await {
-                tracing::error!("Failed to subscribe to user {}: {:?}", data.user_id, e);
+                tracing::error!("Failed to subscribe to presence {}: {:?}", data.user_id, e);
             } else {
-                tracing::debug!("User {} subscribed to user channel {}", user_id, channel);
+                tracing::debug!(
+                    "User {} subscribed to presence channel {}",
+                    user_id,
+                    channel
+                );
                 if let Ok(mut conn) = state.redis.get_multiplexed_async_connection().await {
                     let is_online: Result<bool, _> = redis::cmd("SISMEMBER")
                         .arg("online_users")
@@ -643,8 +647,8 @@ async fn handle_client_message(
                 .await
             {
                 tracing::error!("Failed to update presence for user {}: {:?}", user_id, e);
-            } else if let Ok(conversations) = state.db.get_user_conversations(user_id).await {
-                broadcast_presence(state, &conversations, user_id, true).await;
+            } else {
+                broadcast_presence(state, user_id, true).await;
             }
         }
         WsMessage::Ping => {}
@@ -722,12 +726,7 @@ async fn publish_message(
         .await
 }
 
-async fn broadcast_presence(
-    state: &AppState,
-    conversations: &[crate::models::ConversationWithRouting],
-    user_id: Uuid,
-    online: bool,
-) {
+async fn broadcast_presence(state: &AppState, user_id: Uuid, online: bool) {
     let redis = &state.redis;
 
     if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
@@ -764,20 +763,8 @@ async fn broadcast_presence(
         custom_status,
     });
     if let Ok(json) = serde_json::to_string(&presence_msg) {
-        let user_channel = format!("user:{}", user_id);
-        let _ = publish_message(redis, &user_channel, &json).await;
-
-        let conversation_ids: Vec<Uuid> = conversations.iter().map(|c| c.id).collect();
-        if let Ok(user_ids) = state
-            .db
-            .get_members_for_conversations(&conversation_ids, user_id)
-            .await
-        {
-            for uid in user_ids {
-                let channel = format!("user:{}", uid);
-                let _ = publish_message(redis, &channel, &json).await;
-            }
-        }
+        let presence_channel = format!("presence:{}", user_id);
+        let _ = publish_message(redis, &presence_channel, &json).await;
     }
 }
 
@@ -936,31 +923,11 @@ pub async fn broadcast_activity_update(
         }
     }
 
-    let conversations = match state.db.get_user_conversations(user_id).await {
-        Ok(convs) => convs,
-        Err(e) => {
-            tracing::error!(
-                "Failed to get conversations for activity update broadcast: {}",
-                e
-            );
-            return;
-        }
-    };
-
     let activity_msg = WsMessage::ActivityUpdate(ActivityUpdateData { user_id, activity });
 
     if let Ok(json) = serde_json::to_string(&activity_msg) {
-        let conversation_ids: Vec<Uuid> = conversations.iter().map(|c| c.id).collect();
-        if let Ok(user_ids) = state
-            .db
-            .get_members_for_conversations(&conversation_ids, user_id)
-            .await
-        {
-            for uid in user_ids {
-                let channel = format!("user:{}", uid);
-                let _ = publish_message(&state.redis, &channel, &json).await;
-            }
-        }
+        let presence_channel = format!("presence:{}", user_id);
+        let _ = publish_message(&state.redis, &presence_channel, &json).await;
     }
 }
 

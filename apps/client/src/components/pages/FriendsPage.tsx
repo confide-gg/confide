@@ -18,6 +18,68 @@ const STATUS_LABELS: Record<string, string> = {
   offline: "Offline",
 };
 
+interface FriendRowProps {
+  friend: Friend;
+  onOpenChat: (friend: Friend) => void;
+  onRemove: (friend: Friend) => void;
+  getUserPresence: (userId: string) => { status?: string } | undefined;
+  isOnline: (userId: string) => boolean;
+}
+
+function FriendRow({ friend, onOpenChat, onRemove, getUserPresence, isOnline }: FriendRowProps) {
+  const presence = getUserPresence(friend.id);
+  const activity = useUserActivity(friend.id);
+  const userIsOnline = isOnline(friend.id);
+  const displayStatus = userIsOnline ? (presence?.status || "online") : "offline";
+
+  return (
+    <div
+      onClick={() => onOpenChat(friend)}
+      className="group flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border hover:bg-accent/50 cursor-pointer transition-all mb-3 relative overflow-hidden"
+    >
+      <div className="flex items-center gap-4 relative flex-1 min-w-0">
+        <div className="relative shrink-0">
+          <Avatar
+            fallback={friend.username}
+            status={displayStatus as "online" | "away" | "dnd" | "invisible" | "offline"}
+            className="w-12 h-12 border-2 border-background"
+          />
+        </div>
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="font-semibold text-foreground text-base tracking-tight">
+            {friend.username}
+          </span>
+          {activity ? (
+            <ActivityDisplay activity={activity} compact className="mt-1" />
+          ) : (
+            <span className={`text-xs font-medium ${userIsOnline ? "text-green-500" : "text-muted-foreground"}`}>
+              {STATUS_LABELS[displayStatus] || "Offline"}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 relative">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => { e.stopPropagation(); onOpenChat(friend); }}
+          className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+        >
+          Message
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => { e.stopPropagation(); onRemove(friend); }}
+          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+        >
+          Remove
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function FriendsPage() {
   const {
     friendsList,
@@ -65,62 +127,6 @@ export function FriendsPage() {
     setSuccessMsg(`Friend request sent to ${user.username}`);
     setSearchQuery("");
     setHasSearched(false);
-  };
-
-  // Render Helpers
-  const renderFriendRow = (friend: Friend) => {
-    const presence = getUserPresence(friend.id);
-    const activity = useUserActivity(friend.id);
-    const userIsOnline = isOnline(friend.id);
-    const displayStatus = userIsOnline ? (presence?.status || "online") : "offline";
-
-    return (
-      <div
-        key={friend.id}
-        onClick={() => openChat(friend)}
-        className="group flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border hover:bg-accent/50 cursor-pointer transition-all mb-3 relative overflow-hidden"
-      >
-        <div className="flex items-center gap-4 relative flex-1 min-w-0">
-          <div className="relative shrink-0">
-            <Avatar
-              fallback={friend.username}
-              status={displayStatus as "online" | "away" | "dnd" | "invisible" | "offline"}
-              className="w-12 h-12 border-2 border-background"
-            />
-          </div>
-          <div className="flex flex-col flex-1 min-w-0">
-            <span className="font-semibold text-foreground text-base tracking-tight">
-              {friend.username}
-            </span>
-            {activity ? (
-              <ActivityDisplay activity={activity} compact className="mt-1" />
-            ) : (
-              <span className={`text-xs font-medium ${userIsOnline ? "text-green-500" : "text-muted-foreground"}`}>
-                {STATUS_LABELS[displayStatus] || "Offline"}
-              </span>
-            )}
-          </div>
-        </div>
-      <div className="flex items-center gap-2 relative">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => { e.stopPropagation(); openChat(friend); }}
-            className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-          >
-            Message
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => { e.stopPropagation(); setConfirmRemove(friend); }}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            Remove
-          </Button>
-        </div>
-      </div>
-    );
   };
 
   const renderRequestRow = (request: typeof friendRequests[0]) => (
@@ -278,8 +284,26 @@ export function FriendsPage() {
               </h3>
 
               <div className="space-y-1">
-                {activeTab === "online" && filteredOnlineFriends.map(f => renderFriendRow(f))}
-                {activeTab === "all" && filteredFriendsList.map(f => renderFriendRow(f))}
+                {activeTab === "online" && filteredOnlineFriends.map(f => (
+                  <FriendRow
+                    key={f.id}
+                    friend={f}
+                    onOpenChat={openChat}
+                    onRemove={setConfirmRemove}
+                    getUserPresence={getUserPresence}
+                    isOnline={isOnline}
+                  />
+                ))}
+                {activeTab === "all" && filteredFriendsList.map(f => (
+                  <FriendRow
+                    key={f.id}
+                    friend={f}
+                    onOpenChat={openChat}
+                    onRemove={setConfirmRemove}
+                    getUserPresence={getUserPresence}
+                    isOnline={isOnline}
+                  />
+                ))}
                 {activeTab === "pending" && filteredRequests.map(renderRequestRow)}
 
                 {((activeTab === "online" && filteredOnlineFriends.length === 0) ||

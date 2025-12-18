@@ -289,7 +289,7 @@ async fn send_presence_to_new_friends(state: &AppState, user_a: Uuid, user_b: Uu
             custom_status,
         });
         if let Ok(json) = serde_json::to_string(&presence_msg) {
-            let _ = publish_to_redis(&state.redis, &format!("user:{}", user_b), &json).await;
+            let _ = publish_to_redis(&state.redis, &format!("presence:{}", user_a), &json).await;
         }
     }
 
@@ -307,7 +307,7 @@ async fn send_presence_to_new_friends(state: &AppState, user_a: Uuid, user_b: Uu
             custom_status,
         });
         if let Ok(json) = serde_json::to_string(&presence_msg) {
-            let _ = publish_to_redis(&state.redis, &format!("user:{}", user_a), &json).await;
+            let _ = publish_to_redis(&state.redis, &format!("presence:{}", user_b), &json).await;
         }
     }
 }

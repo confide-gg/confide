@@ -171,8 +171,7 @@ export function useCacheSync() {
           }
 
           case "friend_request":
-          case "friend_request_accepted":
-          case "friend_removed":
+          case "friend_accepted":
             queryClient.invalidateQueries({
               queryKey: queryKeys.friends.list(),
             });
