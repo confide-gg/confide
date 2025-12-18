@@ -134,6 +134,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [typingUsers, setTypingUsers] = useState<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [sidebarView, setSidebarView] = useState<SidebarView>("friends");
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
+
+  useEffect(() => {
+    return () => {
+      typingUsers.forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
   const [messageContextMenu, setMessageContextMenu] = useState<MessageContextMenuData | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [dmContextMenu, setDmContextMenu] = useState<DmContextMenuData | null>(null);
