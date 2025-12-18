@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/confide-gg/confide/compare/confide-central-v0.9.0...confide-central-v0.10.0) (2025-12-18)
+
+
+### Features
+
+* implement secure heartbeat with ML-DSA-87 and replay protection ([7610cb4](https://github.com/confide-gg/confide/commit/7610cb42c529c0a6ad3351c402660dcb7a76bc8c))
+
+
+### Bug Fixes
+
+* don't show activities when offline / invisible ([c02ebaf](https://github.com/confide-gg/confide/commit/c02ebaf5871e63f32e42746c92a93430add90429))
+* separate presence channel from user events to prevent friend duplication ([45692af](https://github.com/confide-gg/confide/commit/45692af00c42457ce7f02b7b8e69524feb494672))
+
 ## [0.9.0](https://github.com/confide-gg/confide/compare/confide-central-v0.8.0...confide-central-v0.9.0) (2025-12-18)
 
 
