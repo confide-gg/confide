@@ -3,6 +3,7 @@ use axum::{
     routing::{delete, get, post},
     Json, Router,
 };
+use confide_sdk::crypto::keys::DsaKeyPair;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -74,6 +75,23 @@ pub async fn send_message(
         return Err(AppError::BadRequest("Invalid signature size".into()));
     }
 
+    let sender = state
+        .db
+        .get_member(auth.member_id)
+        .await?
+        .ok_or(AppError::NotFound("Member not found".into()))?;
+
+    let signature_valid = DsaKeyPair::verify(
+        &sender.dsa_public_key,
+        &req.encrypted_content,
+        &req.signature,
+    )
+    .unwrap_or(false);
+
+    if !signature_valid {
+        return Err(AppError::BadRequest("Signature verification failed".into()));
+    }
+
     state
         .db
         .get_channel(channel_id)
@@ -92,12 +110,6 @@ pub async fn send_message(
         .await?;
 
     tracing::debug!("Message created with id={}", message.id);
-
-    let sender = state
-        .db
-        .get_member(auth.member_id)
-        .await?
-        .ok_or(AppError::NotFound("Member not found".into()))?;
 
     let broadcast_message = MessageWithKey {
         id: message.id,
