@@ -147,7 +147,15 @@ export function MemberList() {
     membersList.forEach(member => {
       const presence = getUserPresence(member.central_user_id);
       const memberIsOnline = isUserOnline(member.central_user_id) && presence?.status !== "invisible";
-      if (!memberIsOnline || !member.highestRole) return;
+      if (!memberIsOnline) return;
+
+      if (!member.highestRole) {
+        if (!onlineByRole.has("__no_role__")) {
+          onlineByRole.set("__no_role__", []);
+        }
+        onlineByRole.get("__no_role__")!.push(member);
+        return;
+      }
 
       const roleId = member.highestRole.id;
       if (!onlineByRole.has(roleId)) {
@@ -157,8 +165,9 @@ export function MemberList() {
     });
 
     const sortedGroups: Array<{ role: ServerRole; members: MemberWithRoles[] }> = [];
-    
+
     const roles = Array.from(onlineByRole.keys())
+      .filter(roleId => roleId !== "__no_role__")
       .map(roleId => availableRoles.find(r => r.id === roleId))
       .filter((r): r is ServerRole => r !== undefined)
       .sort((a, b) => b.position - a.position);
@@ -173,7 +182,14 @@ export function MemberList() {
       sortedGroups.push({ role, members: roleMembers });
     });
 
-    return sortedGroups;
+    const noRoleMembers = onlineByRole.get("__no_role__") || [];
+    noRoleMembers.sort((a, b) => {
+      const nameA = a.display_name || a.username;
+      const nameB = b.display_name || b.username;
+      return nameA.localeCompare(nameB);
+    });
+
+    return { groups: sortedGroups, onlineNoRole: noRoleMembers };
   };
 
   const getOfflineMembers = (membersList: MemberWithRoles[]) => {
@@ -212,7 +228,7 @@ export function MemberList() {
   if (!activeServer) return null;
 
   const membersWithRoles = getMembersWithRoles();
-  const onlineRoleGroups = groupOnlineMembersByRole(membersWithRoles);
+  const { groups: onlineRoleGroups, onlineNoRole } = groupOnlineMembersByRole(membersWithRoles);
   const offlineMembers = getOfflineMembers(membersWithRoles);
 
   const MemberItem = ({ member }: { member: MemberWithRoles }) => {
@@ -347,6 +363,18 @@ export function MemberList() {
                 {onlineRoleGroups.map((group) => (
                   <RoleGroup key={group.role.id} role={group.role} members={group.members} />
                 ))}
+                {onlineNoRole.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Online — {onlineNoRole.length}
+                    </h3>
+                    <div className="space-y-0.5">
+                      {onlineNoRole.map((member) => (
+                        <MemberItem key={member.id} member={member} />
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {offlineMembers.length > 0 && (
                   <div className="mb-4">
                     <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
