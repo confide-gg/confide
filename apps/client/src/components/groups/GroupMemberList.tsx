@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import type { MemberResponse } from "../../features/chat/types";
 import { groupService } from "../../features/groups/groupService";
 import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { MemberProfileCard } from "../servers/MemberProfileCard";
 
 interface GroupMemberListProps {
   conversationId: string;
@@ -21,6 +22,8 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
 
   const [members, setMembers] = useState<MemberResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [profilePosition, setProfilePosition] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -73,8 +76,38 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
     loadMembers();
   };
 
+  const handleMemberClick = (userId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    setProfilePosition({ x: rect.left, y: rect.top });
+    setSelectedMemberId(userId);
+  };
+
+  const handleMemberRightClick = (userId: string, username: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      userId,
+      username,
+    });
+  };
+
+  const selectedMember = members.find(m => m.user.id === selectedMemberId);
+
   return (
     <>
+      {selectedMemberId && selectedMember && (
+        <MemberProfileCard
+          userId={selectedMember.user.id}
+          username={selectedMember.user.username}
+          status={getUserPresence(selectedMember.user.id)?.status || "offline"}
+          roles={[]}
+          position={profilePosition}
+          onClose={() => setSelectedMemberId(null)}
+        />
+      )}
       {contextMenu && (
         <div
           className="fixed z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
@@ -109,7 +142,7 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
 
       <aside className="w-60 h-full flex flex-col shrink-0 overflow-hidden">
         <Panel className="h-full flex flex-col">
-          <div className="h-14 px-4 flex items-center justify-between shrink-0">
+          <div className="h-14 px-4 flex items-center justify-between shrink-0 border-b border-border">
             <h3 className="font-semibold text-base text-foreground">Members</h3>
             <div className="text-xs text-muted-foreground">{members.length}</div>
           </div>
@@ -132,15 +165,8 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
                       className={cn(
                         "flex items-center gap-3 px-2 py-1.5 mx-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer group"
                       )}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setContextMenu({
-                          x: e.clientX,
-                          y: e.clientY,
-                          userId: m.user.id,
-                          username: m.user.username,
-                        });
-                      }}
+                      onClick={(e) => handleMemberClick(m.user.id, e)}
+                      onContextMenu={(e) => handleMemberRightClick(m.user.id, m.user.username, e)}
                     >
                       <Avatar
                         fallback={m.user.username}
