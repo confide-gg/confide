@@ -121,6 +121,12 @@ export const Message = memo(function Message({ message, showHeader }: MessagePro
     try {
       const parsed = JSON.parse(content);
       if (parsed.type === "file" && parsed.file) {
+        if (!parsed.file.url?.startsWith('s3://')) {
+          return null;
+        }
+        if (parsed.file.name?.includes('/') || parsed.file.name?.includes('\\')) {
+          return null;
+        }
         return parsed as FileMetadata;
       }
     } catch {
