@@ -243,6 +243,7 @@ export function useSendMessage(conversationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(conversationId),
+        exact: false,
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.infinite(conversationId),
@@ -291,6 +292,7 @@ export function useEditMessage(conversationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(conversationId),
+        exact: false,
       });
     },
   });
@@ -343,6 +345,7 @@ export function usePinMessage(conversationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(conversationId),
+        exact: false,
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.pinned(conversationId),
@@ -360,6 +363,7 @@ export function useUnpinMessage(conversationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(conversationId),
+        exact: false,
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.pinned(conversationId),
@@ -418,6 +422,7 @@ export function useAddReaction(conversationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(conversationId),
+        exact: false,
       });
     },
   });
@@ -464,6 +469,7 @@ export function useRemoveReaction(conversationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(conversationId),
+        exact: false,
       });
     },
   });

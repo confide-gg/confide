@@ -53,6 +53,7 @@ export function useChatMessages(friendsList: Friend[]) {
         conversationKey: activeChat.conversationKey,
         visitorUsername: activeChat.visitorUsername,
         visitorId: activeChat.visitorId,
+        conversationId: activeChat.conversationId,
     } : null;
 
     const { data: cachedDecryptedMessages, isLoading: isLoadingDecrypted } = useDecryptedMessages(
@@ -294,6 +295,10 @@ export function useChatMessages(friendsList: Friend[]) {
                 reactions: [],
             };
 
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.messages.list(msgData.conversation_id)
+            });
+
             setChatMessages((prev) => {
                 if (prev.some((m) => m.id === msgData.id)) return prev;
                 return [...prev, systemMsg];
@@ -301,8 +306,24 @@ export function useChatMessages(friendsList: Friend[]) {
             return;
         }
 
-        const senderFriend = friendsList.find((f) => f.id === msgData.sender_id);
-        const senderName = senderFriend?.username || "Unknown";
+        let senderName = "Unknown";
+
+        if (currentChat.isGroup) {
+            let nameMap = groupMemberNameCache.current.get(msgData.conversation_id);
+            if (!nameMap) {
+                try {
+                    const members = await conversationService.getMembers(msgData.conversation_id);
+                    nameMap = new Map(members.map((m) => [m.user.id, m.user.username]));
+                    groupMemberNameCache.current.set(msgData.conversation_id, nameMap);
+                } catch {
+                    nameMap = new Map();
+                }
+            }
+            senderName = nameMap.get(msgData.sender_id) || "Unknown";
+        } else {
+            const senderFriend = friendsList.find((f) => f.id === msgData.sender_id);
+            senderName = senderFriend?.username || "Unknown";
+        }
 
         try {
             let content = "";
@@ -350,6 +371,10 @@ export function useChatMessages(friendsList: Friend[]) {
                 reactions: [],
                 pinnedAt: msgData.pinned_at,
             };
+
+            queryClient.invalidateQueries({
+                queryKey: queryKeys.messages.list(msgData.conversation_id)
+            });
 
             setChatMessages((prev) => {
                 if (prev.some((m) => m.id === msgData.id)) return prev;
@@ -651,22 +676,6 @@ export function useChatMessages(friendsList: Friend[]) {
 
             const response = await sendMessageMutation.mutateAsync(sendData);
 
-            const newMsg: DecryptedMessage = {
-                id: response.id,
-                senderId: user.id,
-                senderName: user.username,
-                content: msgContent,
-                createdAt: response.created_at,
-                isMine: true,
-                isGif: msgContent.startsWith("https://") && msgContent.includes("tenor"),
-                expiresAt,
-                replyToId: currentReplyTo?.id || null,
-                replyTo: currentReplyTo || undefined,
-                reactions: []
-            };
-
-            setChatMessages(prev => [...prev, newMsg]);
-
             const previewContent = msgContent.startsWith("https://") && msgContent.includes("tenor") ? "GIF" : msgContent;
             setDmPreviews((prev) => {
                 const idx = prev.findIndex((p) => p.conversationId === activeChat.conversationId);
@@ -711,7 +720,6 @@ export function useChatMessages(friendsList: Friend[]) {
         if (!activeChat) return;
         try {
             await deleteMessageMutation.mutateAsync(messageId);
-            setChatMessages((prev) => prev.filter((m) => m.id !== messageId));
         } catch (err) {
             console.error("Failed to delete message:", err);
         }
@@ -782,15 +790,7 @@ export function useChatMessages(friendsList: Friend[]) {
                 message_keys: messageKeys,
             };
 
-            const response = await editMessageMutation.mutateAsync({ messageId, data: editData });
-
-            setChatMessages((prev) =>
-                prev.map((m) =>
-                    m.id === messageId
-                        ? { ...m, content: newContent, editedAt: response.edited_at }
-                        : m
-                )
-            );
+            await editMessageMutation.mutateAsync({ messageId, data: editData });
 
             const previewContent = newContent.startsWith("https://") && newContent.includes("tenor") ? "GIF" : newContent;
             setDmPreviews((prev) => {
