@@ -197,7 +197,8 @@ pub fn get_screen_sources() -> Result<Vec<ScreenCaptureSource>, String> {
 }
 
 fn is_system_window(name: &str) -> bool {
-    let system_names = [
+    #[cfg(target_os = "macos")]
+    let system_names: &[&str] = &[
         "Menubar",
         "System Status Item Clone",
         "Notification Center",
@@ -208,7 +209,35 @@ fn is_system_window(name: &str) -> bool {
         "StatusIndicator",
     ];
 
-    for sys_name in &system_names {
+    #[cfg(target_os = "windows")]
+    let system_names: &[&str] = &[
+        "Program Manager",
+        "Start",
+        "Task View",
+        "Windows Shell Experience Host",
+        "Windows Input Experience",
+        "Search",
+        "ShellExperienceHost",
+        "SystemSettings",
+        "TextInputHost",
+        "ApplicationFrameHost",
+        "LockApp",
+        "Action center",
+        "Cortana",
+        "Microsoft Text Input Application",
+    ];
+
+    #[cfg(target_os = "linux")]
+    let system_names: &[&str] = &[
+        "Desktop",
+        "Plasma",
+        "krunner",
+        "plasmashell",
+        "gnome-shell",
+        "mutter",
+    ];
+
+    for sys_name in system_names {
         if name.contains(sys_name) {
             return true;
         }

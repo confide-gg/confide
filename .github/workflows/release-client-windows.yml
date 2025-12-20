@@ -12,16 +12,13 @@ on:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
         required: true
 
+env:
+  FFMPEG_VERSION: "7.1"
+
 jobs:
   build-windows:
-    name: Windows (x86_64)
+    name: Windows (x64)
     runs-on: windows-latest
-    env:
-      VCPKG_ROOT: ${{ github.workspace }}\vcpkg
-      VCPKG_DEFAULT_TRIPLET: x64-windows-release
-      VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\vcpkg-triplets
-      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-binary-cache,readwrite
-      LIBCLANG_PATH: C:\Program Files\LLVM\bin
     steps:
       - uses: actions/checkout@v4
 
@@ -38,31 +35,56 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: client-windows-x86_64
+          shared-key: client-windows-x64
           cache-targets: true
           cache-all-crates: true
 
-      - name: Cache vcpkg binaries
+      - name: Cache FFmpeg
+        id: cache-ffmpeg
         uses: actions/cache@v4
         with:
-          path: vcpkg-binary-cache
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('apps/client/src-tauri/Cargo.lock') }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
+          path: C:\ffmpeg
+          key: ffmpeg-windows-${{ env.FFMPEG_VERSION }}-shared
 
-      - name: Install system dependencies
+      - name: Download and setup FFmpeg
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          choco install -y llvm nasm nsis wixtoolset
+          $ffmpegUrl = "https://github.com/GyanD/codexffmpeg/releases/download/${{ env.FFMPEG_VERSION }}/ffmpeg-${{ env.FFMPEG_VERSION }}-full_build-shared.zip"
+          Write-Host "Downloading FFmpeg from $ffmpegUrl"
+          Invoke-WebRequest -Uri $ffmpegUrl -OutFile ffmpeg.zip
+          Expand-Archive -Path ffmpeg.zip -DestinationPath C:\
+          Rename-Item -Path "C:\ffmpeg-${{ env.FFMPEG_VERSION }}-full_build-shared" -NewName "C:\ffmpeg"
 
-      - name: Install vcpkg + native deps
+          Write-Host "FFmpeg installed to C:\ffmpeg"
+          Get-ChildItem -Path "C:\ffmpeg" -Recurse -Depth 1
+
+      - name: Setup FFmpeg environment
         shell: pwsh
         run: |
-          if (!(Test-Path "$env:VCPKG_ROOT\.git")) {
-            git clone --depth 1 https://github.com/microsoft/vcpkg "$env:VCPKG_ROOT"
+          echo "FFMPEG_DIR=C:\ffmpeg" >> $env:GITHUB_ENV
+          echo "C:\ffmpeg\bin" >> $env:GITHUB_PATH
+
+          Write-Host "FFmpeg libraries:"
+          Get-ChildItem -Path "C:\ffmpeg\lib" -Filter "*.lib"
+
+          Write-Host "FFmpeg binaries:"
+          Get-ChildItem -Path "C:\ffmpeg\bin" -Filter "*.dll"
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18"
+
+      - name: Setup pkg-config
+        shell: pwsh
+        run: |
+          choco install pkgconfiglite -y
+
+          $pkgConfigPath = "C:\ffmpeg\lib\pkgconfig"
+          if (Test-Path $pkgConfigPath) {
+            echo "PKG_CONFIG_PATH=$pkgConfigPath" >> $env:GITHUB_ENV
           }
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
-          & "$env:VCPKG_ROOT\vcpkg.exe" install ffmpeg:x64-windows-release opus:x64-windows-release --clean-after-build
 
       - name: Install frontend dependencies
         working-directory: apps/client
@@ -70,41 +92,72 @@ jobs:
 
       - name: Build Tauri app
         working-directory: apps/client
+        shell: pwsh
         run: bun run tauri build --target x86_64-pc-windows-msvc
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FFMPEG_DIR: C:\ffmpeg
+          LIBCLANG_PATH: ${{ env.LLVM_PATH }}\lib
 
       - name: Prepare artifacts
         shell: pwsh
         run: |
           $bundle = "target\x86_64-pc-windows-msvc\release\bundle"
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          New-Item -ItemType Directory -Force -Path artifacts
 
-          Get-ChildItem -Path $bundle -Recurse -File -Include *.msi | ForEach-Object { Copy-Item $_.FullName artifacts\ -Force }
-          Get-ChildItem -Path $bundle -Recurse -File -Include *.exe | ForEach-Object { Copy-Item $_.FullName artifacts\ -Force }
+          Write-Host "=== Bundle contents ==="
+          Get-ChildItem -Path $bundle -Recurse -Depth 2 | Format-Table Name, Length
 
-          $updaterZip = Get-ChildItem -Path $bundle -Recurse -File -Filter *.zip | Where-Object { Test-Path "$($_.FullName).sig" } | Select-Object -First 1
-          if ($null -ne $updaterZip) {
-            Copy-Item $updaterZip.FullName artifacts\ -Force
-            Copy-Item "$($updaterZip.FullName).sig" artifacts\ -Force
+          # Copy NSIS installer (preferred for Windows)
+          $nsisPath = "$bundle\nsis"
+          if (Test-Path $nsisPath) {
+            Get-ChildItem -Path $nsisPath -Filter "*.exe" | ForEach-Object {
+              Copy-Item $_.FullName -Destination "artifacts\Confide-windows-x64-setup.exe"
+            }
 
-            $sig = Get-Content -Raw -Path "$($updaterZip.FullName).sig"
-            $filename = Split-Path -Leaf $updaterZip.FullName
-            $url = "https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag_name }}/${filename}"
-            $version = "${{ inputs.tag_name }}" -replace '.*v',''
-
-            $obj = @{
-              platform = "windows-x86_64"
-              version = $version
-              signature = $sig.Trim()
-              url = $url
-            } | ConvertTo-Json -Compress
-
-            Set-Content -Path artifacts\update-windows-x86_64.json -Value $obj -NoNewline
+            # Copy signature for updater
+            Get-ChildItem -Path $nsisPath -Filter "*.nsis.zip" | ForEach-Object {
+              Copy-Item $_.FullName -Destination "artifacts\"
+            }
+            Get-ChildItem -Path $nsisPath -Filter "*.nsis.zip.sig" | ForEach-Object {
+              Copy-Item $_.FullName -Destination "artifacts\"
+            }
           }
 
-          Get-ChildItem -Path artifacts -Force
+          # Copy MSI installer (WiX) as alternative
+          $msiPath = "$bundle\msi"
+          if (Test-Path $msiPath) {
+            Get-ChildItem -Path $msiPath -Filter "*.msi" | ForEach-Object {
+              Copy-Item $_.FullName -Destination "artifacts\Confide-windows-x64.msi"
+            }
+          }
+
+          # Create updater JSON for NSIS bundle
+          $nsisZip = Get-ChildItem -Path "artifacts" -Filter "*.nsis.zip" | Select-Object -First 1
+          if ($nsisZip) {
+            $sigFile = Get-ChildItem -Path "artifacts" -Filter "*.nsis.zip.sig" | Select-Object -First 1
+            if ($sigFile) {
+              $signature = Get-Content $sigFile.FullName -Raw
+              $filename = $nsisZip.Name
+              $version = "${{ inputs.tag_name }}" -replace '.*v', ''
+              $url = "https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag_name }}/$filename"
+
+              $updateJson = @{
+                platform = "windows-x86_64"
+                version = $version
+                signature = $signature.Trim()
+                url = $url
+              } | ConvertTo-Json -Compress
+
+              Set-Content -Path "artifacts\update-windows-x86_64.json" -Value $updateJson
+              Write-Host "=== update-windows-x86_64.json ==="
+              Get-Content "artifacts\update-windows-x86_64.json"
+            }
+          }
+
+          Write-Host "=== Final artifacts ==="
+          Get-ChildItem -Path artifacts | Format-Table Name, Length
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -112,4 +165,3 @@ jobs:
           name: confide-windows
           path: artifacts/*
           if-no-files-found: error
-
