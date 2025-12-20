@@ -5,17 +5,30 @@ on:
     tags:
       - 'confide-client-v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.22.0)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (skip GitHub release creation)'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: release-client-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && format('confide-client-v{0}', inputs.version) || github.ref_name }}
 
 jobs:
   build-macos:
     name: Build macOS
     uses: ./.github/workflows/release-client-macos.yml
     with:
-      tag_name: ${{ github.ref_name }}
+      tag_name: ${{ github.event_name == 'workflow_dispatch' && format('confide-client-v{0}', inputs.version) || github.ref_name }}
     secrets:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -24,7 +37,7 @@ jobs:
     name: Build Windows
     uses: ./.github/workflows/release-client-windows.yml
     with:
-      tag_name: ${{ github.ref_name }}
+      tag_name: ${{ github.event_name == 'workflow_dispatch' && format('confide-client-v{0}', inputs.version) || github.ref_name }}
     secrets:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -51,12 +64,14 @@ jobs:
           path: artifacts/
 
       - name: Create latest.json for updater
+        env:
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && format('confide-client-v{0}', inputs.version) || github.ref_name }}
         run: |
           cd artifacts
           echo "=== Downloaded artifacts ==="
           ls -la
 
-          VERSION=$(echo "${{ github.ref_name }}" | sed 's/.*v//')
+          VERSION=$(echo "$TAG_NAME" | sed 's/.*v//')
           PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
           PLATFORMS=""
@@ -89,12 +104,21 @@ jobs:
           echo "=== Final artifacts ==="
           ls -la
 
+      - name: Upload artifacts (dry run)
+        if: ${{ inputs.dry_run == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: artifacts/*
+
       - name: Create GitHub Release
+        if: ${{ inputs.dry_run != true }}
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('confide-client-v{0}', inputs.version) || github.ref_name }}
           files: artifacts/*
           generate_release_notes: true
-          draft: false
+          draft: ${{ github.event_name == 'workflow_dispatch' }}
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
