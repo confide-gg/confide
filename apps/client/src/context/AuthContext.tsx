@@ -6,6 +6,7 @@ import { recoveryService } from "../core/auth/RecoveryService";
 import { keyService } from "../core/crypto/KeyService";
 import { httpClient } from "../core/network/HttpClient";
 import { preferenceService } from "../features/settings/preferences";
+import { secureKeyStore } from "../core/crypto/SecureKeyStore";
 import type { PublicUser, LoginResponse } from "../core/auth/types";
 import type { DecryptedKeys, SignedPrekey, OneTimePrekey } from "../core/crypto/crypto";
 import type { UserProfile } from "../features/profiles/types";
@@ -44,32 +45,41 @@ interface StoredPrekeys {
   oneTimePrekeys: { [key: number]: number[] };
 }
 
-function saveAuthToStorage(user: PublicUser, keys: DecryptedKeys) {
-  const data = { user, keys };
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
+async function saveAuthToStorage(user: PublicUser, keys: DecryptedKeys) {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user }));
+  await secureKeyStore.saveKeys(keys);
 }
 
-function loadAuthFromStorage(): { user: PublicUser; keys: DecryptedKeys } | null {
+async function loadAuthFromStorage(): Promise<{ user: PublicUser; keys: DecryptedKeys } | null> {
   const stored = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!stored) return null;
+
   try {
     const data = JSON.parse(stored);
 
-    if (!data.user || !data.keys) {
-      console.error("[Auth] Invalid stored auth data: missing user or keys");
+    if (!data.user) {
+      console.error("[Auth] Invalid stored auth data: missing user");
       localStorage.removeItem(AUTH_STORAGE_KEY);
       return null;
     }
 
-    if (data.keys?.kem_secret_key && Array.isArray(data.keys.kem_secret_key)) {
-      if (data.keys.kem_secret_key.length === 0) {
+    const keys = await secureKeyStore.loadKeys();
+    if (!keys) {
+      console.error("[Auth] No keys found in secure storage");
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      return null;
+    }
+
+    if (keys.kem_secret_key && Array.isArray(keys.kem_secret_key)) {
+      if (keys.kem_secret_key.length === 0) {
         console.error(`[Auth] Invalid KEM secret key: empty array`);
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        await secureKeyStore.clearKeys();
         return null;
       }
     }
 
-    return data;
+    return { user: data.user, keys };
   } catch (err) {
     console.error("[Auth] Failed to parse stored auth:", err);
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -113,21 +123,21 @@ async function addOneTimePrekeySecrets(userKeys: DecryptedKeys, newPrekeys: OneT
   localStorage.setItem(PREKEY_STORAGE_KEY, JSON.stringify(encrypted));
 }
 
-export function getPrekeySecrets(): Promise<StoredPrekeys | null> {
-  const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (!stored) return Promise.resolve(null);
+export async function getPrekeySecrets(): Promise<StoredPrekeys | null> {
+  const auth = await loadAuthFromStorage();
+  if (!auth) return null;
   try {
-    const auth = JSON.parse(stored) as { keys: DecryptedKeys };
     return loadPrekeySecrets(auth.keys);
   } catch {
-    return Promise.resolve(null);
+    return null;
   }
 }
 
-function clearAuthStorage() {
+async function clearAuthStorage() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem("auth_token");
   localStorage.removeItem(PREKEY_STORAGE_KEY);
+  await secureKeyStore.clearKeys();
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -162,28 +172,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    const savedAuth = loadAuthFromStorage();
+    const loadAuth = async () => {
+      const token = localStorage.getItem("auth_token");
+      const savedAuth = await loadAuthFromStorage();
 
-    if (token && savedAuth) {
-      httpClient.setAuthToken(token);
-      setState({
-        user: savedAuth.user,
-        keys: savedAuth.keys,
-        profile: null,
-        preferences: null,
-        isLoading: false,
-        isAuthenticated: true,
-        needsRecoverySetup: false,
-      });
-      fetchProfile();
-      fetchPreferences();
-    } else {
-      clearAuthStorage();
-      httpClient.setAuthToken(null);
-      setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
-    }
-  }, [fetchProfile]);
+      if (token && savedAuth) {
+        httpClient.setAuthToken(token);
+        setState({
+          user: savedAuth.user,
+          keys: savedAuth.keys,
+          profile: null,
+          preferences: null,
+          isLoading: false,
+          isAuthenticated: true,
+          needsRecoverySetup: false,
+        });
+        fetchProfile();
+        fetchPreferences();
+      } else {
+        await clearAuthStorage();
+        httpClient.setAuthToken(null);
+        setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
+      }
+    };
+    loadAuth();
+  }, [fetchProfile, fetchPreferences]);
 
   const login = async (username: string, password: string) => {
     const response = await authService.login({ username, password });
@@ -199,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       response.key_salt
     );
 
-    saveAuthToStorage(response.user, decryptedKeys);
+    await saveAuthToStorage(response.user, decryptedKeys);
 
     setState({
       user: response.user,
@@ -305,7 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })),
     });
 
-    saveAuthToStorage(response.user, decryptedKeys);
+    await saveAuthToStorage(response.user, decryptedKeys);
 
     setState({
       user: response.user,
@@ -331,7 +344,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    clearAuthStorage();
+    await clearAuthStorage();
     httpClient.setAuthToken(null);
     setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
   }, []);
