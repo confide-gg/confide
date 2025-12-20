@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/confide-gg/confide/compare/confide-central-v0.10.0...confide-central-v0.11.0) (2025-12-20)
+
+
+### Features
+
+* implement end-to-end encrypted file attachments ([4c09b59](https://github.com/confide-gg/confide/commit/4c09b59805fd77cd8d2626f70dfc47347c69ef4b))
+* implement GIF picker ([1f3b9b4](https://github.com/confide-gg/confide/commit/1f3b9b4b52b0f2b8976a369ad12fa80dce32a26a))
+
 ## [0.10.0](https://github.com/confide-gg/confide/compare/confide-central-v0.9.0...confide-central-v0.10.0) (2025-12-18)
 
 
