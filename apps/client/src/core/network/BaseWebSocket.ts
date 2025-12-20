@@ -41,11 +41,26 @@ export abstract class BaseWebSocket<IncomingMessageType, OutgoingMessageType> {
         return null;
     }
 
+    private connectPromise: Promise<void> | null = null;
+
     public async connect(): Promise<void> {
-        if (this.ws?.readyState === WebSocket.OPEN) {
-            return;
+        if (this.connectPromise) {
+            return this.connectPromise;
         }
 
+        if (this.ws?.readyState === WebSocket.OPEN) {
+            return Promise.resolve();
+        }
+
+        this.connectPromise = this._doConnect();
+        try {
+            await this.connectPromise;
+        } finally {
+            this.connectPromise = null;
+        }
+    }
+
+    private async _doConnect(): Promise<void> {
         if (this.isConnecting) {
             return;
         }
