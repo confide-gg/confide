@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.23.1](https://github.com/confide-gg/confide/compare/confide-client-v0.23.0...confide-client-v0.23.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* add missing Store defaults and remove unused variable ([2cdb9ba](https://github.com/confide-gg/confide/commit/2cdb9bad4228a419774d1f22b920c4a8152b08b2))
+
 ## [0.23.0](https://github.com/confide-gg/confide/compare/confide-client-v0.22.0...confide-client-v0.23.0) (2025-12-20)
 
 
