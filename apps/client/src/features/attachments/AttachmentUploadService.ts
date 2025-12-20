@@ -21,8 +21,6 @@ export interface UploadProgress {
   progress: number;
 }
 
-const CHUNK_SIZE = 5 * 1024 * 1024;
-
 class AttachmentUploadService {
   async uploadFile(
     file: File,
@@ -46,37 +44,13 @@ class AttachmentUploadService {
     onProgress?.({ stage: 'uploading', progress: 0 });
 
     const encryptedBlob = encryptedFile.encryptedData;
-    const totalChunks = Math.ceil(encryptedBlob.size / CHUNK_SIZE);
-    const uploadId = this.generateUploadId();
 
-    let uploadedBytes = 0;
-
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const start = chunkIndex * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, encryptedBlob.size);
-      const chunk = encryptedBlob.slice(start, end);
-
-      await this.uploadChunk(
-        chunk,
-        chunkIndex,
-        totalChunks,
-        uploadId,
-        conversationId,
-        file.name,
-        file.type
-      );
-
-      uploadedBytes += chunk.size;
-      const progress = Math.round((uploadedBytes / encryptedBlob.size) * 100);
-      onProgress?.({ stage: 'uploading', progress });
-    }
-
-    const s3_key = await this.finalizeUpload(
-      uploadId,
+    const s3_key = await this.uploadDirect(
+      encryptedBlob,
       conversationId,
       file.name,
       file.type,
-      encryptedBlob.size
+      (progress) => onProgress?.({ stage: 'uploading', progress })
     );
 
     onProgress?.({ stage: 'complete', progress: 100 });
@@ -99,89 +73,47 @@ class AttachmentUploadService {
     return metadata;
   }
 
-  private async uploadChunk(
-    chunk: Blob,
-    chunkIndex: number,
-    totalChunks: number,
-    uploadId: string,
-    conversationId: string,
-    filename: string,
-    mimeType: string
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve();
-        } else {
-          reject(new Error(`Chunk upload failed: ${xhr.status}`));
-        }
-      });
-
-      xhr.addEventListener('error', () => reject(new Error('Chunk upload failed')));
-      xhr.addEventListener('abort', () => reject(new Error('Chunk upload aborted')));
-
-      xhr.open(
-        'POST',
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/attachments/upload-chunk`
-      );
-      xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('auth_token')}`);
-      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-      xhr.setRequestHeader('x-conversation-id', conversationId);
-      xhr.setRequestHeader('x-filename', filename);
-      xhr.setRequestHeader('x-mime-type', mimeType);
-      xhr.setRequestHeader('x-upload-id', uploadId);
-      xhr.setRequestHeader('x-chunk-index', chunkIndex.toString());
-      xhr.setRequestHeader('x-total-chunks', totalChunks.toString());
-
-      xhr.send(chunk);
-    });
-  }
-
-  private async finalizeUpload(
-    uploadId: string,
+  private async uploadDirect(
+    encryptedBlob: Blob,
     conversationId: string,
     filename: string,
     mimeType: string,
-    totalSize: number
+    onProgress?: (progress: number) => void
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 100);
+          onProgress?.(progress);
+        }
+      });
 
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           const response = JSON.parse(xhr.responseText);
           resolve(response.s3_key);
         } else {
-          reject(new Error(`Finalize upload failed: ${xhr.status}`));
+          reject(new Error(`Upload failed: ${xhr.status}`));
         }
       });
 
-      xhr.addEventListener('error', () => reject(new Error('Finalize upload failed')));
-      xhr.addEventListener('abort', () => reject(new Error('Finalize upload aborted')));
+      xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
 
       xhr.open(
         'POST',
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/attachments/finalize-upload`
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/attachments/upload`
       );
       xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('auth_token')}`);
-      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      xhr.setRequestHeader('x-conversation-id', conversationId);
+      xhr.setRequestHeader('x-filename', filename);
+      xhr.setRequestHeader('x-mime-type', mimeType);
 
-      xhr.send(JSON.stringify({
-        upload_id: uploadId,
-        conversation_id: conversationId,
-        filename,
-        mime_type: mimeType,
-        total_size: totalSize,
-      }));
+      xhr.send(encryptedBlob);
     });
-  }
-
-  private generateUploadId(): string {
-    const buffer = new Uint8Array(16);
-    crypto.getRandomValues(buffer);
-    return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   private bytesToBase64(bytes: number[]): string {
