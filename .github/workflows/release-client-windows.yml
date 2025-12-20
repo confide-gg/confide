@@ -12,16 +12,14 @@ on:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
         required: true
 
+env:
+  FFMPEG_VERSION: "7.1"
+  FFMPEG_SHA256: "db85c58e7522b66ec2c61749803e0f7f6c6e0b1a07bb2c04055e01fdf3dbae23"
+
 jobs:
   build-windows:
-    name: Windows (x86_64)
+    name: Windows (x64)
     runs-on: windows-latest
-    env:
-      VCPKG_ROOT: ${{ github.workspace }}\vcpkg
-      VCPKG_DEFAULT_TRIPLET: x64-windows-release
-      VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\vcpkg-triplets
-      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-binary-cache,readwrite
-      LIBCLANG_PATH: C:\Program Files\LLVM\bin
     steps:
       - uses: actions/checkout@v4
 
@@ -38,31 +36,113 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: client-windows-x86_64
+          shared-key: client-windows-x64
           cache-targets: true
           cache-all-crates: true
 
-      - name: Cache vcpkg binaries
+      - name: Cache FFmpeg
+        id: cache-ffmpeg
         uses: actions/cache@v4
         with:
-          path: vcpkg-binary-cache
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('apps/client/src-tauri/Cargo.lock') }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
+          path: C:\ffmpeg
+          key: ffmpeg-windows-${{ env.FFMPEG_VERSION }}-shared-v2
 
-      - name: Install system dependencies
+      - name: Download and setup FFmpeg
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          choco install -y llvm nasm nsis wixtoolset
+          $ErrorActionPreference = "Stop"
 
-      - name: Install vcpkg + native deps
-        shell: pwsh
-        run: |
-          if (!(Test-Path "$env:VCPKG_ROOT\.git")) {
-            git clone --depth 1 https://github.com/microsoft/vcpkg "$env:VCPKG_ROOT"
+          $ffmpegUrl = "https://github.com/GyanD/codexffmpeg/releases/download/${{ env.FFMPEG_VERSION }}/ffmpeg-${{ env.FFMPEG_VERSION }}-full_build-shared.zip"
+          Write-Host "Downloading FFmpeg from $ffmpegUrl"
+          Invoke-WebRequest -Uri $ffmpegUrl -OutFile ffmpeg.zip
+
+          Write-Host "Verifying checksum..."
+          $hash = (Get-FileHash -Path ffmpeg.zip -Algorithm SHA256).Hash.ToLower()
+          $expected = "${{ env.FFMPEG_SHA256 }}"
+          if ($hash -ne $expected) {
+            Write-Error "Checksum mismatch! Expected: $expected, Got: $hash"
+            exit 1
           }
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat" -disableMetrics
-          & "$env:VCPKG_ROOT\vcpkg.exe" install ffmpeg:x64-windows-release opus:x64-windows-release --clean-after-build
+          Write-Host "Checksum verified: $hash"
+
+          Write-Host "Extracting FFmpeg..."
+          Expand-Archive -Path ffmpeg.zip -DestinationPath C:\
+
+          $extractedDir = "C:\ffmpeg-${{ env.FFMPEG_VERSION }}-full_build-shared"
+          if (-not (Test-Path $extractedDir)) {
+            Write-Error "Extracted directory not found: $extractedDir"
+            Get-ChildItem -Path "C:\" -Directory | Where-Object { $_.Name -like "ffmpeg*" }
+            exit 1
+          }
+
+          Move-Item -Path $extractedDir -Destination "C:\ffmpeg"
+
+          if (-not (Test-Path "C:\ffmpeg\bin\ffmpeg.exe")) {
+            Write-Error "FFmpeg installation failed - ffmpeg.exe not found"
+            exit 1
+          }
+
+          Write-Host "FFmpeg installed successfully to C:\ffmpeg"
+          Get-ChildItem -Path "C:\ffmpeg" -Recurse -Depth 1
+
+      - name: Verify FFmpeg installation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          if (-not (Test-Path "C:\ffmpeg\bin\ffmpeg.exe")) {
+            Write-Error "FFmpeg not found at C:\ffmpeg\bin\ffmpeg.exe"
+            exit 1
+          }
+
+          if (-not (Test-Path "C:\ffmpeg\lib")) {
+            Write-Error "FFmpeg lib directory not found"
+            exit 1
+          }
+
+          echo "FFMPEG_DIR=C:\ffmpeg" >> $env:GITHUB_ENV
+          echo "C:\ffmpeg\bin" >> $env:GITHUB_PATH
+
+          Write-Host "FFmpeg libraries:"
+          Get-ChildItem -Path "C:\ffmpeg\lib" -Filter "*.lib"
+
+          Write-Host "FFmpeg binaries:"
+          Get-ChildItem -Path "C:\ffmpeg\bin" -Filter "*.dll"
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18"
+
+      - name: Setup build tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          Write-Host "Installing pkg-config..."
+          choco install pkgconfiglite -y
+
+          $pkgConfigPath = "C:\ffmpeg\lib\pkgconfig"
+          if (Test-Path $pkgConfigPath) {
+            echo "PKG_CONFIG_PATH=$pkgConfigPath" >> $env:GITHUB_ENV
+          }
+
+          Write-Host "Verifying WiX Toolset..."
+          if (Get-Command candle.exe -ErrorAction SilentlyContinue) {
+            Write-Host "WiX Toolset is available"
+          } else {
+            Write-Host "Installing WiX Toolset..."
+            choco install wixtoolset -y
+          }
+
+          Write-Host "Verifying NSIS..."
+          if (Get-Command makensis.exe -ErrorAction SilentlyContinue) {
+            Write-Host "NSIS is available"
+          } else {
+            Write-Host "Installing NSIS..."
+            choco install nsis -y
+          }
 
       - name: Install frontend dependencies
         working-directory: apps/client
@@ -70,41 +150,111 @@ jobs:
 
       - name: Build Tauri app
         working-directory: apps/client
-        run: bun run tauri build --target x86_64-pc-windows-msvc
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          bun run tauri build --target x86_64-pc-windows-msvc
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Tauri build failed with exit code $LASTEXITCODE"
+            exit 1
+          }
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          FFMPEG_DIR: C:\ffmpeg
+          LIBCLANG_PATH: ${{ env.LLVM_PATH }}\lib
 
       - name: Prepare artifacts
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+
           $bundle = "target\x86_64-pc-windows-msvc\release\bundle"
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
 
-          Get-ChildItem -Path $bundle -Recurse -File -Include *.msi | ForEach-Object { Copy-Item $_.FullName artifacts\ -Force }
-          Get-ChildItem -Path $bundle -Recurse -File -Include *.exe | ForEach-Object { Copy-Item $_.FullName artifacts\ -Force }
-
-          $updaterZip = Get-ChildItem -Path $bundle -Recurse -File -Filter *.zip | Where-Object { Test-Path "$($_.FullName).sig" } | Select-Object -First 1
-          if ($null -ne $updaterZip) {
-            Copy-Item $updaterZip.FullName artifacts\ -Force
-            Copy-Item "$($updaterZip.FullName).sig" artifacts\ -Force
-
-            $sig = Get-Content -Raw -Path "$($updaterZip.FullName).sig"
-            $filename = Split-Path -Leaf $updaterZip.FullName
-            $url = "https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag_name }}/${filename}"
-            $version = "${{ inputs.tag_name }}" -replace '.*v',''
-
-            $obj = @{
-              platform = "windows-x86_64"
-              version = $version
-              signature = $sig.Trim()
-              url = $url
-            } | ConvertTo-Json -Compress
-
-            Set-Content -Path artifacts\update-windows-x86_64.json -Value $obj -NoNewline
+          if (-not (Test-Path $bundle)) {
+            Write-Error "Bundle directory not found: $bundle"
+            exit 1
           }
 
-          Get-ChildItem -Path artifacts -Force
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+
+          Write-Host "=== Bundle contents ==="
+          Get-ChildItem -Path $bundle -Recurse -Depth 2 | Format-Table Name, Length
+
+          $hasArtifacts = $false
+
+          $nsisPath = "$bundle\nsis"
+          if (Test-Path $nsisPath) {
+            $nsisExe = Get-ChildItem -Path $nsisPath -Filter "*.exe" | Select-Object -First 1
+            if ($nsisExe) {
+              Copy-Item $nsisExe.FullName -Destination "artifacts\Confide-windows-x64-setup.exe"
+              Write-Host "Copied NSIS installer: $($nsisExe.Name)"
+              $hasArtifacts = $true
+
+              Get-ChildItem -Path $nsisPath -Filter "*.nsis.zip" | ForEach-Object {
+                Copy-Item $_.FullName -Destination "artifacts\"
+                Write-Host "Copied updater bundle: $($_.Name)"
+              }
+              Get-ChildItem -Path $nsisPath -Filter "*.nsis.zip.sig" | ForEach-Object {
+                Copy-Item $_.FullName -Destination "artifacts\"
+                Write-Host "Copied signature: $($_.Name)"
+              }
+            }
+          }
+
+          $msiPath = "$bundle\msi"
+          if (Test-Path $msiPath) {
+            $msiFile = Get-ChildItem -Path $msiPath -Filter "*.msi" | Select-Object -First 1
+            if ($msiFile) {
+              Copy-Item $msiFile.FullName -Destination "artifacts\Confide-windows-x64.msi"
+              Write-Host "Copied MSI installer: $($msiFile.Name)"
+              $hasArtifacts = $true
+            }
+          }
+
+          if (-not $hasArtifacts) {
+            Write-Error "No installer artifacts found! Expected NSIS (.exe) or MSI (.msi) in bundle directory."
+            Write-Host "Bundle contents:"
+            Get-ChildItem -Path $bundle -Recurse
+            exit 1
+          }
+
+          $nsisZip = Get-ChildItem -Path "artifacts" -Filter "*.nsis.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($nsisZip) {
+            $sigFile = Get-ChildItem -Path "artifacts" -Filter "*.nsis.zip.sig" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($sigFile) {
+              $signature = Get-Content $sigFile.FullName -Raw
+              $filename = $nsisZip.Name
+              $version = "${{ inputs.tag_name }}" -replace '.*v', ''
+              $url = "https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag_name }}/$filename"
+
+              $updateJson = @{
+                platform = "windows-x86_64"
+                version = $version
+                signature = $signature.Trim()
+                url = $url
+              } | ConvertTo-Json -Compress
+
+              Set-Content -Path "artifacts\update-windows-x86_64.json" -Value $updateJson
+              Write-Host "=== update-windows-x86_64.json ==="
+              Get-Content "artifacts\update-windows-x86_64.json"
+            } else {
+              Write-Warning "Signature file not found for updater bundle"
+            }
+          } else {
+            Write-Warning "NSIS updater bundle (.nsis.zip) not found"
+          }
+
+          Write-Host "=== Final artifacts ==="
+          Get-ChildItem -Path artifacts | Format-Table Name, Length
+
+          $artifactCount = (Get-ChildItem -Path artifacts).Count
+          if ($artifactCount -eq 0) {
+            Write-Error "No artifacts were created!"
+            exit 1
+          }
+          Write-Host "Total artifacts: $artifactCount"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -112,4 +262,3 @@ jobs:
           name: confide-windows
           path: artifacts/*
           if-no-files-found: error
-

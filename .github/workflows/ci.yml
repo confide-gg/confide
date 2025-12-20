@@ -30,6 +30,7 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       central: ${{ steps.filter.outputs.central }}
       server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
@@ -51,6 +52,11 @@ jobs:
               - 'Cargo.toml'
               - 'Cargo.lock'
               - 'infrastructure/docker/Dockerfile.server'
+            client:
+              - 'apps/client/**'
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
 
   rust-fmt:
     name: Rust Format
@@ -117,3 +123,162 @@ jobs:
         with:
           key: ${{ matrix.package }}
       - run: cargo test --package ${{ matrix.package }} --all-features
+
+  client-build-windows:
+    name: Client Build (Windows)
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      FFMPEG_VERSION: "7.1"
+      FFMPEG_SHA256: "db85c58e7522b66ec2c61749803e0f7f6c6e0b1a07bb2c04055e01fdf3dbae23"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: client-windows-x64-ci
+          cache-targets: true
+          cache-all-crates: true
+
+      - name: Cache FFmpeg
+        id: cache-ffmpeg
+        uses: actions/cache@v4
+        with:
+          path: C:\ffmpeg
+          key: ffmpeg-windows-${{ env.FFMPEG_VERSION }}-shared-v2
+
+      - name: Download and setup FFmpeg
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $ffmpegUrl = "https://github.com/GyanD/codexffmpeg/releases/download/${{ env.FFMPEG_VERSION }}/ffmpeg-${{ env.FFMPEG_VERSION }}-full_build-shared.zip"
+          Write-Host "Downloading FFmpeg from $ffmpegUrl"
+          Invoke-WebRequest -Uri $ffmpegUrl -OutFile ffmpeg.zip
+
+          Write-Host "Verifying checksum..."
+          $hash = (Get-FileHash -Path ffmpeg.zip -Algorithm SHA256).Hash.ToLower()
+          $expected = "${{ env.FFMPEG_SHA256 }}"
+          if ($hash -ne $expected) {
+            Write-Error "Checksum mismatch! Expected: $expected, Got: $hash"
+            exit 1
+          }
+          Write-Host "Checksum verified: $hash"
+
+          Write-Host "Extracting FFmpeg..."
+          Expand-Archive -Path ffmpeg.zip -DestinationPath C:\
+          Move-Item -Path "C:\ffmpeg-${{ env.FFMPEG_VERSION }}-full_build-shared" -Destination "C:\ffmpeg"
+
+          if (-not (Test-Path "C:\ffmpeg\bin\ffmpeg.exe")) {
+            Write-Error "FFmpeg installation failed"
+            exit 1
+          }
+          Write-Host "FFmpeg installed successfully"
+
+      - name: Verify FFmpeg installation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (-not (Test-Path "C:\ffmpeg\bin\ffmpeg.exe")) {
+            Write-Error "FFmpeg not found"
+            exit 1
+          }
+          echo "FFMPEG_DIR=C:\ffmpeg" >> $env:GITHUB_ENV
+          echo "C:\ffmpeg\bin" >> $env:GITHUB_PATH
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "18"
+
+      - name: Setup pkg-config
+        shell: pwsh
+        run: choco install pkgconfiglite -y
+
+      - name: Install frontend dependencies
+        working-directory: apps/client
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: apps/client
+        run: bun run build
+
+      - name: Build Rust
+        working-directory: apps/client/src-tauri
+        shell: pwsh
+        run: cargo build --target x86_64-pc-windows-msvc
+        env:
+          FFMPEG_DIR: C:\ffmpeg
+          LIBCLANG_PATH: ${{ env.LLVM_PATH }}\lib
+
+  client-build-macos:
+    name: Client Build (macOS)
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: client-macos-aarch64-ci
+          cache-targets: true
+          cache-all-crates: true
+
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar/ffmpeg
+            /opt/homebrew/Cellar/pkg-config
+            /opt/homebrew/Cellar/opus
+          key: macos-brew-ci-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: macos-brew-ci-
+
+      - name: Install system dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          brew install ffmpeg pkg-config opus
+          brew link ffmpeg pkg-config opus
+
+      - name: Install frontend dependencies
+        working-directory: apps/client
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: apps/client
+        run: bun run build
+
+      - name: Build Rust
+        working-directory: apps/client/src-tauri
+        run: cargo build --target aarch64-apple-darwin
