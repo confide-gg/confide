@@ -6,7 +6,7 @@ class SecureKeyStore {
 
   private async getStore(): Promise<Store> {
     if (!this.store) {
-      this.store = await Store.load('secure-keys.json', { autoSave: true });
+      this.store = await Store.load('secure-keys.json', { defaults: {}, autoSave: true });
     }
     return this.store;
   }

@@ -643,7 +643,6 @@ export function useChatMessages(friendsList: Friend[]) {
 
             let encrypted: number[];
             let messageKeys: Array<{ user_id: string; encrypted_key: number[] }> | undefined;
-            let newState: number[] | undefined;
 
             if (activeChat.isGroup) {
                 encrypted = await cryptoService.encryptWithKey(activeChat.conversationKey, msgBytes);
