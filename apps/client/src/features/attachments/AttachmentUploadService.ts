@@ -1,5 +1,6 @@
 import { compressionService } from './CompressionService';
 import { fileEncryptionService } from './FileEncryptionService';
+import { validateFile, sanitizeFilename } from '../../utils/fileValidation';
 
 export interface FileMetadata {
   type: 'file';
@@ -28,6 +29,11 @@ class AttachmentUploadService {
     conversationId: string,
     onProgress?: (progress: UploadProgress) => void
   ): Promise<FileMetadata> {
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
     onProgress?.({ stage: 'compressing', progress: 0 });
     const compressionResult = await compressionService.compressFile(file);
     onProgress?.({ stage: 'compressing', progress: 100 });
@@ -81,7 +87,7 @@ class AttachmentUploadService {
       type: 'file',
       file: {
         url: s3Url,
-        name: file.name,
+        name: sanitizeFilename(file.name),
         size: file.size,
         mimeType: file.type,
         encryptedSize: encryptedBlob.size,
@@ -173,7 +179,9 @@ class AttachmentUploadService {
   }
 
   private generateUploadId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    const buffer = new Uint8Array(16);
+    crypto.getRandomValues(buffer);
+    return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   private bytesToBase64(bytes: number[]): string {
