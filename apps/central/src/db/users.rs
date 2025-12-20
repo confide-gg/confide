@@ -65,6 +65,17 @@ impl Database {
         Ok(user)
     }
 
+    pub async fn get_users_by_ids(&self, ids: &[Uuid]) -> Result<Vec<User>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let users = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ANY($1)")
+            .bind(ids)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(users)
+    }
+
     pub async fn get_public_user(&self, id: Uuid) -> Result<Option<PublicUser>> {
         let cache_key = format!("user:public:{}", id);
         let pool = self.pool.clone();

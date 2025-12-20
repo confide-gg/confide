@@ -144,12 +144,10 @@ pub async fn create_group(
         return Err(AppError::BadRequest("group limit is 10 members".into()));
     }
 
-    for m in &req.members {
-        state
-            .db
-            .get_user_by_id(m.user_id)
-            .await?
-            .ok_or(AppError::UserNotFound)?;
+    let user_ids: Vec<Uuid> = req.members.iter().map(|m| m.user_id).collect();
+    let found_users = state.db.get_users_by_ids(&user_ids).await?;
+    if found_users.len() != user_ids.len() {
+        return Err(AppError::UserNotFound);
     }
 
     let conversation = state
@@ -513,17 +511,24 @@ pub async fn add_members_bulk(
         return Err(AppError::BadRequest("group limit is 10 members".into()));
     }
 
-    let mut added_ids: Vec<Uuid> = Vec::new();
-    for m in req.members {
-        if existing_ids.contains(&m.user_id) {
-            continue;
-        }
-        state
-            .db
-            .get_user_by_id(m.user_id)
-            .await?
-            .ok_or(AppError::UserNotFound)?;
+    let new_members: Vec<_> = req
+        .members
+        .into_iter()
+        .filter(|m| !existing_ids.contains(&m.user_id))
+        .collect();
 
+    if new_members.is_empty() {
+        return Ok(Json(super::messages::SuccessResponse { success: true }));
+    }
+
+    let user_ids: Vec<Uuid> = new_members.iter().map(|m| m.user_id).collect();
+    let found_users = state.db.get_users_by_ids(&user_ids).await?;
+    if found_users.len() != user_ids.len() {
+        return Err(AppError::UserNotFound);
+    }
+
+    let mut added_ids: Vec<Uuid> = Vec::new();
+    for m in new_members {
         state
             .db
             .add_conversation_member(
@@ -534,7 +539,7 @@ pub async fn add_members_bulk(
             )
             .await?;
 
-        let _ = state
+        if let Err(e) = state
             .db
             .add_group_event(
                 conversation_id,
@@ -542,7 +547,10 @@ pub async fn add_members_bulk(
                 Some(auth.user_id),
                 Some(m.user_id),
             )
-            .await;
+            .await
+        {
+            tracing::error!("Failed to add group event: {:?}", e);
+        }
 
         let msg = WsMessage::GroupMemberAdded(GroupMemberAddedData {
             conversation_id,
@@ -550,12 +558,12 @@ pub async fn add_members_bulk(
             added_by: auth.user_id,
         });
         if let Ok(json) = serde_json::to_string(&msg) {
-            if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-                for member in members {
-                    let channel = format!("user:{}", member.user_id);
-                    let _ = publish_to_redis(&state.redis, &channel, &json).await;
-                }
+            for member_id in &existing_ids {
+                let channel = format!("user:{}", member_id);
+                let _ = publish_to_redis(&state.redis, &channel, &json).await;
             }
+            let channel = format!("user:{}", m.user_id);
+            let _ = publish_to_redis(&state.redis, &channel, &json).await;
         }
 
         added_ids.push(m.user_id);
@@ -591,11 +599,13 @@ pub async fn add_members_bulk(
         });
 
         if let Ok(json) = serde_json::to_string(&sys_ws) {
-            if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-                for member in members {
-                    let channel = format!("user:{}", member.user_id);
-                    let _ = publish_to_redis(&state.redis, &channel, &json).await;
-                }
+            for member_id in &existing_ids {
+                let channel = format!("user:{}", member_id);
+                let _ = publish_to_redis(&state.redis, &channel, &json).await;
+            }
+            for added_id in &added_ids {
+                let channel = format!("user:{}", added_id);
+                let _ = publish_to_redis(&state.redis, &channel, &json).await;
             }
         }
     }
