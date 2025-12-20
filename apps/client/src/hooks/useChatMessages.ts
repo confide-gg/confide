@@ -207,8 +207,6 @@ export function useChatMessages(friendsList: Friend[]) {
         call_duration_seconds?: number | null;
         pinned_at?: string | null;
     }) => {
-        const currentChat = activeChatRef.current;
-
         const isSystemMessage = msgData.message_type && msgData.message_type !== "text";
 
         if (!isSystemMessage && msgData.sender_id === user?.id) return;
@@ -218,6 +216,7 @@ export function useChatMessages(friendsList: Friend[]) {
 
         centralWebSocketService.subscribeConversation(msgData.conversation_id);
 
+        const currentChat = activeChatRef.current;
         if (!currentChat || currentChat.conversationId !== msgData.conversation_id) {
             if (!isSystemMessage) {
                 setUnreadCounts((prev) => {
