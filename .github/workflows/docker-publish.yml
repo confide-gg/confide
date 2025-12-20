@@ -43,14 +43,21 @@ jobs:
               - 'infrastructure/docker/Dockerfile.server'
 
   build-central:
-    name: Build Central (Multi-Arch)
+    name: Build Central (${{ matrix.platform }})
     needs: changes
     if: startsWith(github.ref, 'refs/tags/confide-central-v') || needs.changes.outputs.central == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
       id-token: write
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: blacksmith-4vcpu-ubuntu-2404
+          - platform: linux/arm64
+            runner: blacksmith-4vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -58,9 +65,46 @@ jobs:
       - name: Setup Blacksmith Builder
         uses: useblacksmith/setup-docker-builder@v1
 
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Log in to Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.CENTRAL_IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},prefix=confide-central-v,suffix=-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+            type=semver,pattern={{major}}.{{minor}},prefix=confide-central-v,suffix=-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+            type=raw,value=latest-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+
+      - name: Build and push
+        uses: useblacksmith/build-push-action@v2
+        id: build
+        with:
+          context: .
+          file: infrastructure/docker/Dockerfile.central
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+  merge-central:
+    name: Merge Central Multi-Arch Manifest
+    needs: [changes, build-central]
+    if: startsWith(github.ref, 'refs/tags/confide-central-v') || needs.changes.outputs.central == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
       - name: Log in to Container Registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
@@ -78,27 +122,30 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},prefix=confide-central-v
             type=raw,value=latest
 
-      - name: Build and push multi-arch
-        uses: useblacksmith/build-push-action@v2
-        with:
-          context: .
-          file: infrastructure/docker/Dockerfile.central
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
+      - name: Create and push manifest
+        run: |
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            docker buildx imagetools create -t ${tag} \
+              ${tag}-amd64 \
+              ${tag}-arm64
+          done
 
   build-server:
-    name: Build Server (Multi-Arch)
+    name: Build Server (${{ matrix.platform }})
     needs: changes
     if: startsWith(github.ref, 'refs/tags/confide-server-v') || needs.changes.outputs.server == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
       id-token: write
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: blacksmith-4vcpu-ubuntu-2404
+          - platform: linux/arm64
+            runner: blacksmith-4vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -106,9 +153,46 @@ jobs:
       - name: Setup Blacksmith Builder
         uses: useblacksmith/setup-docker-builder@v1
 
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Log in to Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.SERVER_IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},prefix=confide-server-v,suffix=-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+            type=semver,pattern={{major}}.{{minor}},prefix=confide-server-v,suffix=-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+            type=raw,value=latest-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+
+      - name: Build and push
+        uses: useblacksmith/build-push-action@v2
+        id: build
+        with:
+          context: .
+          file: infrastructure/docker/Dockerfile.server
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+  merge-server:
+    name: Merge Server Multi-Arch Manifest
+    needs: [changes, build-server]
+    if: startsWith(github.ref, 'refs/tags/confide-server-v') || needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
       - name: Log in to Container Registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
@@ -126,14 +210,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},prefix=confide-server-v
             type=raw,value=latest
 
-      - name: Build and push multi-arch
-        uses: useblacksmith/build-push-action@v2
-        with:
-          context: .
-          file: infrastructure/docker/Dockerfile.server
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
+      - name: Create and push manifest
+        run: |
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            docker buildx imagetools create -t ${tag} \
+              ${tag}-amd64 \
+              ${tag}-arm64
+          done
