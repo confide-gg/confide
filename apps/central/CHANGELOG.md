@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.1](https://github.com/confide-gg/confide/compare/confide-central-v0.11.0...confide-central-v0.11.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* remove insecure chunked upload to prevent unencrypted data in temp storage ([03d26c2](https://github.com/confide-gg/confide/commit/03d26c2ad04d076b553ab06222a110d92b536c0e))
+
+
+### Performance Improvements
+
+* eliminate N+1 queries in group member operations with batch lookups ([791aea9](https://github.com/confide-gg/confide/commit/791aea9cd3be1091c2c6d864f063421b43569970))
+
 ## [0.11.0](https://github.com/confide-gg/confide/compare/confide-central-v0.10.0...confide-central-v0.11.0) (2025-12-20)
 
 
