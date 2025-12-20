@@ -1,6 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 
-const TENOR_API_KEY = "AIzaSyBXrXL9qs4nS5fTjKM3W8J8KCHi_PdGXzU";
+const TENOR_API_KEY = import.meta.env.VITE_TENOR_API_KEY || "";
 const CLIENT_KEY = "Confide";
 const BASE_URL = "https://tenor.googleapis.com/v2";
 
@@ -41,8 +41,11 @@ export class TenorClient {
             ...params,
         });
 
-        const response = await fetch(`${BASE_URL}${endpoint}?${searchParams.toString()}`);
+        const url = `${BASE_URL}${endpoint}?${searchParams.toString()}`;
+        const response = await fetch(url);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Tenor API Error: ${response.status} ${response.statusText}`, errorText);
             throw new Error(`Tenor API Error: ${response.statusText}`);
         }
         return response.json();
@@ -65,9 +68,11 @@ export class TenorClient {
         return data.results;
     }
 
-    async getCategories(): Promise<TenorCategory[]> {
+    async getCategories(type: "featured" | "emoji" | "trending" = "featured"): Promise<TenorCategory[]> {
         const data = await this.fetch<{ tags: TenorCategory[] }>("/categories", {
-            type: "featured"
+            locale: "en_US",
+            contentfilter: "medium",
+            type: type,
         });
         return data.tags;
     }

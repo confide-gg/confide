@@ -1,0 +1,1 @@
+ALTER TABLE favorite_gifs ADD COLUMN IF NOT EXISTS gif_preview_url TEXT NOT NULL DEFAULT '';

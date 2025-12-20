@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Search, Heart, Loader2 } from "lucide-react";
+import { Search, Star, Loader2, ArrowLeft } from "lucide-react";
 import { tenor, TenorGif, TenorCategory } from "../../features/chat/tenor";
+import { gifFavoritesService, FavoriteGif } from "../../features/chat/gifFavorites";
 import { cn } from "../../lib/utils";
 
 interface GifPickerProps {
@@ -14,20 +15,26 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
   const [categories, setCategories] = useState<TenorCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"trending" | "search" | "favorites">("trending");
-  const [favorites, setFavorites] = useState<string[]>([]); // Array of GIF URLs for now, should store full object ideally
+  const [favorites, setFavorites] = useState<FavoriteGif[]>([]);
+  const [viewMode, setViewMode] = useState<"categories" | "results">("categories");
+  const [favoriteUrls, setFavoriteUrls] = useState<Set<string>>(new Set());
+  const [trendingPreview, setTrendingPreview] = useState<TenorGif[]>([]);
 
-  // Load initial data
   useEffect(() => {
     loadCategories();
-    loadTrending();
-    // Load favorites from local storage
-    const storedFavs = localStorage.getItem("confide_gif_favorites");
-    if (storedFavs) {
-      try {
-        setFavorites(JSON.parse(storedFavs));
-      } catch (e) { console.error("Failed to parse favorites", e); }
-    }
+    loadFavoritesFromDB();
+    loadTrendingPreview();
   }, []);
+
+  const loadFavoritesFromDB = async () => {
+    try {
+      const favs = await gifFavoritesService.getFavorites();
+      setFavorites(favs);
+      setFavoriteUrls(new Set(favs.map(f => f.gif_url)));
+    } catch (err) {
+      console.error("Failed to load favorites", err);
+    }
+  };
 
   const loadCategories = async () => {
     try {
@@ -38,12 +45,22 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
     }
   };
 
+  const loadTrendingPreview = async () => {
+    try {
+      const gifs = await tenor.getTrending(4);
+      setTrendingPreview(gifs);
+    } catch (err) {
+      console.error("Failed to load trending preview", err);
+    }
+  };
+
   const loadTrending = async () => {
     setIsLoading(true);
     try {
       const gifs = await tenor.getTrending();
       setResults(gifs);
       setActiveTab("trending");
+      setViewMode("results");
     } catch (err) {
       console.error("Failed to load trending gifs", err);
     } finally {
@@ -51,13 +68,34 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
     }
   };
 
+  const loadFavorites = () => {
+    setActiveTab("favorites");
+    setViewMode("results");
+  };
+
+  const handleCategoryClick = async (searchterm: string) => {
+    setQuery(searchterm);
+    setIsLoading(true);
+    setViewMode("results");
+    setActiveTab("search");
+    try {
+      const gifs = await tenor.search(searchterm);
+      setResults(gifs);
+    } catch (err) {
+      console.error("Failed to search gifs", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSearch = useCallback(async (q: string) => {
     if (!q.trim()) {
-      loadTrending();
+      setViewMode("categories");
       return;
     }
     setIsLoading(true);
     setActiveTab("search");
+    setViewMode("results");
     try {
       const gifs = await tenor.search(q);
       setResults(gifs);
@@ -76,110 +114,196 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
     return () => clearTimeout(timer);
   }, [query, handleSearch]);
 
-  const toggleFavorite = (url: string, e: React.MouseEvent) => {
+  const toggleFavorite = async (url: string, previewUrl: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => {
-      const next = prev.includes(url)
-        ? prev.filter(f => f !== url)
-        : [...prev, url];
-      localStorage.setItem("confide_gif_favorites", JSON.stringify(next));
-      return next;
-    });
+    try {
+      if (favoriteUrls.has(url)) {
+        await gifFavoritesService.removeFavorite(url);
+        setFavorites(prev => prev.filter(f => f.gif_url !== url));
+        setFavoriteUrls(prev => {
+          const next = new Set(prev);
+          next.delete(url);
+          return next;
+        });
+      } else {
+        const fav = await gifFavoritesService.addFavorite(url, previewUrl);
+        setFavorites(prev => [fav, ...prev]);
+        setFavoriteUrls(prev => new Set(prev).add(url));
+      }
+    } catch (err) {
+      console.error("Failed to toggle favorite", err);
+    }
   };
 
   return (
-    <div className={cn("flex flex-col h-80 bg-popover rounded-md overflow-hidden", className)}>
-      {/* Search Header */}
-      <div className="p-3 border-b border-border space-y-3">
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search GIFs via Tenor..."
-            className="w-full pl-8 pr-3 py-1.5 bg-bg-elevated rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
-          />
-        </div>
-
-        {/* Categories / Tabs */}
-        {categories.length > 0 && !query && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+    <div className={cn("flex flex-col w-[420px] h-[480px] bg-card border border-border rounded-lg shadow-xl overflow-hidden", className)}>
+      <div className="p-3 border-b border-border/50 bg-secondary/20 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          {viewMode === "results" && (
             <button
-              className={cn("px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors", activeTab === "trending" ? "bg-primary/20 text-primary" : "bg-muted/50 hover:bg-muted")}
-              onClick={() => { setQuery(""); loadTrending(); }}
+              onClick={() => {
+                setViewMode("categories");
+                setQuery("");
+              }}
+              className="p-1.5 hover:bg-secondary/50 rounded-md transition-colors shrink-0"
+              title="Back to categories"
             >
-              Trending
+              <ArrowLeft className="w-4 h-4" />
             </button>
-            <button
-              className={cn("px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors flex items-center gap-1", activeTab === "favorites" ? "bg-primary/20 text-primary" : "bg-muted/50 hover:bg-muted")}
-              onClick={() => setActiveTab("favorites")}
-            >
-              <Heart className="w-3 h-3 fill-current" /> Favorites
-            </button>
-            {categories.map(cat => (
-              <button
-                key={cat.searchterm}
-                className="px-3 py-1 rounded-full bg-muted/50 hover:bg-muted text-xs whitespace-nowrap transition-colors"
-                onClick={() => { setQuery(cat.searchterm); }}
-              >
-                {cat.searchterm}
-              </button>
-            ))}
+          )}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search GIFs via Tenor..."
+              className="w-full pl-9 pr-3 py-2 bg-secondary/30 border border-border/50 rounded-md text-sm focus:outline-none focus:border-border focus:bg-secondary/40 placeholder:text-muted-foreground transition-all"
+            />
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Results Grid */}
-      <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-rounded">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin" />
           </div>
+        ) : viewMode === "categories" ? (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={loadFavorites}
+              className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+            >
+              {favorites.length > 0 ? (
+                <div className="absolute inset-0 grid grid-cols-2 gap-0.5">
+                  {favorites.slice(0, 4).map((fav, i) => (
+                    <div key={i} className="relative overflow-hidden">
+                      <img
+                        src={fav.gif_preview_url || fav.gif_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/40 via-pink-500/30 to-blue-500/40" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute inset-0 flex items-end p-3">
+                <p className="text-white font-semibold text-sm drop-shadow-lg">Favourites</p>
+              </div>
+            </button>
+
+            <button
+              onClick={loadTrending}
+              className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+            >
+              {trendingPreview.length > 0 ? (
+                <div className="absolute inset-0 grid grid-cols-2 gap-0.5">
+                  {trendingPreview.slice(0, 4).map((gif, i) => (
+                    <div key={i} className="relative overflow-hidden">
+                      <img
+                        src={gif.media_formats.tinygif.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/40 via-red-500/30 to-pink-500/40" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute inset-0 flex items-end p-3">
+                <p className="text-white font-semibold text-sm drop-shadow-lg">Trending GIFs</p>
+              </div>
+            </button>
+
+            {categories.map(cat => (
+              <button
+                key={cat.searchterm}
+                onClick={() => handleCategoryClick(cat.searchterm)}
+                className="relative aspect-video rounded-lg overflow-hidden group cursor-pointer border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+              >
+                <img
+                  src={cat.image}
+                  alt={cat.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute inset-0 flex items-end p-3">
+                  <p className="text-white font-semibold text-sm drop-shadow-lg capitalize">{cat.name}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         ) : activeTab === "favorites" ? (
           favorites.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {favorites.map(url => (
-                <div key={url} className="relative aspect-video rounded-md overflow-hidden cursor-pointer group" onClick={() => onSelect(url)}>
-                  <img src={url} alt="Favorite" className="w-full h-full object-cover" />
+            <div className="grid grid-cols-2 gap-3">
+              {favorites.map(fav => (
+                <div
+                  key={fav.id}
+                  className="relative aspect-video rounded-lg overflow-hidden cursor-pointer group border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+                  onClick={() => onSelect(fav.gif_url)}
+                >
+                  <img
+                    src={fav.gif_preview_url || fav.gif_url}
+                    alt="Favorite"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                   <button
-                    className="absolute top-1 right-1 p-1 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => toggleFavorite(url, e)}
+                    className="absolute top-2 right-2 p-1.5 bg-primary/80 backdrop-blur-sm rounded-md opacity-0 group-hover:opacity-100 hover:bg-primary transition-all"
+                    onClick={(e) => toggleFavorite(fav.gif_url, fav.gif_preview_url, e)}
                   >
-                    <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+                    <Star className="w-3.5 h-3.5 fill-current" />
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-2">
-              <Heart className="w-8 h-8" />
-              <p className="text-sm">No favorites yet</p>
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-3">
+              <div className="w-16 h-16 rounded-full bg-secondary/30 flex items-center justify-center">
+                <Star className="w-8 h-8" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">No favorites yet</p>
+                <p className="text-xs text-muted-foreground/70">Click the star on any GIF to save it here</p>
+              </div>
             </div>
           )
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {results.map(gif => {
               const url = gif.media_formats.mediumgif?.url || gif.media_formats.gif?.url;
-              const isFav = favorites.includes(url);
+              const previewUrl = gif.media_formats.tinygif.url;
+              const isFav = favoriteUrls.has(url);
               return (
                 <div
                   key={gif.id}
-                  className="relative aspect-video rounded-md overflow-hidden cursor-pointer bg-muted/20 group hover:ring-2 hover:ring-primary transition-all"
+                  className="relative aspect-video rounded-lg overflow-hidden cursor-pointer bg-secondary/20 group border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
                   onClick={() => onSelect(url)}
                 >
                   <img
-                    src={gif.media_formats.tinygif.url}
+                    src={previewUrl}
                     alt={gif.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                   <button
-                    className={cn("absolute top-1 right-1 p-1 bg-black/50 rounded-full transition-opacity", isFav ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
-                    onClick={(e) => toggleFavorite(url, e)}
+                    className={cn(
+                      "absolute top-2 right-2 p-1.5 backdrop-blur-sm rounded-md transition-all",
+                      isFav
+                        ? "bg-primary/80 text-primary-foreground hover:bg-primary opacity-100"
+                        : "bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100"
+                    )}
+                    onClick={(e) => toggleFavorite(url, previewUrl, e)}
                   >
-                    <Heart className={cn("w-3 h-3", isFav ? "fill-red-500 text-red-500" : "text-white")} />
+                    <Star className={cn("w-3.5 h-3.5", isFav ? "fill-current" : "")} />
                   </button>
                 </div>
               );

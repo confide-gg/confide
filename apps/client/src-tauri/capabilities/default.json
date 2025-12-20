@@ -36,6 +36,9 @@
           "url": "https://*.confide.gg/**"
         },
         {
+          "url": "https://tenor.googleapis.com/**"
+        },
+        {
           "url": "ws://localhost:*/**"
         },
         {
