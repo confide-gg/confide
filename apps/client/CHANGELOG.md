@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.23.0](https://github.com/confide-gg/confide/compare/confide-client-v0.22.0...confide-client-v0.23.0) (2025-12-20)
+
+
+### Features
+
+* add safe JSON parsing utility to prevent crashes ([4cb698c](https://github.com/confide-gg/confide/commit/4cb698cc2a72bdf10f0055597d69ca349dd8e307))
+* add subscription manager to track and deduplicate subscriptions ([11458be](https://github.com/confide-gg/confide/commit/11458be6cecc197838f9ae0d5a4527af28811619))
+* migrate private keys from localStorage to Tauri secure storage ([6ac3d7b](https://github.com/confide-gg/confide/commit/6ac3d7b4a034921db84de7c7b84ce84a8f43a703))
+
+
+### Bug Fixes
+
+* add decryption cache to prevent re-decrypting already decrypted messages ([03b3692](https://github.com/confide-gg/confide/commit/03b369209f1abb9c1072a7fa5a71d32dff4d8baf))
+* add file size and type validation with secure upload IDs ([7e24ee7](https://github.com/confide-gg/confide/commit/7e24ee745ac8ce4d99b34a8a5275f8c72e398a77))
+* prevent concurrent websocket connections with promise tracking ([d0cdaf2](https://github.com/confide-gg/confide/commit/d0cdaf27f6b5d8822b4e92fc86b9c3f8432b7c84))
+* prevent double presence subscriptions and clear stale data on disconnect ([a0b79fb](https://github.com/confide-gg/confide/commit/a0b79fb76d5f2dbb2a75ec08532ba9adecc56b08))
+* sanitize error messages in production to prevent information disclosure ([bf0fe6c](https://github.com/confide-gg/confide/commit/bf0fe6cbeaea2d466f384b71956cbc781a122ecb))
+* serialize message sends with queue to prevent ratchet state corruption ([c847f20](https://github.com/confide-gg/confide/commit/c847f20f0d63f3f0ea115f95e40a26977b61dac4))
+* use activeChatRef consistently to prevent race conditions in message handling ([8b415b2](https://github.com/confide-gg/confide/commit/8b415b2488dc003c90381adcdfa01e42837ff203))
+* validate s3 URLs and sanitize filenames in file metadata ([d97211b](https://github.com/confide-gg/confide/commit/d97211b931e6ee84536971c1c255549932ac995c))
+
 ## [0.22.0](https://github.com/confide-gg/confide/compare/confide-client-v0.21.2...confide-client-v0.22.0) (2025-12-20)
 
 
