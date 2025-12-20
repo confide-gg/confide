@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, ty
 import { centralWebSocketService } from "../core/network/CentralWebSocketService";
 import { useAuth } from "./AuthContext";
 import type { UserActivity } from "../features/profiles/types";
+import { SubscriptionManager } from "../core/network/SubscriptionManager";
 
 export interface UserPresence {
   status: string; // "online", "idle", "dnd", "invisible"
@@ -27,9 +28,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const [userPresence, setUserPresence] = useState<Map<string, UserPresence>>(new Map());
   const [userActivities, setUserActivities] = useState<Map<string, UserActivity | null>>(new Map());
   const [isWsConnected, setIsWsConnected] = useState(false);
-  const subscribedUsersRef = useRef<Set<string>>(new Set());
-  const pendingSubscriptionsRef = useRef<Set<string>>(new Set());
-  const activeSubscriptionsRef = useRef<Set<string>>(new Set());
+  const subscriptionManagerRef = useRef(new SubscriptionManager());
 
   useEffect(() => {
     if (!user) {
@@ -85,26 +84,17 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
     const handleConnect = () => {
       setIsWsConnected(true);
-      activeSubscriptionsRef.current.clear();
-      for (const userId of subscribedUsersRef.current) {
+      setUserPresence(new Map());
+      subscriptionManagerRef.current.onReconnect((userId) => {
         centralWebSocketService.subscribeUser(userId);
-        activeSubscriptionsRef.current.add(userId);
-      }
-      for (const userId of pendingSubscriptionsRef.current) {
-        if (!activeSubscriptionsRef.current.has(userId)) {
-          centralWebSocketService.subscribeUser(userId);
-          subscribedUsersRef.current.add(userId);
-          activeSubscriptionsRef.current.add(userId);
-        }
-      }
-      pendingSubscriptionsRef.current.clear();
+      });
     };
 
     const unsubscribeConnect = centralWebSocketService.onConnect(handleConnect);
 
     const unsubscribeDisconnect = centralWebSocketService.onDisconnect(() => {
       setIsWsConnected(false);
-      activeSubscriptionsRef.current.clear();
+      setUserPresence(new Map());
     });
 
     const connectWithRetry = async () => {
@@ -152,14 +142,11 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   const subscribeToUsers = useCallback((userIds: string[]) => {
     for (const userId of userIds) {
-      if (subscribedUsersRef.current.has(userId)) continue;
+      if (!subscriptionManagerRef.current.subscribe(userId, 'user')) continue;
 
       if (isWsConnected) {
         centralWebSocketService.subscribeUser(userId);
-        subscribedUsersRef.current.add(userId);
-        activeSubscriptionsRef.current.add(userId);
-      } else {
-        pendingSubscriptionsRef.current.add(userId);
+        subscriptionManagerRef.current.markActive(userId);
       }
     }
   }, [isWsConnected]);
