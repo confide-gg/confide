@@ -41,6 +41,22 @@ class HttpClient {
         return headers;
     }
 
+    private sanitizeErrorMessage(status: number, rawMessage: string): string {
+        const genericMessages: Record<number, string> = {
+            400: "Invalid request",
+            401: "Authentication required",
+            403: "Access denied",
+            404: "Resource not found",
+            500: "Server error",
+        };
+
+        if (import.meta.env.DEV) {
+            return rawMessage;
+        }
+
+        return genericMessages[status] || "An error occurred";
+    }
+
     private async handleResponse<T>(response: Response): Promise<T> {
         if (!response.ok) {
             if (response.status === 401) {
@@ -58,7 +74,8 @@ class HttpClient {
             } catch {
                 // ignore
             }
-            throw new ApiError(response.status, message);
+            const sanitizedMessage = this.sanitizeErrorMessage(response.status, message);
+            throw new ApiError(response.status, sanitizedMessage);
         }
 
         const text = await response.text();
