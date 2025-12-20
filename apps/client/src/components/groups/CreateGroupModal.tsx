@@ -8,7 +8,6 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import { Avatar } from "../ui/avatar";
 import { cn } from "@/lib/utils";
 import type { Friend } from "../../features/friends/types";
@@ -21,8 +20,6 @@ interface CreateGroupModalProps {
 }
 
 export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateGroupModalProps) {
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
@@ -37,8 +34,6 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
   const remainingSlots = 9 - selected.size;
 
   const resetAndClose = () => {
-    setName("");
-    setIcon("");
     setQuery("");
     setSelected(new Set());
     setError("");
@@ -60,11 +55,6 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError("Group name is required");
-      return;
-    }
     if (selected.size === 0) {
       setError("Select at least one friend");
       return;
@@ -72,10 +62,15 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
     setIsLoading(true);
     setError("");
     try {
+      const selectedUsernames = Array.from(selected)
+        .map((id) => friends.find((f) => f.id === id)?.username)
+        .filter(Boolean);
+      const groupName = selectedUsernames.slice(0, 3).join(", ") + (selectedUsernames.length > 3 ? "..." : "");
+
       await onCreate({
-        name: trimmed,
+        name: groupName,
         memberIds: Array.from(selected),
-        icon: icon.trim() || undefined,
+        icon: undefined,
       });
       resetAndClose();
     } catch (err) {
@@ -87,99 +82,89 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isLoading && resetAndClose()}>
-      <DialogContent className="max-w-lg bg-card border-border">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">Create Group</DialogTitle>
+      <DialogContent className="max-w-md bg-card border-border p-0">
+        <DialogHeader className="px-4 pt-6 pb-0">
+          <DialogTitle className="text-xl font-semibold">Select Friends</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            You can add {remainingSlots} more friend{remainingSlots === 1 ? "" : "s"}.
+          </p>
         </DialogHeader>
 
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="groupName">Group name</Label>
-              <Input
-                id="groupName"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isLoading}
-                className="bg-secondary/50"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="groupIcon">Icon (optional)</Label>
-              <Input
-                id="groupIcon"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                disabled={isLoading}
-                className="bg-secondary/50"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="friendSearch">Add members</Label>
-              <div className="text-xs text-muted-foreground">
-                {selected.size}/9 selected
-              </div>
-            </div>
+        <form onSubmit={handleCreate} className="flex flex-col">
+          <div className="px-4 pb-4">
             <Input
-              id="friendSearch"
-              placeholder="Search friends"
+              placeholder="Type the username of a friend"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={isLoading}
               className="bg-secondary/50"
             />
-            <div className="max-h-64 overflow-y-auto rounded-md border border-border bg-secondary/20">
-              {filtered.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">No friends found</div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {filtered.map((f) => {
-                    const isSelected = selected.has(f.id);
-                    const disabled = !isSelected && remainingSlots <= 0;
-                    return (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => !disabled && toggle(f.id)}
+          </div>
+
+          <div className="max-h-80 overflow-y-auto px-4">
+            {filtered.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">No friends found</div>
+            ) : (
+              <div className="space-y-0.5">
+                {filtered.map((f) => {
+                  const isSelected = selected.has(f.id);
+                  const disabled = !isSelected && remainingSlots <= 0;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => !disabled && toggle(f.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-left transition-colors",
+                        "hover:bg-secondary/60",
+                        disabled && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Avatar fallback={f.username} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{f.username}</div>
+                      </div>
+                      <div
                         className={cn(
-                          "w-full flex items-center gap-3 px-2 py-2 rounded-md text-left transition-colors",
-                          isSelected ? "bg-secondary text-foreground" : "hover:bg-secondary/60 text-muted-foreground",
-                          disabled && "opacity-50 cursor-not-allowed"
+                          "w-6 h-6 rounded border-2 flex items-center justify-center transition-colors",
+                          isSelected
+                            ? "bg-primary border-primary"
+                            : "border-muted-foreground bg-transparent"
                         )}
                       >
-                        <Avatar fallback={f.username} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{f.username}</div>
-                        </div>
-                        <div
-                          className={cn(
-                            "w-4 h-4 rounded border border-border",
-                            isSelected ? "bg-primary border-primary" : "bg-background"
-                          )}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                        {isSelected && (
+                          <svg className="w-4 h-4 text-primary-foreground" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {error && (
-            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+            <div className="px-4 py-3 text-sm text-destructive bg-destructive/10 mx-4 rounded-md mt-2">
               {error}
             </div>
           )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={resetAndClose} disabled={isLoading}>
+          <DialogFooter className="px-4 py-4 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={resetAndClose}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !name.trim() || selected.size === 0}>
-              Create
+            <Button
+              type="submit"
+              disabled={isLoading || selected.size === 0}
+            >
+              Create DM
             </Button>
           </DialogFooter>
         </form>
