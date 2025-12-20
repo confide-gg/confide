@@ -637,14 +637,7 @@ export function useChatMessages(friendsList: Friend[]) {
         const currentDuration = timedMessageDuration;
         if (currentDuration) setTimedMessageDuration(null);
 
-        let queue = messageQueuesRef.current.get(activeChat.conversationId);
-        if (!queue) {
-            queue = new MessageQueue();
-            messageQueuesRef.current.set(activeChat.conversationId, queue);
-        }
-
         try {
-            await queue.enqueue(async () => {
             const msgBytes = cryptoService.stringToBytes(msgContent);
             const expiresAt = currentDuration ? new Date(Date.now() + currentDuration * 1000).toISOString() : null;
 
@@ -655,40 +648,51 @@ export function useChatMessages(friendsList: Friend[]) {
             if (activeChat.isGroup) {
                 encrypted = await cryptoService.encryptWithKey(activeChat.conversationKey, msgBytes);
             } else {
-                const currentState = activeChat.ratchetState;
-                if (!currentState) {
-                    throw new Error("Chat missing ratchet state");
+                let queue = messageQueuesRef.current.get(activeChat.conversationId);
+                if (!queue) {
+                    queue = new MessageQueue();
+                    messageQueuesRef.current.set(activeChat.conversationId, queue);
                 }
-                const result = await cryptoService.ratchetEncrypt(currentState, msgBytes);
-                encrypted = cryptoService.stringToBytes(JSON.stringify(result.message));
-                newState = result.new_state;
 
-                const myEncryptedKey = await cryptoService.encryptForRecipient(userKeys.kem_public_key, result.message_key);
-                messageKeys = [{ user_id: user.id, encrypted_key: myEncryptedKey }];
-
-                let friendPublicKey = friendsList.find(f => f.id === activeChat.visitorId)?.kem_public_key;
-                if (!friendPublicKey) {
-                    console.error("[Crypto] Friend public key not in friendsList, fetching from server...");
-                    try {
-                        const bundle = await keyService.getPrekeyBundle(activeChat.visitorId);
-                        friendPublicKey = bundle.identity_key;
-                    } catch (err) {
-                        console.error("[Crypto] Failed to fetch friend's public key:", err);
-                        throw new Error("Friend's public key not found");
+                const encryptionResult = await queue.enqueue(async () => {
+                    const currentState = activeChat.ratchetState;
+                    if (!currentState) {
+                        throw new Error("Chat missing ratchet state");
                     }
-                }
+                    const result = await cryptoService.ratchetEncrypt(currentState, msgBytes);
+                    const encryptedContent = cryptoService.stringToBytes(JSON.stringify(result.message));
+                    const ratchetNewState = result.new_state;
 
-                const theirEncryptedKey = await cryptoService.encryptForRecipient(friendPublicKey, result.message_key);
-                messageKeys.push({ user_id: activeChat.visitorId, encrypted_key: theirEncryptedKey });
+                    const myEncryptedKey = await cryptoService.encryptForRecipient(userKeys.kem_public_key, result.message_key);
+                    const keys = [{ user_id: user.id, encrypted_key: myEncryptedKey }];
 
-                const encryptedState = await cryptoService.encryptData(userKeys.kem_secret_key, newState);
-                keyService.saveSession(activeChat.conversationId, activeChat.visitorId, {
-                    encrypted_state: encryptedState,
-                }).catch(err => console.warn("Failed to save session state:", err));
-            }
+                    let friendPublicKey = friendsList.find(f => f.id === activeChat.visitorId)?.kem_public_key;
+                    if (!friendPublicKey) {
+                        console.error("[Crypto] Friend public key not in friendsList, fetching from server...");
+                        try {
+                            const bundle = await keyService.getPrekeyBundle(activeChat.visitorId);
+                            friendPublicKey = bundle.identity_key;
+                        } catch (err) {
+                            console.error("[Crypto] Failed to fetch friend's public key:", err);
+                            throw new Error("Friend's public key not found");
+                        }
+                    }
 
-            if (!activeChat.isGroup && newState) {
-                setActiveChat(prev => prev ? { ...prev, ratchetState: newState } : null);
+                    const theirEncryptedKey = await cryptoService.encryptForRecipient(friendPublicKey, result.message_key);
+                    keys.push({ user_id: activeChat.visitorId, encrypted_key: theirEncryptedKey });
+
+                    setActiveChat(prev => prev ? { ...prev, ratchetState: ratchetNewState } : null);
+
+                    const encryptedState = await cryptoService.encryptData(userKeys.kem_secret_key, ratchetNewState);
+                    keyService.saveSession(activeChat.conversationId, activeChat.visitorId, {
+                        encrypted_state: encryptedState,
+                    }).catch(err => console.warn("Failed to save session state:", err));
+
+                    return { encryptedContent, keys };
+                });
+
+                encrypted = encryptionResult.encryptedContent;
+                messageKeys = encryptionResult.keys;
             }
 
             const signature = await cryptoService.dsaSign(userKeys.dsa_secret_key, encrypted);
@@ -726,7 +730,6 @@ export function useChatMessages(friendsList: Friend[]) {
                     lastMessageTime: response.created_at,
                     isLastMessageMine: true
                 }, ...prev.filter(p => p.conversationId !== activeChat.conversationId)];
-            });
             });
 
         } catch (err: any) {

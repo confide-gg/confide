@@ -6,6 +6,8 @@ import { queryKeys } from "./useQueries";
 import type { Message } from "../features/chat/types";
 import type { DecryptedMessage } from "../types";
 
+const decryptionCache = new Map<string, { content: string; senderName: string }>();
+
 interface DecryptionContext {
   userId: string;
   username: string;
@@ -39,6 +41,11 @@ async function decryptMessages(
 
     if (isSystemMessage) {
       return { id: msg.id, content: "", senderName: "System", isSystem: true, messageType: msg.message_type };
+    }
+
+    const cached = decryptionCache.get(msg.id);
+    if (cached) {
+      return { id: msg.id, content: cached.content, senderName: cached.senderName, isSystem: false };
     }
 
     try {
@@ -81,6 +88,8 @@ async function decryptMessages(
         );
         content = cryptoService.bytesToString(contentBytes);
       }
+
+      decryptionCache.set(msg.id, { content, senderName });
 
       return { id: msg.id, content, senderName, isSystem: false };
     } catch (err) {
