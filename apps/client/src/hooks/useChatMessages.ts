@@ -23,6 +23,7 @@ import { useDecryptedMessages } from "./useDecryptedMessages";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./useQueries";
 import type { SendMessageRequest, EditMessageRequest } from "../features/chat/types";
+import { MessageQueue } from "../utils/MessageQueue";
 
 const isFileAttachment = (content: string): boolean => {
     try {
@@ -61,6 +62,7 @@ export function useChatMessages(friendsList: Friend[]) {
     const activeChatRef = useRef<ActiveChat | null>(null);
     const processedMessageIds = useRef<Set<string>>(new Set());
     const groupMemberNameCache = useRef<Map<string, Map<string, string>>>(new Map());
+    const messageQueuesRef = useRef<Map<string, MessageQueue>>(new Map());
 
     useConversations();
 
@@ -636,7 +638,14 @@ export function useChatMessages(friendsList: Friend[]) {
         const currentDuration = timedMessageDuration;
         if (currentDuration) setTimedMessageDuration(null);
 
+        let queue = messageQueuesRef.current.get(activeChat.conversationId);
+        if (!queue) {
+            queue = new MessageQueue();
+            messageQueuesRef.current.set(activeChat.conversationId, queue);
+        }
+
         try {
+            await queue.enqueue(async () => {
             const msgBytes = cryptoService.stringToBytes(msgContent);
             const expiresAt = currentDuration ? new Date(Date.now() + currentDuration * 1000).toISOString() : null;
 
@@ -718,6 +727,7 @@ export function useChatMessages(friendsList: Friend[]) {
                     lastMessageTime: response.created_at,
                     isLastMessageMine: true
                 }, ...prev.filter(p => p.conversationId !== activeChat.conversationId)];
+            });
             });
 
         } catch (err: any) {
