@@ -6,7 +6,14 @@ import { usePresence } from "../../context/PresenceContext";
 import { useAuth } from "../../context/AuthContext";
 import { uploadService } from "../../features/uploads/UploadService";
 import { GifModal } from "../common/GifModal";
+import { AttachmentImage } from "./AttachmentImage";
+import { AttachmentVideo } from "./AttachmentVideo";
+import { AttachmentAudio } from "./AttachmentAudio";
+import { AttachmentCode } from "./AttachmentCode";
+import { attachmentDownloadService } from "../../features/attachments/AttachmentDownloadService";
+import { formatReplyPreview } from "../../utils/messageUtils";
 import type { DecryptedMessage } from "../../types/index";
+import type { FileMetadata } from "../../features/attachments/AttachmentUploadService";
 
 interface MessageProps {
   message: DecryptedMessage;
@@ -110,7 +117,117 @@ export const Message = memo(function Message({ message, showHeader }: MessagePro
     }
   };
 
+  const isFileAttachment = (content: string): FileMetadata | null => {
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.type === "file" && parsed.file) {
+        return parsed as FileMetadata;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDownloadFile = async (metadata: FileMetadata) => {
+    try {
+      await attachmentDownloadService.downloadAndSaveFile(metadata);
+    } catch (err) {
+      console.error("Failed to download file:", err);
+      alert("Failed to download file. Please try again.");
+    }
+  };
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith("application/pdf")) {
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      );
+    }
+    if (mimeType.startsWith("video/")) {
+      return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <polygon points="23 7 16 12 23 17 23 7" />
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+        </svg>
+      );
+    }
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+        <polyline points="13 2 13 9 20 9" />
+      </svg>
+    );
+  };
+
   const renderContent = () => {
+    const fileAttachment = isFileAttachment(message.content);
+
+    if (fileAttachment) {
+      const isImage = fileAttachment.file.mimeType.startsWith("image/");
+      const isVideo = fileAttachment.file.mimeType.startsWith("video/");
+      const isAudio = fileAttachment.file.mimeType.startsWith("audio/");
+      const isCode = fileAttachment.file.mimeType.startsWith("text/") ||
+                     fileAttachment.file.mimeType === "application/x-typescript" ||
+                     fileAttachment.file.mimeType === "application/javascript" ||
+                     fileAttachment.file.mimeType === "application/json";
+
+      if (isImage) {
+        return <AttachmentImage metadata={fileAttachment} />;
+      }
+
+      if (isVideo) {
+        return <AttachmentVideo metadata={fileAttachment} />;
+      }
+
+      if (isAudio) {
+        return <AttachmentAudio metadata={fileAttachment} />;
+      }
+
+      if (isCode) {
+        return <AttachmentCode metadata={fileAttachment} />;
+      }
+
+      return (
+        <div className="flex items-center gap-3 p-3 bg-secondary/30 border border-border/50 rounded-lg max-w-sm hover:bg-secondary/40 transition-colors">
+          <div className="shrink-0 text-muted-foreground">
+            {getFileIcon(fileAttachment.file.mimeType)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-foreground truncate">
+              {fileAttachment.file.name}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {formatFileSize(fileAttachment.file.size)}
+            </div>
+          </div>
+          <button
+            onClick={() => handleDownloadFile(fileAttachment)}
+            className="shrink-0 p-2 hover:bg-secondary/50 rounded transition-colors"
+            title="Download file"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+        </div>
+      );
+    }
+
     if (message.isGif) {
       const isFavorite = favoriteGifUrls.has(message.content);
       return (
@@ -232,12 +349,53 @@ export const Message = memo(function Message({ message, showHeader }: MessagePro
             )}
           </div>
         )}
-        {message.replyTo && (
-          <div className="mb-1 rounded-sm bg-secondary/30 border-l-2 border-border/50 p-2 text-xs flex flex-col gap-0.5 max-w-full">
-            <span className="font-medium text-foreground">{message.replyTo.senderName}</span>
-            <span className="text-muted-foreground truncate">{message.replyTo.content}</span>
-          </div>
-        )}
+        {message.replyTo && (() => {
+          let fileMetadata: FileMetadata | null = null;
+          try {
+            const parsed = JSON.parse(message.replyTo.content);
+            if (parsed.type === 'file') {
+              fileMetadata = parsed;
+            }
+          } catch {}
+
+          if (fileMetadata && fileMetadata.file.mimeType.startsWith('image/')) {
+            return (
+              <div className="mb-2 rounded-lg overflow-hidden bg-card/50 border border-border/50 w-fit max-w-xs group/reply hover:border-border transition-colors">
+                <div className="relative">
+                  <div className="[&_img]:rounded-none [&_img]:max-h-28 [&_img]:w-auto [&>div]:max-w-none opacity-70 group-hover/reply:opacity-80 transition-opacity">
+                    <AttachmentImage metadata={fileMetadata} />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm rounded-md px-2 py-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white/80">
+                      <polyline points="9 10 4 15 9 20" />
+                      <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+                    </svg>
+                    <span className="text-[10px] font-semibold text-white/90">{message.replyTo.senderName}</span>
+                  </div>
+                  {fileMetadata.text && (
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                      <div className="text-xs text-white font-medium line-clamp-2 drop-shadow-lg">{fileMetadata.text}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="mb-1.5 rounded-md bg-card/40 border border-border/40 border-l-2 border-l-primary/60 p-2.5 text-xs flex flex-col gap-1 max-w-full hover:bg-card/60 transition-colors">
+              <div className="flex items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-muted-foreground shrink-0">
+                  <polyline points="9 10 4 15 9 20" />
+                  <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+                </svg>
+                <span className="font-semibold text-foreground">{message.replyTo.senderName}</span>
+              </div>
+              <span className="text-muted-foreground truncate leading-relaxed">{formatReplyPreview(message.replyTo.content)}</span>
+            </div>
+          );
+        })()}
         {isEditing ? (
           <div className="space-y-2">
             <textarea
@@ -268,7 +426,7 @@ export const Message = memo(function Message({ message, showHeader }: MessagePro
             </div>
           </div>
         ) : (
-          <div className={`${message.expiresAt ? "border border-dashed border-muted-foreground/20 rounded-sm p-2 w-fit" : ""} ${message.isGif ? "" : "text-sm text-foreground break-words"}`}>
+          <div className={`${message.expiresAt ? "border border-dashed border-muted-foreground/20 rounded-sm p-2 w-fit" : ""} ${message.isGif || isFileAttachment(message.content) ? "w-fit" : "text-sm text-foreground break-words"}`}>
             {renderContent()}
           </div>
         )}

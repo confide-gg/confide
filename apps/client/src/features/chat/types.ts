@@ -90,6 +90,13 @@ export interface MessageKeyData {
     encrypted_key: number[];
 }
 
+export interface AttachmentMetadata {
+    s3_key: string;
+    file_size: number;
+    encrypted_size: number;
+    mime_type: string;
+}
+
 export interface SendMessageRequest {
     encrypted_content: number[];
     signature: number[];
@@ -98,6 +105,7 @@ export interface SendMessageRequest {
     sender_chain_id?: number | null;
     sender_chain_iteration?: number | null;
     message_keys?: MessageKeyData[];
+    attachment?: AttachmentMetadata;
 }
 
 export interface SendMessageResponse {

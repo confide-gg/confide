@@ -21,6 +21,7 @@ import { GroupContextMenu } from "../groups/GroupContextMenu";
 import { ProfileModal } from "../profile/ProfileModal";
 import { VerifyModal } from "../common/VerifyModal";
 import { toast } from "sonner";
+import { useDropzone } from "../../hooks/useDropzone";
 import { Button } from "../ui/button";
 import { ServerList } from "../sidebar/ServerList";
 import { ChannelList } from "../servers/ChannelList";
@@ -71,6 +72,7 @@ export function MainLayout() {
     isConnected,
     hasConnectedOnce,
   } = useChat();
+  const { isDragging } = useDropzone();
 
   useEffect(() => {
     const handleClick = () => {
@@ -137,8 +139,25 @@ export function MainLayout() {
 
 
   return (
-    <div className="flex h-screen bg-background text-foreground p-3 gap-3">
+    <div className="flex h-screen bg-background text-foreground p-3 gap-3 relative">
       {!isConnected && hasConnectedOnce && <ServerOfflineOverlay />}
+      {isDragging && activeChat && (
+        <div className="absolute inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-in fade-in duration-150">
+          <div className="flex flex-col items-center gap-4 p-8 bg-card border-2 border-dashed border-primary rounded-2xl shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-semibold text-foreground">Drop file to attach</div>
+              <div className="text-sm text-muted-foreground mt-1">Release to upload</div>
+            </div>
+          </div>
+        </div>
+      )}
       <aside className="w-16 h-full shrink-0">
         <Panel className="h-full flex flex-col items-center">
         <div className="h-14 w-full flex items-center justify-center shrink-0">

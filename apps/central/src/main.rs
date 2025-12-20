@@ -5,9 +5,11 @@ mod db;
 mod error;
 mod media;
 mod models;
+mod s3;
 mod spotify_worker;
 mod ws;
 
+use axum::extract::DefaultBodyLimit;
 use axum::http::header;
 use axum::Router;
 use sqlx::postgres::PgPoolOptions;
@@ -15,7 +17,6 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 use tower_http::cors::CorsLayer;
-use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -28,10 +29,15 @@ pub struct AppState {
     pub redis: redis::Client,
     pub config: Config,
     pub upload_semaphore: Arc<Semaphore>,
+    pub s3: s3::S3Service,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -104,11 +110,20 @@ async fn main() -> anyhow::Result<()> {
 
     let upload_semaphore = Arc::new(Semaphore::new(config.uploads.max_concurrent_uploads));
 
+    let s3 = s3::S3Service::new(Arc::new(config.s3.clone())).await?;
+    tracing::info!("S3 service initialized");
+    tracing::info!(
+        "Request body limit set to {} bytes ({} MB)",
+        config.s3.max_file_size_bytes,
+        config.s3.max_file_size_bytes / 1024 / 1024
+    );
+
     let state = Arc::new(AppState {
         db: Database::new(api_pool, ws_pool, redis.clone()),
         redis,
         config: config.clone(),
         upload_semaphore,
+        s3,
     });
 
     let cleanup_state = state.clone();
@@ -194,6 +209,12 @@ async fn main() -> anyhow::Result<()> {
         .allow_headers([
             axum::http::header::AUTHORIZATION,
             axum::http::header::CONTENT_TYPE,
+            axum::http::HeaderName::from_static("x-conversation-id"),
+            axum::http::HeaderName::from_static("x-filename"),
+            axum::http::HeaderName::from_static("x-mime-type"),
+            axum::http::HeaderName::from_static("x-upload-id"),
+            axum::http::HeaderName::from_static("x-chunk-index"),
+            axum::http::HeaderName::from_static("x-total-chunks"),
         ])
         .allow_credentials(true);
 
@@ -225,7 +246,7 @@ async fn main() -> anyhow::Result<()> {
             header::REFERRER_POLICY,
             axum::http::HeaderValue::from_static("strict-origin-when-cross-origin"),
         ))
-        .layer(RequestBodyLimitLayer::new(10 * 1024 * 1024))
+        .layer(DefaultBodyLimit::max(config.s3.max_file_size_bytes))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 

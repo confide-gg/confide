@@ -104,6 +104,14 @@ pub struct MessageKeyData {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct AttachmentMetadata {
+    pub s3_key: String,
+    pub file_size: i64,
+    pub encrypted_size: i64,
+    pub mime_type: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct SendMessageRequest {
     pub encrypted_content: Vec<u8>,
     pub signature: Vec<u8>,
@@ -112,6 +120,7 @@ pub struct SendMessageRequest {
     pub sender_chain_id: Option<i32>,
     pub sender_chain_iteration: Option<i32>,
     pub message_keys: Option<Vec<MessageKeyData>>,
+    pub attachment: Option<AttachmentMetadata>,
 }
 
 #[derive(Debug, Serialize)]
@@ -224,6 +233,22 @@ pub async fn send_message(
             .map(|k| (k.user_id, k.encrypted_key.clone()))
             .collect();
         state.db.store_message_keys(message.id, &key_data).await?;
+    }
+
+    if let Some(attachment) = &req.attachment {
+        state
+            .db
+            .save_attachment(
+                message.id,
+                conversation_id,
+                auth.user_id,
+                &attachment.s3_key,
+                attachment.file_size,
+                attachment.encrypted_size,
+                &attachment.mime_type,
+                req.expires_at,
+            )
+            .await?;
     }
 
     let ws_msg = WsMessage::NewMessage(NewMessageData {

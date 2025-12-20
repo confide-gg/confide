@@ -1,4 +1,5 @@
 mod activities;
+mod attachments;
 pub mod audio_settings;
 pub mod cache;
 mod calls;

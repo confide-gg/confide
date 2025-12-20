@@ -59,6 +59,8 @@ interface ChatContextType {
   dmPreviews: DmPreview[];
   setDmPreviews: Dispatch<SetStateAction<DmPreview[]>>;
   unreadCounts: Map<string, number>;
+  droppedFile: File | null;
+  setDroppedFile: (file: File | null) => void;
 
   // Connection / Status
   isConnected: boolean;
@@ -93,7 +95,7 @@ interface ChatContextType {
   openChat: (friend: Friend) => Promise<void>;
   createGroup: (data: { name: string; icon?: string; memberIds: string[] }) => Promise<void>;
   removeFriend: (friend: Friend) => Promise<void>;
-  sendMessage: (content?: string) => Promise<void>;
+  sendMessage: (content?: string, attachmentMeta?: { s3_key: string; file_size: number; encrypted_size: number; mime_type: string }) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => Promise<void>;
   deleteMessage: (messageId: string) => void;
   pinMessage: (messageId: string) => Promise<void>;
@@ -149,6 +151,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [verifyModal, setVerifyModal] = useState<VerifyModalData | null>(null);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
   // Typing logic
   const handleTyping = () => {
@@ -702,6 +705,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     verifyModal, setVerifyModal,
     error, setError,
     successMessage, setSuccessMessage,
+    droppedFile, setDroppedFile,
 
     // Methods
     handleTyping,

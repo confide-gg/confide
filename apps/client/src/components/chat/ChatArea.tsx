@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChat } from "../../context/ChatContext";
 import { useCall } from "../calls/CallContext";
 import { ChatHeader } from "./ChatHeader";
@@ -132,7 +132,7 @@ export function ChatArea() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full relative">
       <div className="flex flex-col flex-1 min-w-0">
         {isInCallWithActiveChat && <CallHeader />}
         <ChatHeader />

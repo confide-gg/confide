@@ -1,4 +1,5 @@
 mod activities;
+mod attachments;
 mod audio_settings;
 mod auth;
 pub mod calls;
@@ -38,21 +39,22 @@ async fn get_version() -> Json<VersionResponse> {
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/version", get(get_version))
-        .nest("/auth", auth::routes())
-        .nest("/friends", friends::routes())
-        .nest("/conversations", conversations::routes())
-        .nest("/messages", messages::routes())
-        .nest("/keys", keys::routes())
-        .nest("/gifs", gifs::routes())
-        .nest("/profiles", profiles::routes())
-        .nest("/uploads", uploads::routes())
-        .nest("/recovery", recovery::routes())
-        .nest("/federation", federation::routes())
-        .nest("/discovery", discovery::routes())
-        .nest("/servers", servers::routes())
-        .nest("/calls", calls::routes())
-        .nest("/audio-settings", audio_settings::routes())
-        .nest("/preferences", preferences::routes())
         .nest("/activities", activities::routes())
+        .nest("/attachments", attachments::routes())
+        .nest("/audio-settings", audio_settings::routes())
+        .nest("/auth", auth::routes())
+        .nest("/calls", calls::routes())
+        .nest("/conversations", conversations::routes())
+        .nest("/discovery", discovery::routes())
+        .nest("/federation", federation::routes())
+        .nest("/friends", friends::routes())
+        .nest("/gifs", gifs::routes())
+        .nest("/keys", keys::routes())
+        .nest("/messages", messages::routes())
+        .nest("/preferences", preferences::routes())
+        .nest("/profiles", profiles::routes())
+        .nest("/recovery", recovery::routes())
+        .nest("/servers", servers::routes())
         .nest("/spotify", spotify::routes())
+        .nest("/uploads", uploads::routes())
 }

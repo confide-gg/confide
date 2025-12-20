@@ -36,7 +36,8 @@
         "decorations": true,
         "alwaysOnTop": false,
         "skipTaskbar": false,
-        "visible": true
+        "visible": true,
+        "dragDropEnabled": false
       }
     ],
     "withGlobalTauri": false,

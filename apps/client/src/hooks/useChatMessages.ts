@@ -24,6 +24,25 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./useQueries";
 import type { SendMessageRequest, EditMessageRequest } from "../features/chat/types";
 
+const isFileAttachment = (content: string): boolean => {
+    try {
+        const parsed = JSON.parse(content);
+        return parsed.type === "file" && parsed.file;
+    } catch {
+        return false;
+    }
+};
+
+const getPreviewContent = (content: string): string => {
+    if (isFileAttachment(content)) {
+        return "📎 Attachment";
+    }
+    if (content.startsWith("https://") && content.includes("tenor")) {
+        return "GIF";
+    }
+    return content;
+};
+
 export function useChatMessages(friendsList: Friend[]) {
     const { user, keys: userKeys, profile } = useAuth();
     const queryClient = useQueryClient();
@@ -141,7 +160,7 @@ export function useChatMessages(friendsList: Friend[]) {
 
                     if (recentMsgs.length > 0) {
                         const msg = recentMsgs[0];
-                        lastMessage = "New message";
+                        lastMessage = "📎 Attachment";
                         lastMessageTime = msg.created_at;
                         isLastMessageMine = msg.sender_id === user.id;
                     } else {
@@ -219,7 +238,7 @@ export function useChatMessages(friendsList: Friend[]) {
                 if (idx >= 0) {
                     updated[idx] = {
                         ...updated[idx],
-                        lastMessage: isSystemMessage ? updated[idx].lastMessage : "New message",
+                        lastMessage: isSystemMessage ? updated[idx].lastMessage : "📎 Attachment",
                         lastMessageTime: msgData.created_at,
                         isLastMessageMine: false,
                     };
@@ -236,7 +255,7 @@ export function useChatMessages(friendsList: Friend[]) {
                                 conversationId: msgData.conversation_id,
                                 visitorId: senderFriend.id,
                                 visitorUsername: senderFriend.username,
-                                lastMessage: "New message",
+                                lastMessage: "📎 Attachment",
                                 lastMessageTime: msgData.created_at,
                                 isLastMessageMine: false,
                             });
@@ -385,7 +404,7 @@ export function useChatMessages(friendsList: Friend[]) {
                 return [...prev, newMsg];
             });
 
-            const previewContent = content.startsWith("https://") && content.includes("tenor") ? "GIF" : content;
+            const previewContent = getPreviewContent(content);
             setDmPreviews((prev) => {
                 const idx = prev.findIndex((p) => p.conversationId === msgData.conversation_id);
                 if (idx >= 0) {
@@ -600,7 +619,7 @@ export function useChatMessages(friendsList: Friend[]) {
         }
     }, [userKeys, user, friendsList, queryClient]);
 
-    const sendMessage = useCallback(async (content?: string) => {
+    const sendMessage = useCallback(async (content?: string, attachmentMeta?: { s3_key: string; file_size: number; encrypted_size: number; mime_type: string }) => {
         const msgContent = content || messageInput.trim();
         if (!activeChat || !msgContent || !userKeys || !user) return;
 
@@ -672,11 +691,12 @@ export function useChatMessages(friendsList: Friend[]) {
                 reply_to_id: currentReplyTo?.id || null,
                 expires_at: expiresAt,
                 message_keys: messageKeys,
+                attachment: attachmentMeta,
             };
 
             const response = await sendMessageMutation.mutateAsync(sendData);
 
-            const previewContent = msgContent.startsWith("https://") && msgContent.includes("tenor") ? "GIF" : msgContent;
+            const previewContent = getPreviewContent(msgContent);
             setDmPreviews((prev) => {
                 const idx = prev.findIndex((p) => p.conversationId === activeChat.conversationId);
                 if (idx >= 0) {
@@ -792,7 +812,7 @@ export function useChatMessages(friendsList: Friend[]) {
 
             await editMessageMutation.mutateAsync({ messageId, data: editData });
 
-            const previewContent = newContent.startsWith("https://") && newContent.includes("tenor") ? "GIF" : newContent;
+            const previewContent = getPreviewContent(newContent);
             setDmPreviews((prev) => {
                 const idx = prev.findIndex((p) => p.conversationId === activeChat.conversationId);
                 if (idx >= 0) {

@@ -13,6 +13,7 @@ pub struct Config {
     pub uploads: UploadsConfig,
     #[serde(default)]
     pub calls: CallsConfig,
+    pub s3: S3Config,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -110,6 +111,27 @@ pub struct UploadsConfig {
     pub max_concurrent_uploads: usize,
     pub max_uploads_per_hour: u32,
     pub retention_days: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct S3Config {
+    pub endpoint: String,
+    pub region: String,
+    pub bucket: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    #[serde(default = "default_s3_presigned_url_expiry")]
+    pub presigned_url_expiry_seconds: u64,
+    #[serde(default = "default_s3_max_file_size")]
+    pub max_file_size_bytes: usize,
+}
+
+fn default_s3_presigned_url_expiry() -> u64 {
+    3600
+}
+
+fn default_s3_max_file_size() -> usize {
+    104_857_600
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -317,6 +339,22 @@ impl Config {
                 .unwrap_or(90),
         };
 
+        let s3 = S3Config {
+            endpoint: env::var("S3_ENDPOINT")?,
+            region: env::var("S3_REGION")?,
+            bucket: env::var("S3_BUCKET")?,
+            access_key_id: env::var("S3_ACCESS_KEY_ID")?,
+            secret_access_key: env::var("S3_SECRET_ACCESS_KEY")?,
+            presigned_url_expiry_seconds: env::var("S3_PRESIGNED_URL_EXPIRY")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or_else(default_s3_presigned_url_expiry),
+            max_file_size_bytes: env::var("S3_MAX_FILE_SIZE_BYTES")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or_else(default_s3_max_file_size),
+        };
+
         let relay = RelayConfig {
             bind_host: env::var("CALLS_RELAY_BIND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
             bind_port: env::var("CALLS_RELAY_BIND_PORT")
@@ -360,6 +398,7 @@ impl Config {
             websocket,
             uploads,
             calls,
+            s3,
         })
     }
 
