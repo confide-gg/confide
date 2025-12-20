@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/confide-gg/confide/compare/confide-client-v0.21.2...confide-client-v0.22.0) (2025-12-20)
+
+
+### Features
+
+* add support for Windows ([#38](https://github.com/confide-gg/confide/issues/38)) ([7df8142](https://github.com/confide-gg/confide/commit/7df8142ad48b9263ac753c30360f18585d7225a6))
+
 ## [0.21.2](https://github.com/confide-gg/confide/compare/confide-client-v0.21.1...confide-client-v0.21.2) (2025-12-18)
 
 
