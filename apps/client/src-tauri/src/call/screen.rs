@@ -198,7 +198,7 @@ pub fn get_screen_sources() -> Result<Vec<ScreenCaptureSource>, String> {
 
 fn is_system_window(name: &str) -> bool {
     #[cfg(target_os = "macos")]
-    let system_names: &[&str] = &[
+    const SYSTEM_NAMES: &[&str] = &[
         "Menubar",
         "System Status Item Clone",
         "Notification Center",
@@ -210,7 +210,7 @@ fn is_system_window(name: &str) -> bool {
     ];
 
     #[cfg(target_os = "windows")]
-    let system_names: &[&str] = &[
+    const SYSTEM_NAMES: &[&str] = &[
         "Program Manager",
         "Start",
         "Task View",
@@ -228,7 +228,7 @@ fn is_system_window(name: &str) -> bool {
     ];
 
     #[cfg(target_os = "linux")]
-    let system_names: &[&str] = &[
+    const SYSTEM_NAMES: &[&str] = &[
         "Desktop",
         "Plasma",
         "krunner",
@@ -237,7 +237,10 @@ fn is_system_window(name: &str) -> bool {
         "mutter",
     ];
 
-    for sys_name in system_names {
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    const SYSTEM_NAMES: &[&str] = &[];
+
+    for sys_name in SYSTEM_NAMES {
         if name.contains(sys_name) {
             return true;
         }
@@ -708,4 +711,168 @@ pub fn check_screen_recording_permission() -> bool {
 
 pub fn request_screen_recording_permission() -> bool {
     scap::request_permission()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_system_window_macos() {
+        #[cfg(target_os = "macos")]
+        {
+            assert!(is_system_window("Menubar"));
+            assert!(is_system_window("Notification Center"));
+            assert!(is_system_window("Control Center"));
+            assert!(is_system_window("Spotlight"));
+            assert!(is_system_window("Window Server"));
+            assert!(is_system_window("System Status Item Clone"));
+            assert!(!is_system_window("Firefox"));
+            assert!(!is_system_window("Visual Studio Code"));
+        }
+    }
+
+    #[test]
+    fn test_is_system_window_windows() {
+        #[cfg(target_os = "windows")]
+        {
+            assert!(is_system_window("Program Manager"));
+            assert!(is_system_window("Start"));
+            assert!(is_system_window("Task View"));
+            assert!(is_system_window("Windows Shell Experience Host"));
+            assert!(is_system_window("Search"));
+            assert!(is_system_window("Cortana"));
+            assert!(!is_system_window("Firefox"));
+            assert!(!is_system_window("Visual Studio Code"));
+        }
+    }
+
+    #[test]
+    fn test_is_system_window_linux() {
+        #[cfg(target_os = "linux")]
+        {
+            assert!(is_system_window("Desktop"));
+            assert!(is_system_window("Plasma"));
+            assert!(is_system_window("plasmashell"));
+            assert!(is_system_window("gnome-shell"));
+            assert!(is_system_window("mutter"));
+            assert!(!is_system_window("Firefox"));
+            assert!(!is_system_window("Visual Studio Code"));
+        }
+    }
+
+    #[test]
+    fn test_is_system_window_partial_match() {
+        #[cfg(target_os = "macos")]
+        {
+            assert!(is_system_window("Some Menubar Window"));
+            assert!(is_system_window("Window Server Process"));
+        }
+        #[cfg(target_os = "windows")]
+        {
+            assert!(is_system_window(
+                "Windows Shell Experience Host - Something"
+            ));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            assert!(is_system_window("GNOME plasmashell"));
+        }
+    }
+
+    #[test]
+    fn test_is_system_window_empty_string() {
+        assert!(!is_system_window(""));
+    }
+
+    #[test]
+    fn test_video_frame_serialization() {
+        let frame = VideoFrame {
+            frame_id: 42,
+            fragment_index: 1,
+            fragment_count: 3,
+            is_keyframe: true,
+            width: 1920,
+            height: 1080,
+            timestamp: 123456789,
+            data: vec![1, 2, 3, 4, 5],
+        };
+
+        let bytes = frame.to_bytes();
+        let decoded = VideoFrame::from_bytes(&bytes).unwrap();
+
+        assert_eq!(decoded.frame_id, 42);
+        assert_eq!(decoded.fragment_index, 1);
+        assert_eq!(decoded.fragment_count, 3);
+        assert!(decoded.is_keyframe);
+        assert_eq!(decoded.width, 1920);
+        assert_eq!(decoded.height, 1080);
+        assert_eq!(decoded.timestamp, 123456789);
+        assert_eq!(decoded.data, vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_video_frame_from_bytes_too_short() {
+        let short_data = vec![0u8; 10];
+        assert!(VideoFrame::from_bytes(&short_data).is_err());
+    }
+
+    #[test]
+    fn test_frame_reassembler_single_fragment() {
+        let mut reassembler = FrameReassembler::new();
+
+        let frame = VideoFrame {
+            frame_id: 1,
+            fragment_index: 0,
+            fragment_count: 1,
+            is_keyframe: true,
+            width: 1920,
+            height: 1080,
+            timestamp: 100,
+            data: vec![1, 2, 3],
+        };
+
+        let result = reassembler.add_fragment(frame);
+        assert!(result.is_some());
+        let (data, is_keyframe, width, height, timestamp, frame_id, _) = result.unwrap();
+        assert_eq!(data, vec![1, 2, 3]);
+        assert!(is_keyframe);
+        assert_eq!(width, 1920);
+        assert_eq!(height, 1080);
+        assert_eq!(timestamp, 100);
+        assert_eq!(frame_id, 1);
+    }
+
+    #[test]
+    fn test_frame_reassembler_multiple_fragments() {
+        let mut reassembler = FrameReassembler::new();
+
+        let frag1 = VideoFrame {
+            frame_id: 1,
+            fragment_index: 0,
+            fragment_count: 2,
+            is_keyframe: false,
+            width: 1920,
+            height: 1080,
+            timestamp: 100,
+            data: vec![1, 2],
+        };
+
+        let frag2 = VideoFrame {
+            frame_id: 1,
+            fragment_index: 1,
+            fragment_count: 2,
+            is_keyframe: false,
+            width: 1920,
+            height: 1080,
+            timestamp: 100,
+            data: vec![3, 4],
+        };
+
+        assert!(reassembler.add_fragment(frag1).is_none());
+        let result = reassembler.add_fragment(frag2);
+        assert!(result.is_some());
+        let (data, _, _, _, _, _, _) = result.unwrap();
+        assert_eq!(data, vec![1, 2, 3, 4]);
+    }
 }
