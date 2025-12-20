@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.22.0](https://github.com/confide-gg/confide/compare/confide-client-v0.21.2...confide-client-v0.22.0) (2025-12-20)
+
+
+### Features
+
+* add clickable member profiles in groups ([4b7ae6e](https://github.com/confide-gg/confide/commit/4b7ae6e86e51751ce90439fe388e7af4d004b190))
+* implement end-to-end encrypted file attachments ([4c09b59](https://github.com/confide-gg/confide/commit/4c09b59805fd77cd8d2626f70dfc47347c69ef4b))
+* implement GIF picker ([1f3b9b4](https://github.com/confide-gg/confide/commit/1f3b9b4b52b0f2b8976a369ad12fa80dce32a26a))
+* improve group creation and organize sidebar conversations ([0b405e0](https://github.com/confide-gg/confide/commit/0b405e0d6cc5615b3a35b0590814d528751e7dc1))
+
+
+### Bug Fixes
+
+* improve chat auto-scroll for GIFs and images ([740d1e0](https://github.com/confide-gg/confide/commit/740d1e00a04120a9318c3f878b39a4ff66a847a0))
+* resolve group chat message cache and sender name issues ([4730d06](https://github.com/confide-gg/confide/commit/4730d06d9a9205b06825aead2912331fd16f452f))
+
 ## [0.21.2](https://github.com/confide-gg/confide/compare/confide-client-v0.21.1...confide-client-v0.21.2) (2025-12-18)
 
 
