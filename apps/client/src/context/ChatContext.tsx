@@ -109,7 +109,7 @@ interface ChatContextType {
   searchUsers: (query: string) => Promise<void>;
   openDmFromPreview: (preview: DmPreview) => void;
   openGroupFromPreview: (preview: DmPreview) => void;
-  closeDm: (conversationId: string) => void;
+  closeDm: (conversationId: string) => Promise<void>;
   favoriteGifUrls: Set<string>;
   toggleFavoriteGif: (gifUrl: string, previewUrl?: string) => Promise<void>;
   addSystemMessage: (conversationId: string, content: string, systemType: SystemMessageType) => void;
@@ -390,8 +390,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   }, [groupsLogic.groupPreviews]);
 
-  const closeDm = (conversationId: string) => {
+  const closeDm = async (conversationId: string) => {
     chatLogic.setDmPreviews(prev => prev.filter(p => p.conversationId !== conversationId));
+    try {
+      await conversationService.hideConversation(conversationId);
+    } catch (err) {
+      console.error("Failed to hide conversation:", err);
+    }
   };
 
 

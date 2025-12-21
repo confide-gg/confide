@@ -37,6 +37,10 @@ class ConversationService {
   ): Promise<SuccessResponse> {
     return httpClient.post<SuccessResponse>(`/conversations/${conversationId}/members`, data);
   }
+
+  public async hideConversation(conversationId: string): Promise<SuccessResponse> {
+    return httpClient.post<SuccessResponse>(`/conversations/${conversationId}/hide`, {});
+  }
 }
 
 export const conversationService = new ConversationService();

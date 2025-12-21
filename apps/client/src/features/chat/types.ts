@@ -15,6 +15,8 @@ export interface ConversationWithRouting {
 export interface ConversationResponse {
     id: string;
     conversation_type: string;
+    encrypted_sender_key?: number[];
+    encrypted_role?: number[];
 }
 
 export interface MemberInit {

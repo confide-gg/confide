@@ -157,7 +157,7 @@ impl Database {
                            cm.encrypted_sender_key, cm.encrypted_role
                     FROM conversations c
                     JOIN conversation_members cm ON c.id = cm.conversation_id
-                    WHERE cm.user_id = $1
+                    WHERE cm.user_id = $1 AND cm.hidden = FALSE
                     ORDER BY c.created_at DESC
                     "#,
             )
@@ -168,6 +168,36 @@ impl Database {
         })
         .await
         .map_err(AppError::Internal)
+    }
+
+    pub async fn hide_conversation(&self, conversation_id: Uuid, user_id: Uuid) -> Result<()> {
+        sqlx::query(
+            "UPDATE conversation_members SET hidden = TRUE WHERE conversation_id = $1 AND user_id = $2",
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+
+        let cache_key = format!("user:convos:{}", user_id);
+        let _ = super::cache::invalidate_cache(&self.redis, &cache_key).await;
+
+        Ok(())
+    }
+
+    pub async fn unhide_conversation(&self, conversation_id: Uuid, user_id: Uuid) -> Result<()> {
+        sqlx::query(
+            "UPDATE conversation_members SET hidden = FALSE WHERE conversation_id = $1 AND user_id = $2",
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+
+        let cache_key = format!("user:convos:{}", user_id);
+        let _ = super::cache::invalidate_cache(&self.redis, &cache_key).await;
+
+        Ok(())
     }
 
     pub async fn remove_conversation_member(

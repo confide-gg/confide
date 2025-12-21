@@ -8,7 +8,11 @@ import { Panel } from "../layout/Panel";
 import { CreateGroupModal } from "../groups/CreateGroupModal";
 import { useConversations, useFriends, useFriendRequests } from "../../hooks/useQueries";
 
-export function Sidebar() {
+interface SidebarProps {
+  onLeaveGroup?: (conversationId: string) => void;
+}
+
+export function Sidebar({ onLeaveGroup }: SidebarProps) {
   const { friendsList, createGroup } = useChat();
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
@@ -30,7 +34,7 @@ export function Sidebar() {
 
           <div className="mt-2">
             <div className="px-2 mt-1">
-              <DmList onCreateGroup={() => setIsCreateGroupOpen(true)} />
+              <DmList onCreateGroup={() => setIsCreateGroupOpen(true)} onLeaveGroup={onLeaveGroup} />
             </div>
           </div>
         </div>

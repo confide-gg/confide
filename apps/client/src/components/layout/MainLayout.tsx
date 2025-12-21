@@ -181,7 +181,13 @@ export function MainLayout() {
 
       {activeServer && <ChannelList />}
 
-      {!activeServer && <Sidebar />}
+      {!activeServer && (
+        <Sidebar
+          onLeaveGroup={(conversationId) => {
+            setConfirmGroupAction({ type: "leave", conversationId });
+          }}
+        />
+      )}
 
       {!activeServer && (
         <Panel className="flex-1 flex flex-col min-w-0 relative">

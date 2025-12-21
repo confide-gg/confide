@@ -499,8 +499,20 @@ export function useChatMessages(friendsList: Friend[]) {
                 });
                 conversationId = conv.id;
 
-                const updatedConvs = await conversationService.getConversations();
-                existingConv = updatedConvs.find(c => c.id === conversationId) || null;
+                if (conv.encrypted_sender_key) {
+                    existingConv = {
+                        id: conv.id,
+                        conversation_type: conv.conversation_type,
+                        encrypted_metadata: null,
+                        owner_id: null,
+                        created_at: new Date().toISOString(),
+                        encrypted_sender_key: conv.encrypted_sender_key,
+                        encrypted_role: conv.encrypted_role || [],
+                    };
+                } else {
+                    const updatedConvs = await conversationService.getConversations();
+                    existingConv = updatedConvs.find(c => c.id === conversationId) || null;
+                }
             }
 
             if (!existingConv) throw new Error("Conversation not found");

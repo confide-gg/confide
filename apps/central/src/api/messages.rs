@@ -267,8 +267,15 @@ pub async fn send_message(
         pinned_at: None,
         created_at: message.created_at,
     });
-    if let Ok(json) = serde_json::to_string(&ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+    if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+        for member in &members {
+            let _ = state
+                .db
+                .unhide_conversation(conversation_id, member.user_id)
+                .await;
+        }
+
+        if let Ok(json) = serde_json::to_string(&ws_msg) {
             for member in members {
                 let user_channel = format!("user:{}", member.user_id);
                 let _ = publish_to_redis(&state.redis, &user_channel, &json).await;

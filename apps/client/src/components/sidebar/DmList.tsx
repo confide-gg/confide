@@ -11,9 +11,10 @@ import { Button } from "../ui/button";
 
 interface DmListProps {
   onCreateGroup?: () => void;
+  onLeaveGroup?: (conversationId: string) => void;
 }
 
-export function DmList({ onCreateGroup }: DmListProps) {
+export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
   const { user } = useAuth();
   const { dmPreviews, friendsList, activeChat, unreadCounts, openDmFromPreview, openGroupFromPreview, closeDm, setDmContextMenu, setGroupContextMenu } = useChat();
   const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } = usePresence();
@@ -48,9 +49,13 @@ export function DmList({ onCreateGroup }: DmListProps) {
     );
   }
 
-  const handleCloseDm = (e: React.MouseEvent, conversationId: string) => {
+  const handleCloseDm = (e: React.MouseEvent, preview: DmPreview) => {
     e.stopPropagation();
-    closeDm(conversationId);
+    if (preview.isGroup && onLeaveGroup) {
+      onLeaveGroup(preview.conversationId);
+    } else {
+      closeDm(preview.conversationId);
+    }
   };
 
   const handleContextMenu = (e: React.MouseEvent, preview: DmPreview) => {
@@ -134,8 +139,8 @@ export function DmList({ onCreateGroup }: DmListProps) {
         <div
           role="button"
           className="absolute right-1.5 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/50 transition-all text-muted-foreground hover:text-foreground cursor-pointer"
-          onClick={(e) => handleCloseDm(e, preview.conversationId)}
-          title="Close DM"
+          onClick={(e) => handleCloseDm(e, preview)}
+          title={preview.isGroup ? "Leave Group" : "Close DM"}
         >
           <X className="w-3.5 h-3.5" />
         </div>

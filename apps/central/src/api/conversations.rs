@@ -31,6 +31,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/{id}/members/bulk", post(add_members_bulk))
         .route("/{id}/members/{user_id}", delete(remove_member))
         .route("/{id}/leave", post(leave_group))
+        .route("/{id}/hide", post(hide_conversation))
         .route("/{id}/owner", put(update_owner))
         .route("/{id}/metadata", patch(update_metadata))
         .route("/{id}", delete(delete_conversation))
@@ -62,6 +63,10 @@ pub struct MemberInit {
 pub struct ConversationResponse {
     pub id: Uuid,
     pub conversation_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encrypted_sender_key: Option<Vec<u8>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encrypted_role: Option<Vec<u8>>,
 }
 
 pub async fn create_conversation(
@@ -108,6 +113,8 @@ pub async fn create_conversation(
     Ok(Json(ConversationResponse {
         id: conversation.id,
         conversation_type: conversation.conversation_type,
+        encrypted_sender_key: None,
+        encrypted_role: None,
     }))
 }
 
@@ -238,6 +245,8 @@ pub async fn create_group(
     Ok(Json(ConversationResponse {
         id: conversation.id,
         conversation_type: conversation.conversation_type,
+        encrypted_sender_key: None,
+        encrypted_role: None,
     }))
 }
 
@@ -273,9 +282,22 @@ pub async fn get_or_create_dm(
         .find_dm_conversation(auth.user_id, other_user_id)
         .await?
     {
+        let _ = state
+            .db
+            .unhide_conversation(existing.id, auth.user_id)
+            .await;
+
+        let routing = state
+            .db
+            .get_conversation_routing(existing.id, auth.user_id)
+            .await?
+            .ok_or(AppError::NotConversationMember)?;
+
         return Ok(Json(ConversationResponse {
             id: existing.id,
             conversation_type: existing.conversation_type,
+            encrypted_sender_key: Some(routing.encrypted_sender_key),
+            encrypted_role: Some(routing.encrypted_role),
         }));
     }
 
@@ -283,6 +305,9 @@ pub async fn get_or_create_dm(
         .db
         .create_conversation(ConversationType::Dm, req.encrypted_metadata, None)
         .await?;
+
+    let my_sender_key = req.my_encrypted_sender_key.clone();
+    let my_role = req.my_encrypted_role.clone();
 
     state
         .db
@@ -307,6 +332,8 @@ pub async fn get_or_create_dm(
     Ok(Json(ConversationResponse {
         id: conversation.id,
         conversation_type: conversation.conversation_type,
+        encrypted_sender_key: Some(my_sender_key),
+        encrypted_role: Some(my_role),
     }))
 }
 
@@ -1064,6 +1091,25 @@ pub async fn update_metadata(
             }
         }
     }
+
+    Ok(Json(super::messages::SuccessResponse { success: true }))
+}
+
+pub async fn hide_conversation(
+    State(state): State<Arc<AppState>>,
+    auth: AuthUser,
+    Path(conversation_id): Path<Uuid>,
+) -> Result<Json<super::messages::SuccessResponse>> {
+    state
+        .db
+        .get_conversation_routing(conversation_id, auth.user_id)
+        .await?
+        .ok_or(AppError::NotConversationMember)?;
+
+    state
+        .db
+        .hide_conversation(conversation_id, auth.user_id)
+        .await?;
 
     Ok(Json(super::messages::SuccessResponse { success: true }))
 }
