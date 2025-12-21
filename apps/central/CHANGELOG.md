@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.0](https://github.com/confide-gg/confide/compare/confide-central-v0.11.1...confide-central-v0.12.0) (2025-12-21)
+
+
+### Features
+
+* migrate avatar/banner storage from PostgreSQL to S3 ([374846a](https://github.com/confide-gg/confide/commit/374846addc8a624cb902a8711a0f6dc18845d1bd))
+
+
+### Bug Fixes
+
+* persist hidden state when closing DMs ([cc119b7](https://github.com/confide-gg/confide/commit/cc119b7e7afa71e86ececb6c30bf4d1f6e38346c))
+
 ## [0.11.1](https://github.com/confide-gg/confide/compare/confide-central-v0.11.0...confide-central-v0.11.1) (2025-12-20)
 
 
