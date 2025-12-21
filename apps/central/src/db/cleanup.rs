@@ -51,9 +51,18 @@ pub async fn run_cleanup_task(state: Arc<AppState>) {
 
         let retention_days = state.config.uploads.retention_days;
         match state.db.delete_orphaned_uploads(retention_days).await {
-            Ok(count) => {
-                if count > 0 {
-                    tracing::info!("cleaned up {} orphaned uploads", count);
+            Ok(s3_keys) => {
+                if !s3_keys.is_empty() {
+                    tracing::info!("cleaned up {} orphaned uploads", s3_keys.len());
+                    for s3_key in s3_keys {
+                        if let Err(e) = state.s3.delete_file(&s3_key).await {
+                            tracing::error!(
+                                "failed to delete orphaned upload from S3 {}: {:?}",
+                                s3_key,
+                                e
+                            );
+                        }
+                    }
                 }
             }
             Err(e) => {

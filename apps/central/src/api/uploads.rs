@@ -8,8 +8,8 @@ use axum::{
 };
 use chrono::Utc;
 use redis::AsyncCommands;
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
-use uuid::Uuid;
 
 use crate::error::{AppError, Result};
 use crate::models::UploadResponse;
@@ -23,7 +23,7 @@ const ALLOWED_TYPES: &[&str] = &["image/jpeg", "image/png", "image/gif", "image/
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(upload_file))
-        .route("/file/{upload_id}", get(get_file))
+        .route("/file/{*s3_key}", get(get_file))
         .route("/type/{file_type}", delete(delete_file))
 }
 
@@ -97,9 +97,8 @@ pub async fn upload_file(
                     )));
                 }
 
-                // Validate actual file content, not just Content-Type header
-                let file_type = infer::get(&bytes);
-                let mime = match file_type {
+                let inferred_type = infer::get(&bytes);
+                let mime = match inferred_type {
                     Some(kind) => kind.mime_type(),
                     None => {
                         return Err(AppError::BadRequest("Could not determine file type".into()));
@@ -125,12 +124,19 @@ pub async fn upload_file(
         content_type.ok_or_else(|| AppError::BadRequest("Missing 'file' field".into()))?;
     let data = data.ok_or_else(|| AppError::BadRequest("Missing 'file' field".into()))?;
 
-    let upload = state
-        .db
-        .save_upload(auth.user_id, &file_type, &content_type, &data)
+    let file_size = data.len() as i32;
+
+    let s3_key = state
+        .s3
+        .upload_profile_image(&auth.user_id.to_string(), &file_type, &content_type, data)
         .await?;
 
-    let url = format!("/api/uploads/file/{}", upload.id);
+    let upload = state
+        .db
+        .save_upload(auth.user_id, &file_type, &content_type, &s3_key, file_size)
+        .await?;
+
+    let url = format!("/api/uploads/file/{}", s3_key);
     state
         .db
         .update_profile_image(auth.user_id, &file_type, &url)
@@ -141,19 +147,26 @@ pub async fn upload_file(
 
 pub async fn get_file(
     State(state): State<Arc<AppState>>,
-    Path(upload_id): Path<Uuid>,
+    Path(s3_key): Path<String>,
 ) -> Result<Response> {
     let upload = state
         .db
-        .get_upload(upload_id)
+        .get_upload_by_s3_key(&s3_key)
         .await?
         .ok_or_else(|| AppError::NotFound("Upload not found".into()))?;
+
+    let file_data = state.s3.download_file(&s3_key).await?;
+
+    let mut hasher = Sha256::new();
+    hasher.update(&s3_key);
+    let etag = format!("\"{}\"", hex::encode(&hasher.finalize()[..16]));
 
     let response = Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, &upload.content_type)
         .header(header::CACHE_CONTROL, "public, max-age=31536000, immutable")
-        .body(Body::from(upload.data))
+        .header(header::ETAG, etag)
+        .body(Body::from(file_data))
         .map_err(|e| AppError::Internal(anyhow::anyhow!("Failed to build response: {}", e)))?;
 
     Ok(response)
@@ -170,7 +183,10 @@ pub async fn delete_file(
         ));
     }
 
-    state.db.delete_upload(auth.user_id, &file_type).await?;
+    if let Some(s3_key) = state.db.delete_upload(auth.user_id, &file_type).await? {
+        state.s3.delete_file(&s3_key).await?;
+    }
+
     state
         .db
         .clear_profile_image(auth.user_id, &file_type)

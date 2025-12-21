@@ -8,8 +8,7 @@ pub struct Upload {
     pub user_id: Uuid,
     pub file_type: String,
     pub content_type: String,
-    #[serde(skip_serializing)]
-    pub data: Vec<u8>,
+    pub s3_key: String,
     pub file_size: i32,
     pub created_at: DateTime<Utc>,
 }

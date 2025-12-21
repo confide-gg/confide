@@ -199,4 +199,42 @@ impl S3Service {
 
         Ok(())
     }
+
+    pub async fn upload_profile_image(
+        &self,
+        user_id: &str,
+        file_type: &str,
+        content_type: &str,
+        data: Vec<u8>,
+    ) -> Result<String> {
+        let key = format!("profiles/{}/{}", user_id, file_type);
+
+        tracing::debug!(
+            "Uploading profile image to bucket: {}, key: {}, size: {} bytes",
+            self.config.bucket,
+            key,
+            data.len()
+        );
+
+        self.client
+            .put_object()
+            .bucket(&self.config.bucket)
+            .key(&key)
+            .body(data.into())
+            .content_type(content_type)
+            .send()
+            .await
+            .map_err(|e| {
+                tracing::error!(
+                    "Failed to upload profile image to bucket '{}', key '{}': {}",
+                    self.config.bucket,
+                    key,
+                    e
+                );
+                AppError::Internal(anyhow::anyhow!("Failed to upload profile image: {}", e))
+            })?;
+
+        tracing::info!("Profile image uploaded successfully: {}", key);
+        Ok(key)
+    }
 }

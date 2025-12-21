@@ -4,8 +4,8 @@ import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import { ImageCropper } from "../common/ImageCropper";
 import { Label } from "../ui/label";
-import { Loader2, X } from "lucide-react";
-import type { UpdateProfileRequest, UserStatus } from "../../types";
+import { Loader2, X, Save } from "lucide-react";
+import type { UserStatus } from "../../types";
 import { cn } from "../../lib/utils";
 
 const STATUS_OPTIONS: { value: UserStatus; label: string; color: string; description: string }[] = [
@@ -18,6 +18,8 @@ const STATUS_OPTIONS: { value: UserStatus; label: string; color: string; descrip
 export function ProfileSettings() {
   const { user, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -32,8 +34,15 @@ export function ProfileSettings() {
   const [cropType, setCropType] = useState<"avatar" | "banner" | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
-  const initialLoadRef = useRef(true);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialValuesRef = useRef<{
+    displayName: string;
+    avatarUrl: string;
+    bannerUrl: string;
+    bio: string;
+    status: UserStatus;
+    customStatus: string;
+    accentColor: string;
+  } | null>(null);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") {
@@ -54,13 +63,29 @@ export function ProfileSettings() {
       try {
         const profile = await profileService.getMyProfile();
         if (profile) {
-          setDisplayName(profile.display_name || "");
-          setAvatarUrl(profile.avatar_url || "");
-          setBannerUrl(profile.banner_url || "");
-          setBio(profile.bio || "");
-          setStatus(profile.status || "online");
-          setCustomStatus(profile.custom_status || "");
-          setAccentColor(profile.accent_color || "#c9ed7b");
+          const dn = profile.display_name || "";
+          const av = profile.avatar_url || "";
+          const bn = profile.banner_url || "";
+          const b = profile.bio || "";
+          const s = profile.status || "online";
+          const cs = profile.custom_status || "";
+          const ac = profile.accent_color || "#c9ed7b";
+          setDisplayName(dn);
+          setAvatarUrl(av);
+          setBannerUrl(bn);
+          setBio(b);
+          setStatus(s);
+          setCustomStatus(cs);
+          setAccentColor(ac);
+          initialValuesRef.current = {
+            displayName: dn,
+            avatarUrl: av,
+            bannerUrl: bn,
+            bio: b,
+            status: s,
+            customStatus: cs,
+            accentColor: ac,
+          };
         }
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -71,27 +96,25 @@ export function ProfileSettings() {
     loadProfile();
   }, []);
 
-  const saveProfile = useCallback(async (data: UpdateProfileRequest) => {
-    try {
-      await profileService.updateProfile(data);
-      await refreshProfile();
-    } catch (err) {
-      console.error("Failed to save profile:", err);
-    }
-  }, [refreshProfile]);
-
   useEffect(() => {
-    if (initialLoadRef.current || isLoading) {
-      initialLoadRef.current = false;
-      return;
-    }
+    if (!initialValuesRef.current || isLoading) return;
+    const initial = initialValuesRef.current;
+    const normalizeUrl = (url: string) => url.split("?")[0];
+    const hasChanges =
+      displayName !== initial.displayName ||
+      normalizeUrl(avatarUrl) !== normalizeUrl(initial.avatarUrl) ||
+      normalizeUrl(bannerUrl) !== normalizeUrl(initial.bannerUrl) ||
+      bio !== initial.bio ||
+      status !== initial.status ||
+      customStatus !== initial.customStatus ||
+      accentColor !== initial.accentColor;
+    setIsDirty(hasChanges);
+  }, [displayName, avatarUrl, bannerUrl, bio, status, customStatus, accentColor, isLoading]);
 
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      saveProfile({
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await profileService.updateProfile({
         display_name: displayName || undefined,
         avatar_url: avatarUrl || undefined,
         banner_url: bannerUrl || undefined,
@@ -100,14 +123,23 @@ export function ProfileSettings() {
         custom_status: customStatus || undefined,
         accent_color: accentColor,
       });
-    }, 500);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [displayName, avatarUrl, bannerUrl, bio, status, customStatus, accentColor, saveProfile, isLoading]);
+      await refreshProfile();
+      initialValuesRef.current = {
+        displayName,
+        avatarUrl,
+        bannerUrl,
+        bio,
+        status,
+        customStatus,
+        accentColor,
+      };
+      setIsDirty(false);
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "avatar" | "banner") => {
     const file = e.target.files?.[0];
@@ -133,7 +165,6 @@ export function ProfileSettings() {
       const urlWithCacheBust = `${result.url}?t=${timestamp}`;
       if (cropType === "avatar") setAvatarUrl(urlWithCacheBust);
       else setBannerUrl(urlWithCacheBust);
-      await refreshProfile();
     } catch (err) {
       console.error(`Failed to upload ${cropType}:`, err);
     } finally {
@@ -380,6 +411,26 @@ export function ProfileSettings() {
               className="w-full px-4 py-3 bg-secondary/50 border-0 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             />
           </div>
+        </div>
+
+        <div className="pt-4 border-t border-border">
+          <button
+            onClick={handleSave}
+            disabled={!isDirty || isSaving}
+            className={cn(
+              "w-full h-11 flex items-center justify-center gap-2 rounded-xl font-medium transition-all",
+              isDirty
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-secondary/50 text-muted-foreground cursor-not-allowed"
+            )}
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isSaving ? "Saving..." : isDirty ? "Save Changes" : "No Changes"}
+          </button>
         </div>
       </div>
 
