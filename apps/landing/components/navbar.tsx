@@ -1,17 +1,24 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Menu, X, Github } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Menu, X, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+
+const compareLinks = [
+  { label: "vs Discord", href: "/compare/discord" },
+];
 
 const navLinks = [
-  { label: "Features", href: "#features" },
+  { label: "Features", href: "/features" },
   { label: "GitHub", href: "https://github.com/confide-gg/confide", external: true },
 ];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const compareRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,20 +28,19 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (compareRef.current && !compareRef.current.contains(e.target as Node)) {
+        setCompareOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string, external?: boolean) => {
     if (external) return;
-    if (href.startsWith("#")) {
-      e.preventDefault();
-      const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-      setMobileMenuOpen(false);
-    }
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -47,18 +53,37 @@ export default function Navbar() {
         }`}
       >
         <div className="flex h-14 items-center justify-between px-6">
-          <a
+          <Link
             href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToTop();
-            }}
             className="text-lg font-bold tracking-tight text-primary"
           >
             Confide
-          </a>
+          </Link>
 
           <div className="hidden items-center gap-6 md:flex">
+            <div ref={compareRef} className="relative">
+              <button
+                onClick={() => setCompareOpen(!compareOpen)}
+                className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Compare
+                <ChevronDown className={`w-4 h-4 transition-transform ${compareOpen ? "rotate-180" : ""}`} />
+              </button>
+              {compareOpen && (
+                <div className="absolute top-full left-0 mt-2 w-40 py-2 bg-white/10 backdrop-blur-2xl border border-white/10 rounded-xl shadow-xl">
+                  {compareLinks.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+                      onClick={() => setCompareOpen(false)}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
             {navLinks.map((link) => (
               <a
                 key={link.label}
@@ -102,6 +127,20 @@ export default function Navbar() {
         <div className="md:hidden mt-2 mx-auto max-w-4xl bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden">
           <div className="p-4">
             <div className="flex flex-col gap-1">
+              <div className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Compare
+              </div>
+              {compareLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="px-4 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground rounded-xl hover:bg-white/5 pl-8"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))}
+              <div className="h-px bg-white/10 my-2" />
               {navLinks.map((link) => (
                 <a
                   key={link.label}
