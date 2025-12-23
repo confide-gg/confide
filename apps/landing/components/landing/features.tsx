@@ -6,9 +6,32 @@ import { features } from "./constants";
 
 export function Features() {
   return (
-    <section id="features" className="min-h-screen py-32">
-      {features.map((feature, index) => (
+    <section id="features" className="min-h-screen py-32" aria-labelledby="features-heading">
+      <div className="mx-auto max-w-7xl px-4 mb-16">
         <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center"
+        >
+          <h2
+            id="features-heading"
+            className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight mb-6"
+          >
+            <span className="text-foreground">Powerful </span>
+            <span className="text-primary" style={{ textShadow: "0 0 60px rgba(201, 237, 123, 0.4)" }}>
+              Features
+            </span>
+          </h2>
+          <p className="max-w-2xl mx-auto text-lg text-muted-foreground">
+            Everything you need for private communication. Built from the ground up with security and privacy as the foundation, not an afterthought.
+          </p>
+        </motion.div>
+      </div>
+
+      {features.map((feature, index) => (
+        <motion.article
           key={feature.id}
           initial={{ opacity: 0, y: 100 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -22,7 +45,7 @@ export function Features() {
             }`}
           >
             <div className="flex-1 space-y-6">
-              <h2 className="text-4xl font-black uppercase tracking-tight md:text-5xl lg:text-6xl">
+              <h3 className="text-4xl font-black uppercase tracking-tight md:text-5xl lg:text-6xl">
                 <span className="text-foreground">{feature.title}</span>
                 <br />
                 <span
@@ -31,16 +54,16 @@ export function Features() {
                 >
                   {feature.highlight}
                 </span>
-              </h2>
+              </h3>
               <p className="max-w-md text-lg text-muted-foreground leading-relaxed">
                 {feature.description}
               </p>
             </div>
             <div className="w-full flex-1 lg:max-w-2xl">
-              <VideoPlayer src={feature.video} />
+              <VideoPlayer src={feature.video} alt={feature.alt} />
             </div>
           </div>
-        </motion.div>
+        </motion.article>
       ))}
     </section>
   );
