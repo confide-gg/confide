@@ -4,9 +4,10 @@ import { useRef, useState, useEffect } from "react";
 
 interface VideoPlayerProps {
   src: string;
+  alt?: string;
 }
 
-export function VideoPlayer({ src }: VideoPlayerProps) {
+export function VideoPlayer({ src, alt }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,12 +23,16 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
 
   useEffect(() => {
     if (videoRef.current) {
-      isVisible ? videoRef.current.play() : videoRef.current.pause();
+      if (isVisible) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
     }
   }, [isVisible]);
 
   return (
-    <div
+    <figure
       ref={containerRef}
       className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl shadow-2xl shadow-black/50"
     >
@@ -37,8 +42,10 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
         loop
         muted
         playsInline
+        aria-label={alt}
         className="h-full w-full object-cover"
       />
-    </div>
+      {alt && <figcaption className="sr-only">{alt}</figcaption>}
+    </figure>
   );
 }

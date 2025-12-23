@@ -39,22 +39,27 @@ export function FloatingModel({
   const [animProgress, setAnimProgress] = useState(0);
   const animStartTime = useRef<number | null>(null);
 
-  const physics = useRef<SpacePhysics>({
-    position: new THREE.Vector3(...position),
-    angularVelocity: new THREE.Vector3(
-      (Math.random() - 0.5) * 0.05,
-      (Math.random() - 0.5) * 0.07,
-      (Math.random() - 0.5) * 0.03
-    ),
-    rotation: new THREE.Euler(
-      initialRotation[0],
-      initialRotation[1],
-      initialRotation[2]
-    ),
-    orbitRadius: 0.12 + Math.random() * 0.08,
-    orbitSpeed: 0.07 + Math.random() * 0.04,
-    orbitOffset: Math.random() * Math.PI * 2,
-  });
+  const physics = useRef<SpacePhysics | null>(null);
+
+  if (!physics.current) {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    physics.current = {
+      position: new THREE.Vector3(...position),
+      angularVelocity: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.05,
+        (Math.random() - 0.5) * 0.07,
+        (Math.random() - 0.5) * 0.03
+      ),
+      rotation: new THREE.Euler(
+        initialRotation[0],
+        initialRotation[1],
+        initialRotation[2]
+      ),
+      orbitRadius: 0.12 + Math.random() * 0.08,
+      orbitSpeed: 0.07 + Math.random() * 0.04,
+      orbitOffset: Math.random() * Math.PI * 2,
+    };
+  }
 
   const styledScene = useMemo(() => {
     const cloned = scene.clone();
@@ -124,6 +129,8 @@ export function FloatingModel({
     if (groupRef.current) {
       const t = state.clock.elapsedTime;
       const p = physics.current;
+      if (!p) return;
+
       const clampedDelta = Math.min(delta, 0.1);
 
       if (animStartTime.current === null) {

@@ -57,15 +57,17 @@ interface ThreeSceneProps {
 }
 
 export function ThreeScene({ scrollProgress }: ThreeSceneProps) {
-  const [error, setError] = useState(false);
+  const [hasWebGL, setHasWebGL] = useState(true);
 
   useEffect(() => {
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
-    if (!gl) setError(true);
+    if (!gl) {
+      setTimeout(() => setHasWebGL(false), 0);
+    }
   }, []);
 
-  if (error) return null;
+  if (!hasWebGL) return null;
 
   return (
     <div className="fixed inset-0 z-0" style={{ background: BG }}>

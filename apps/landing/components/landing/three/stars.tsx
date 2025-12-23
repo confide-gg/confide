@@ -39,6 +39,7 @@ export function Stars({ scrollProgress }: StarsProps) {
     }
 
     return [positions, colors];
+     
   }, []);
 
   useFrame((state) => {
