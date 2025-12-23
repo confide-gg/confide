@@ -1,0 +1,25 @@
+{
+  "name": "Confide - Secure Encrypted Messaging",
+  "short_name": "Confide",
+  "description": "End-to-end encrypted messaging platform with Discord-like communities and Signal-level privacy",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050507",
+  "theme_color": "#c9ed7b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "productivity", "utilities"]
+}
