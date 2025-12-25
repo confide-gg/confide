@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Download, CheckCircle, AlertTriangle, Copy, Check } from "lucide-react";
+import { Download, CheckCircle, Copy, Check, Loader2, ShieldAlert } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { cryptoService, type RecoveryKeyData } from "../core/crypto/crypto";
 import { recoveryService } from "../core/auth/RecoveryService";
@@ -123,9 +123,9 @@ Generated: ${new Date().toISOString()}
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md backdrop-blur-sm bg-white/5 p-8 rounded-2xl border border-white/10">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Generating your recovery kit...</p>
         </div>
       </div>
@@ -133,80 +133,76 @@ Generated: ${new Date().toISOString()}
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-lg">
-        <div className="mb-6 text-center">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="w-8 h-8 text-primary" />
+    <div className="w-full max-w-md backdrop-blur-sm bg-white/5 p-8 rounded-2xl border border-white/10">
+      <div className="mb-8 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/10">
+          <ShieldAlert className="w-8 h-8 text-amber-500" />
+        </div>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">Save Your Recovery Kit</h1>
+        <p className="text-sm text-muted-foreground">
+          This is the only way to recover your account if you forget your password
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/50 rounded-lg p-3 text-sm text-destructive">
+            {error}
           </div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Save Your Recovery Kit</h1>
-          <p className="text-sm text-muted-foreground">
-            This is the only way to recover your account if you forget your password
-          </p>
+        )}
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Your Recovery Key</label>
+          <div className="relative">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 font-mono text-xs break-all select-all text-foreground">
+              {recoveryKey}
+            </div>
+            <button
+              onClick={handleCopy}
+              className="absolute top-2 right-2 p-2 hover:bg-white/10 rounded-md transition-colors"
+              title="Copy to clipboard"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="bg-card rounded-lg border border-border p-6 space-y-6">
-          {error && (
-            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
+        <button
+          onClick={handleDownload}
+          className="w-full px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-foreground rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Download Recovery Kit
+          {hasDownloaded && <CheckCircle className="w-4 h-4 text-green-500" />}
+        </button>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Your Recovery Key</label>
-            <div className="relative">
-              <div className="bg-background border border-border rounded-md p-4 font-mono text-sm break-all select-all">
-                {recoveryKey}
-              </div>
-              <button
-                onClick={handleCopy}
-                className="absolute top-2 right-2 p-2 hover:bg-muted rounded-md transition-colors"
-                title="Copy to clipboard"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={handleDownload}
-            className="w-full px-4 py-3 bg-muted hover:bg-muted/80 text-foreground rounded-md font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Download Recovery Kit
-            {hasDownloaded && <CheckCircle className="w-4 h-4 text-green-500" />}
-          </button>
-
-          <div className="border-t border-border pt-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasAcknowledged}
-                onChange={(e) => setHasAcknowledged(e.target.checked)}
-                className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary/50"
-              />
-              <span className="text-sm text-muted-foreground">
-                I have saved my recovery key in a secure location and understand that losing it
-                means I will not be able to recover my account if I forget my password.
-              </span>
-            </label>
-          </div>
-
-          <button
-            onClick={handleComplete}
-            disabled={!hasDownloaded || !hasAcknowledged || isSaving}
-            className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isSaving && (
-              <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-            )}
-            {isSaving ? "Saving..." : "Continue to Chat"}
-          </button>
+        <div className="border-t border-white/10 pt-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasAcknowledged}
+              onChange={(e) => setHasAcknowledged(e.target.checked)}
+              className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/50"
+            />
+            <span className="text-sm text-muted-foreground">
+              I have saved my recovery key in a secure location and understand that losing it means
+              I will not be able to recover my account if I forget my password.
+            </span>
+          </label>
         </div>
+
+        <button
+          onClick={handleComplete}
+          disabled={!hasDownloaded || !hasAcknowledged || isSaving}
+          className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+        >
+          {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+          {isSaving ? "Saving..." : "Continue to Chat"}
+        </button>
       </div>
     </div>
   );

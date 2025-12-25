@@ -110,13 +110,14 @@ function AppRoutes() {
           <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
         <Route
-          path="/recovery-kit"
           element={
             <ProtectedRoute allowRecoverySetup={true}>
-              <RecoveryKit />
+              <AuthLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="/recovery-kit" element={<RecoveryKit />} />
+        </Route>
         <Route
           element={
             <ProtectedRoute>
