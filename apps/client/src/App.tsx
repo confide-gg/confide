@@ -1,5 +1,5 @@
 import { useEffect, Profiler, lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -23,14 +23,14 @@ const queryClient = new QueryClient({
   },
 });
 
-const Login = lazy(() => import("./pages/Login").then((m) => ({ default: m.Login })));
-const Register = lazy(() => import("./pages/Register").then((m) => ({ default: m.Register })));
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
+import { ResetPassword } from "./pages/ResetPassword";
+import { AuthLayout } from "./components/layout/AuthLayout";
+
 const Chat = lazy(() => import("./pages/Chat").then((m) => ({ default: m.Chat })));
 const RecoveryKit = lazy(() =>
   import("./pages/RecoveryKit").then((m) => ({ default: m.RecoveryKit }))
-);
-const ResetPassword = lazy(() =>
-  import("./pages/ResetPassword").then((m) => ({ default: m.ResetPassword }))
 );
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
 const AuthenticatedLayout = lazy(() =>
@@ -49,7 +49,7 @@ function ProtectedRoute({
   const { isAuthenticated, isLoading, keys, needsRecoverySetup } = useAuth();
 
   if (isLoading) {
-    return <div className="loading">Loading...</div>;
+    return <div className="min-h-screen bg-background" />;
   }
 
   if (!isAuthenticated || !keys) {
@@ -67,7 +67,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, needsRecoverySetup } = useAuth();
 
   if (isLoading) {
-    return <div className="loading">Loading...</div>;
+    return <div className="min-h-screen bg-background" />;
   }
 
   if (isAuthenticated) {
@@ -81,7 +81,17 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function LoadingFallback() {
-  return <div className="loading">Loading...</div>;
+  return <div className="min-h-screen bg-background" />;
+}
+
+const AUTH_ROUTES = ["/login", "/register", "/reset-password"];
+
+function ConditionalSnowEffect() {
+  const location = useLocation();
+  const isAuthRoute = AUTH_ROUTES.includes(location.pathname);
+
+  if (isAuthRoute) return null;
+  return <SnowEffect />;
 }
 
 function AppRoutes() {
@@ -89,29 +99,16 @@ function AppRoutes() {
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
         <Route
-          path="/login"
           element={
             <PublicRoute>
-              <Login />
+              <AuthLayout />
             </PublicRoute>
           }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/reset-password"
-          element={
-            <PublicRoute>
-              <ResetPassword />
-            </PublicRoute>
-          }
-        />
+        >
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+        </Route>
         <Route
           path="/recovery-kit"
           element={
@@ -173,7 +170,7 @@ function App() {
           <ErrorBoundary>
             <AuthProvider>
               <AppRoutes />
-              <SnowEffect />
+              <ConditionalSnowEffect />
               <Toaster
                 position="bottom-right"
                 toastOptions={{

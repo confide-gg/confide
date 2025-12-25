@@ -159,169 +159,170 @@ export function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Reset Password</h1>
-          <p className="text-muted-foreground">
-            {step === "username" && "Enter your username to begin"}
-            {step === "recovery" && "Enter your recovery key"}
-            {step === "newPassword" && "Create a new password"}
-          </p>
+    <div className="w-full max-w-md backdrop-blur-sm bg-white/5 p-8 rounded-2xl border border-white/10">
+      <div className="mb-8 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-3xl mb-6 mx-auto shadow-lg shadow-primary/20">
+          C
         </div>
+        <h1 className="text-2xl font-semibold text-foreground mb-2">Reset Password</h1>
+        <p className="text-sm text-muted-foreground">
+          {step === "username" && "Enter your username to begin"}
+          {step === "recovery" && "Enter your recovery key"}
+          {step === "newPassword" && "Create a new password"}
+        </p>
+      </div>
 
-        <div className="bg-card rounded-xl border border-border p-8 shadow-sm">
-          {error && (
-            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 text-sm text-destructive mb-4">
-              {error}
-            </div>
-          )}
-
-          {step === "username" && (
-            <form onSubmit={handleUsernameSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium text-foreground">
-                  Username
-                </label>
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
-                  required
-                  disabled={isLoading}
-                  autoComplete="username"
-                  className="w-full px-4 py-3 bg-secondary/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading || !username}
-                className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isLoading ? "Checking..." : "Continue"}
-              </button>
-            </form>
-          )}
-
-          {step === "recovery" && (
-            <form onSubmit={handleRecoveryKeySubmit} className="space-y-4">
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-4">
-                <p className="text-sm text-amber-200/80">
-                  Enter the recovery key you saved when you created your account.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="recoveryKey" className="text-sm font-medium text-foreground">
-                  Recovery Key
-                </label>
-                <textarea
-                  id="recoveryKey"
-                  value={recoveryKeyInput}
-                  onChange={(e) => setRecoveryKeyInput(e.target.value)}
-                  placeholder="Paste your 64-character recovery key"
-                  required
-                  disabled={isLoading}
-                  rows={3}
-                  className="w-full px-4 py-3 bg-secondary/50 border border-border rounded-lg text-foreground font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all resize-none"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStep("username")}
-                  disabled={isLoading}
-                  className="px-4 py-3 bg-secondary text-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading || !recoveryKeyInput}
-                  className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isLoading ? "Verifying..." : "Verify Key"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {step === "newPassword" && (
-            <form onSubmit={handleNewPasswordSubmit} className="space-y-4">
-              <div className="bg-green-500/10 border border-green-500/20 rounded-md p-3 mb-4">
-                <p className="text-xs text-green-200/80">
-                  Recovery key verified! Create your new password below.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="newPassword" className="text-sm font-medium text-foreground">
-                  New Password
-                </label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  required
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                  className="w-full px-4 py-3 bg-secondary/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                />
-                <p className="text-xs text-muted-foreground">At least 8 characters</p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  required
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                  className="w-full px-4 py-3 bg-secondary/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStep("recovery")}
-                  disabled={isLoading}
-                  className="px-4 py-3 bg-secondary text-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading || !newPassword || !confirmPassword}
-                  className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {isLoading ? "Resetting..." : "Reset Password"}
-                </button>
-              </div>
-            </form>
-          )}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/50 rounded-lg p-3 text-sm text-destructive mb-4">
+          {error}
         </div>
+      )}
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+      {step === "username" && (
+        <form onSubmit={handleUsernameSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="username" className="text-sm font-medium text-foreground">
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              required
+              disabled={isLoading}
+              autoComplete="username"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading || !username}
+            className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isLoading ? "Checking..." : "Continue"}
+          </button>
+        </form>
+      )}
+
+      {step === "recovery" && (
+        <form onSubmit={handleRecoveryKeySubmit} className="space-y-4">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-4">
+            <p className="text-sm text-amber-200/80">
+              Enter the recovery key you saved when you created your account.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="recoveryKey" className="text-sm font-medium text-foreground">
+              Recovery Key
+            </label>
+            <textarea
+              id="recoveryKey"
+              value={recoveryKeyInput}
+              onChange={(e) => setRecoveryKeyInput(e.target.value)}
+              placeholder="Paste your 64-character recovery key"
+              required
+              disabled={isLoading}
+              rows={3}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all resize-none"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStep("username")}
+              disabled={isLoading}
+              className="px-4 py-3 bg-white/5 border border-white/10 text-foreground rounded-lg font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || !recoveryKeyInput}
+              className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            >
+              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isLoading ? "Verifying..." : "Verify Key"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === "newPassword" && (
+        <form onSubmit={handleNewPasswordSubmit} className="space-y-4">
+          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 mb-4">
+            <p className="text-xs text-green-200/80">
+              Recovery key verified! Create your new password below.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="newPassword" className="text-sm font-medium text-foreground">
+              New Password
+            </label>
+            <input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              required
+              disabled={isLoading}
+              autoComplete="new-password"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            />
+            <p className="text-xs text-muted-foreground">At least 8 characters</p>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              required
+              disabled={isLoading}
+              autoComplete="new-password"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStep("recovery")}
+              disabled={isLoading}
+              className="px-4 py-3 bg-white/5 border border-white/10 text-foreground rounded-lg font-medium hover:bg-white/10 transition-colors disabled:opacity-50"
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || !newPassword || !confirmPassword}
+              className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            >
+              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isLoading ? "Resetting..." : "Reset Password"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="mt-8 pt-6 border-t border-white/10 text-center">
+        <p className="text-sm text-muted-foreground">
           Remember your password?{" "}
           <Link
             to="/login"
-            className="text-primary font-medium hover:text-primary/80 transition-colors"
+            className="text-foreground font-medium hover:text-primary transition-colors"
           >
             Sign in
           </Link>
