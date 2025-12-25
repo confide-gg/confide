@@ -217,14 +217,14 @@ async fn key_exchange_complete(
         user_id,
         true,
         expires_at,
-    );
+    )?;
     let callee_token = generate_relay_token(
         &relay_config.token_secret,
         call_id,
         call.callee_id,
         false,
         expires_at,
-    );
+    )?;
 
     let token_hash = Sha256::digest(&caller_token).to_vec();
     state
@@ -678,7 +678,7 @@ async fn rejoin_call(
         user_id,
         is_caller,
         expires_at,
-    );
+    )?;
 
     let relay_endpoint = format!("{}:{}", relay_config.public_host, relay_config.bind_port);
 
@@ -693,7 +693,7 @@ async fn rejoin_call(
             peer_id,
             !is_caller,
             expires_at,
-        );
+        )?;
 
         send_call_rejoin(
             &state,
@@ -751,12 +751,14 @@ fn generate_relay_token(
     participant_id: Uuid,
     is_caller: bool,
     expires_at: chrono::DateTime<Utc>,
-) -> Vec<u8> {
-    let secret_bytes = if secret.is_empty() {
-        vec![0u8; 32]
-    } else {
-        secret.as_bytes().to_vec()
-    };
+) -> std::result::Result<Vec<u8>, AppError> {
+    if secret.is_empty() {
+        return Err(AppError::BadRequest(
+            "CALLS_RELAY_TOKEN_SECRET not configured".into(),
+        ));
+    }
+
+    let secret_bytes = secret.as_bytes().to_vec();
 
     let mut mac = HmacSha256::new_from_slice(&secret_bytes).expect("HMAC can take key of any size");
 
@@ -774,7 +776,7 @@ fn generate_relay_token(
     token.extend_from_slice(&expires_at.timestamp().to_le_bytes());
     token.extend_from_slice(&signature);
 
-    token
+    Ok(token)
 }
 
 pub fn _verify_relay_token(

@@ -211,19 +211,12 @@ pub async fn join_by_invite(
         .await?
         .ok_or(AppError::NotFound("Invite not found".into()))?;
 
-    if let Some(expires_at) = invite.expires_at {
-        if expires_at < chrono::Utc::now() {
-            return Err(AppError::BadRequest("Invite expired".into()));
-        }
+    let used = state.db.try_use_invite(invite.id).await?;
+    if !used {
+        return Err(AppError::BadRequest(
+            "Invite is invalid, expired, or has reached max uses".into(),
+        ));
     }
-
-    if let Some(max_uses) = invite.max_uses {
-        if invite.uses >= max_uses {
-            return Err(AppError::BadRequest("Invite has reached max uses".into()));
-        }
-    }
-
-    state.db.increment_invite_uses(invite.id).await?;
 
     let identity = state
         .db

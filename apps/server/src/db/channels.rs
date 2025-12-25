@@ -207,12 +207,20 @@ impl Database {
         Ok(invite)
     }
 
-    pub async fn increment_invite_uses(&self, invite_id: Uuid) -> Result<()> {
-        sqlx::query("UPDATE invites SET uses = uses + 1 WHERE id = $1")
-            .bind(invite_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
+    pub async fn try_use_invite(&self, invite_id: Uuid) -> Result<bool> {
+        let result = sqlx::query(
+            r#"
+            UPDATE invites
+            SET uses = uses + 1
+            WHERE id = $1
+            AND (expires_at IS NULL OR expires_at > NOW())
+            AND (max_uses IS NULL OR uses < max_uses)
+            "#,
+        )
+        .bind(invite_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
     }
 
     pub async fn get_all_invites(&self) -> Result<Vec<Invite>> {

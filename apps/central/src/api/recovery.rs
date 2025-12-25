@@ -107,6 +107,7 @@ pub struct ResetPasswordRequest {
     pub recovery_kem_encrypted_private: Vec<u8>,
     pub recovery_dsa_encrypted_private: Vec<u8>,
     pub recovery_key_salt: Vec<u8>,
+    pub recovery_proof_signature: Vec<u8>,
 }
 
 #[derive(Debug, Serialize)]
@@ -134,6 +135,20 @@ pub async fn reset_password(
 
     if !user.recovery_setup_completed {
         return Err(AppError::RecoveryNotSetup);
+    }
+
+    let proof_message = format!("password_reset:{}", user.id);
+    let signature_valid = confide_sdk::crypto::keys::DsaKeyPair::verify(
+        &user.dsa_public_key,
+        proof_message.as_bytes(),
+        &req.recovery_proof_signature,
+    )
+    .unwrap_or(false);
+
+    if !signature_valid {
+        return Err(AppError::BadRequest(
+            "Invalid recovery proof - must sign with recovered DSA key".into(),
+        ));
     }
 
     let new_password_hash =

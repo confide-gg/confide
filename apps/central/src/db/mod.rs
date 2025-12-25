@@ -63,18 +63,21 @@ impl Database {
         Ok(())
     }
 
-    /// Execute within a transaction with automatic rollback on error
-    pub async fn with_transaction<F, T>(&self, func: F) -> crate::error::Result<T>
+    /// Execute within a transaction with automatic commit on success, rollback on error
+    pub async fn with_transaction<F, T, Fut>(&self, func: F) -> crate::error::Result<T>
     where
-        F: FnOnce(
-            sqlx::Transaction<'static, sqlx::Postgres>,
-        ) -> std::pin::Pin<
-            Box<dyn std::future::Future<Output = crate::error::Result<T>> + Send>,
+        F: FnOnce(sqlx::Transaction<'static, sqlx::Postgres>) -> Fut,
+        Fut: std::future::Future<
+            Output = crate::error::Result<(T, sqlx::Transaction<'static, sqlx::Postgres>)>,
         >,
     {
         let tx = self.begin_transaction().await?;
-        let result = func(tx).await;
-
-        result
+        match func(tx).await {
+            Ok((result, tx)) => {
+                tx.commit().await?;
+                Ok(result)
+            }
+            Err(e) => Err(e),
+        }
     }
 }
