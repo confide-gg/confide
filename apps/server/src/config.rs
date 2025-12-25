@@ -1,5 +1,4 @@
-use serde::Deserialize;
-use std::{env, fs};
+use std::env;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -9,23 +8,12 @@ pub struct Config {
     pub security: SecurityConfig,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-struct ConfigFile {
-    pub server: ServerConfig,
-    #[serde(default)]
-    pub database: DatabaseConfig,
-    #[serde(default)]
-    pub redis: RedisConfig,
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
     pub public_domain: String,
-    #[serde(default = "default_central_url")]
     pub central_url: String,
-    #[serde(default = "default_allowed_origins")]
     pub allowed_origins: Vec<String>,
 }
 
@@ -45,25 +33,31 @@ fn default_allowed_origins() -> Vec<String> {
     ]
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone)]
 pub struct DatabaseConfig {
-    #[serde(default)]
     pub url: String,
-    #[serde(default = "default_max_connections")]
     pub max_connections: u32,
-    #[serde(default = "default_min_connections")]
     pub min_connections: u32,
-    #[serde(default = "default_acquire_timeout_seconds")]
     pub acquire_timeout_seconds: u64,
-    #[serde(default = "default_idle_timeout_seconds")]
     pub idle_timeout_seconds: u64,
-    #[serde(default = "default_max_lifetime_seconds")]
     pub max_lifetime_seconds: u64,
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            max_connections: default_max_connections(),
+            min_connections: default_min_connections(),
+            acquire_timeout_seconds: default_acquire_timeout_seconds(),
+            idle_timeout_seconds: default_idle_timeout_seconds(),
+            max_lifetime_seconds: default_max_lifetime_seconds(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct RedisConfig {
-    #[serde(default)]
     pub url: String,
 }
 
@@ -122,76 +116,77 @@ impl SecurityConfig {
 }
 
 impl Config {
-    pub fn load(path: &str) -> anyhow::Result<Self> {
-        let mut config_file = match fs::read_to_string(path) {
-            Ok(contents) => toml::from_str::<ConfigFile>(&contents)?,
-            Err(_) => ConfigFile {
-                server: ServerConfig {
-                    host: "0.0.0.0".to_string(),
-                    port: 8080,
-                    public_domain: "localhost:8080".to_string(),
-                    central_url: default_central_url(),
-                    allowed_origins: default_allowed_origins(),
-                },
-                database: DatabaseConfig::default(),
-                redis: RedisConfig::default(),
-            },
+    pub fn load() -> anyhow::Result<Self> {
+        let mut server = ServerConfig {
+            host: "0.0.0.0".to_string(),
+            port: 8080,
+            public_domain: "localhost:8080".to_string(),
+            central_url: default_central_url(),
+            allowed_origins: default_allowed_origins(),
         };
+        let mut database = DatabaseConfig::default();
+        let mut redis = RedisConfig::default();
 
         if let Ok(url) = env::var("CENTRAL_API_URL") {
-            config_file.server.central_url = url;
+            server.central_url = url;
         }
 
         if let Ok(url) = env::var("DATABASE_URL") {
-            config_file.database.url = url;
+            database.url = url;
         }
 
         if let Ok(max_conn) = env::var("DATABASE_MAX_CONNECTIONS") {
             if let Ok(n) = max_conn.parse() {
-                config_file.database.max_connections = n;
+                database.max_connections = n;
             }
         }
 
         if let Ok(url) = env::var("REDIS_URL") {
-            config_file.redis.url = url;
+            redis.url = url;
         }
 
         if let Ok(host) = env::var("SERVER_HOST") {
-            config_file.server.host = host;
+            server.host = host;
         }
 
         if let Ok(port) = env::var("SERVER_PORT") {
             if let Ok(p) = port.parse() {
-                config_file.server.port = p;
+                server.port = p;
             }
         }
 
         if let Ok(domain) = env::var("SERVER_PUBLIC_DOMAIN") {
-            config_file.server.public_domain = domain;
+            server.public_domain = domain;
         }
 
         if let Ok(origins) = env::var("ALLOWED_ORIGINS") {
-            config_file.server.allowed_origins =
-                origins.split(',').map(|s| s.trim().to_string()).collect();
+            server.allowed_origins = origins.split(',').map(|s| s.trim().to_string()).collect();
         }
 
-        if config_file.database.url.is_empty() {
-            anyhow::bail!(
-                "DATABASE_URL must be set (either in config.toml or environment variable)"
-            );
+        if database.url.is_empty() {
+            anyhow::bail!("DATABASE_URL environment variable must be set");
         }
 
-        if config_file.redis.url.is_empty() {
-            anyhow::bail!("REDIS_URL must be set (either in config.toml or environment variable)");
+        if redis.url.is_empty() {
+            anyhow::bail!("REDIS_URL environment variable must be set");
         }
 
         let security = SecurityConfig::load()?;
 
-        Ok(Config {
-            server: config_file.server,
-            database: config_file.database,
-            redis: config_file.redis,
+        let config = Config {
+            server,
+            database,
+            redis,
             security,
-        })
+        };
+
+        tracing::info!(
+            "Configuration loaded from environment variables. Server: {}:{}, Central: {}",
+            config.server.host,
+            config.server.port,
+            config.server.central_url
+        );
+
+        Ok(config)
     }
 }

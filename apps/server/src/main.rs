@@ -42,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let config = Config::load("config.toml")?;
+    let config = Config::load()?;
 
     let pool = PgPoolOptions::new()
         .max_connections(config.database.max_connections)

@@ -34,8 +34,6 @@ services:
       - DISCOVERY_ENABLED=${DISCOVERY_ENABLED:-false}
       - DISCOVERY_DISPLAY_NAME=${DISCOVERY_DISPLAY_NAME:-Confide Server}
       - CENTRAL_API_URL=${CENTRAL_API_URL:-https://central.confide.gg/api}
-    volumes:
-      - ./config/config.toml:/app/config.toml
     depends_on:
       - postgres
       - redis

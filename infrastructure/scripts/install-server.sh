@@ -239,23 +239,6 @@ EOF
 success ".env created."
 
 blank
-info "Downloading base server config"
-run_step "Fetching config.toml" curl -fsS "$REPO_URL/apps/server/config.docker.toml" -o "$INSTALL_DIR/config/config.toml"
-
-blank
-info "Applying config overrides"
-DOMAIN_SED="$(escape_sed_replacement "$DOMAIN")"
-NAME_SED="$(escape_sed_replacement "$SERVER_NAME")"
-if [[ "${OSTYPE:-}" == "darwin"* ]]; then
-  sed -i '' "s|public_domain = \".*\"|public_domain = \"${DOMAIN_SED}\"|" "$INSTALL_DIR/config/config.toml"
-  sed -i '' "s|display_name = \".*\"|display_name = \"${NAME_SED}\"|" "$INSTALL_DIR/config/config.toml"
-else
-  sed -i "s|public_domain = \".*\"|public_domain = \"${DOMAIN_SED}\"|" "$INSTALL_DIR/config/config.toml"
-  sed -i "s|display_name = \".*\"|display_name = \"${NAME_SED}\"|" "$INSTALL_DIR/config/config.toml"
-fi
-success "config.toml updated."
-
-blank
 info "Starting Confide Server"
 cd "$INSTALL_DIR"
 

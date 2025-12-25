@@ -104,7 +104,6 @@ services:
       server-redis:
         condition: service_healthy
     volumes:
-      - ../../apps/server/config.docker.toml:/app/config.toml:ro
       - server_uploads:/app/uploads
     restart: unless-stopped
     healthcheck:
