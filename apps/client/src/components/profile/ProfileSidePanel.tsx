@@ -165,7 +165,7 @@ export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanel
   };
 
   return (
-    <aside className="w-80 h-full flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-right duration-200">
+    <aside className="w-80 h-full flex flex-col shrink-0 overflow-hidden">
       <Panel className="h-full flex flex-col">
         <div className="flex items-center justify-between px-4 h-14">
           <h3 className="font-semibold text-base">User Profile</h3>
