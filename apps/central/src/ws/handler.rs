@@ -488,7 +488,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
     });
 
     let pubsub_handle_clone = pubsub_handle.clone();
-    let pubsub_handle_task = tokio::spawn(async move {
+    tokio::spawn(async move {
         for channel in initial_channels {
             if let Err(e) = pubsub_handle_clone.subscribe(&channel).await {
                 tracing::error!("Failed to subscribe to {}: {:?}", channel, e);
@@ -531,7 +531,6 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
 
     tokio::select! {
         _ = pubsub_run_handle => {}
-        _ = pubsub_handle_task => {}
         _ = send_handle => {}
         _ = recv_handle => {}
         _ = health_monitor_handle => {}

@@ -18,6 +18,45 @@ use crate::AppState;
 
 use super::types::{ClientMessage, MemberPresence, ServerMessage};
 
+struct ConnectionGuard {
+    state: Arc<AppState>,
+    member_id: Uuid,
+    cleaned_up: bool,
+}
+
+impl ConnectionGuard {
+    fn new(state: Arc<AppState>, member_id: Uuid) -> Self {
+        Self {
+            state,
+            member_id,
+            cleaned_up: false,
+        }
+    }
+
+    fn mark_cleaned(&mut self) {
+        self.cleaned_up = true;
+    }
+}
+
+impl Drop for ConnectionGuard {
+    fn drop(&mut self) {
+        if !self.cleaned_up {
+            let state = self.state.clone();
+            let member_id = self.member_id;
+            tokio::spawn(async move {
+                let leave_msg = ServerMessage::PresenceUpdate {
+                    member_id,
+                    status: "offline".to_string(),
+                    online: false,
+                };
+                state.ws.broadcast_all_except(leave_msg, member_id).await;
+                state.ws.remove_connection(member_id).await;
+                tracing::debug!("WebSocket cleanup via guard for member {}", member_id);
+            });
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct WsQuery {
     token: String,
@@ -66,6 +105,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid)
     let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
 
     state.ws.add_connection(member_id, tx).await;
+    let mut guard = ConnectionGuard::new(state.clone(), member_id);
 
     let connected_msg = ServerMessage::Connected { member_id };
     if let Ok(json) = serde_json::to_string(&connected_msg) {
@@ -157,6 +197,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid)
     state.ws.broadcast_all_except(leave_msg, member_id).await;
 
     state.ws.remove_connection(member_id).await;
+    guard.mark_cleaned();
     tracing::debug!("WebSocket connection closed for member {}", member_id);
 }
 
