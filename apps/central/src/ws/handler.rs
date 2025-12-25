@@ -449,6 +449,8 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
 
     let initial_channels = vec![format!("user:{}", user_id)];
 
+    broadcast_presence(&state, user_id, true).await;
+
     if let Ok(Some(recovered_state)) =
         crate::ws::call_recovery::handle_websocket_reconnection(&state, user_id).await
     {
