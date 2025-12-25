@@ -609,7 +609,7 @@ export function ChatInput() {
 
       {activePicker && (
         <div
-          className="absolute bottom-[70px] left-6 z-50 animate-in slide-in-from-bottom-4 zoom-in-95 duration-100"
+          className="absolute bottom-[70px] right-4 z-50 animate-in slide-in-from-bottom-4 zoom-in-95 duration-100"
           ref={pickerRef}
         >
           {activePicker === "emoji" && (
@@ -629,7 +629,7 @@ export function ChatInput() {
         </div>
       )}
 
-      <div className="relative flex items-center gap-2 h-9 rounded-md bg-secondary/30 px-3 border border-border/50 focus-within:border-border transition-all">
+      <div className="relative flex items-center gap-2 h-10 rounded-lg bg-secondary/40 px-2 border border-border/50 focus-within:border-primary/50 focus-within:bg-secondary/60 transition-all">
         {showEmojiAutocomplete && (
           <EmojiAutocomplete
             text={messageInput}
@@ -644,73 +644,51 @@ export function ChatInput() {
           onChange={handleFileSelect}
           accept="image/*,video/mp4,video/quicktime,video/webm,audio/*,text/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/json,application/javascript,application/x-typescript"
         />
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
-            className="p-1 rounded transition-colors text-muted-foreground hover:text-foreground"
+            className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-secondary/80"
             onClick={() => fileInputRef.current?.click()}
             title="Attach file"
             disabled={!!uploadingFile}
           >
             <svg
-              width="16"
-              height="16"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className={`p-1 rounded transition-colors ${activePicker === "gif" ? "text-foreground bg-secondary/50" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setActivePicker(activePicker === "gif" ? null : "gif")}
-            title="Send GIF"
-          >
-            <span className="text-[9px] font-medium px-1">GIF</span>
-          </button>
-          <button
-            type="button"
-            className={`p-1 rounded transition-colors ${activePicker === "emoji" ? "text-foreground bg-secondary/50" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setActivePicker(activePicker === "emoji" ? null : "emoji")}
-            title="Add emoji"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
               <circle cx="12" cy="12" r="10" />
-              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-              <line x1="9" y1="9" x2="9.01" y2="9" />
-              <line x1="15" y1="9" x2="15.01" y2="9" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
             </svg>
           </button>
           <div className="relative" ref={timedMenuRef}>
             <button
               type="button"
-              className={`p-1 rounded transition-colors flex items-center gap-1 ${timedMessageDuration ? "text-destructive bg-destructive/10" : "text-muted-foreground hover:text-foreground"}`}
+              className={`p-1.5 rounded-md transition-colors flex items-center gap-1 ${timedMessageDuration ? "text-destructive bg-destructive/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"}`}
               onClick={() => setShowTimedMenu(!showTimedMenu)}
               title="Timed message"
             >
               <svg
-                width="14"
-                height="14"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.5"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
               {timedMessageDuration && (
-                <span className="text-[9px] font-medium">
+                <span className="text-[10px] font-semibold">
                   {timedMessageDuration >= 60
                     ? `${Math.floor(timedMessageDuration / 60)}m`
                     : `${timedMessageDuration}s`}
@@ -718,13 +696,13 @@ export function ChatInput() {
               )}
             </button>
             {showTimedMenu && (
-              <div className="absolute bottom-full mb-2 left-0 bg-card border border-border rounded-md shadow-lg p-1 min-w-[80px] z-50">
+              <div className="absolute bottom-full mb-2 left-0 bg-card border border-border rounded-lg shadow-lg p-1 min-w-[80px] z-50">
                 {TIMED_OPTIONS.map((opt) => (
                   <button
                     key={opt.label}
                     className={`
-                      w-full text-left px-2 py-1 text-xs rounded transition-colors
-                      ${timedMessageDuration === opt.value ? "bg-secondary text-foreground" : "hover:bg-secondary/50 text-muted-foreground"}
+                      w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors
+                      ${timedMessageDuration === opt.value ? "bg-primary/10 text-primary font-medium" : "hover:bg-secondary/80 text-muted-foreground hover:text-foreground"}
                     `}
                     onClick={() => {
                       setTimedMessageDuration(opt.value);
@@ -753,6 +731,38 @@ export function ChatInput() {
           }
           disabled={isSending}
         />
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            className={`px-1.5 py-1 rounded-md transition-colors text-[11px] font-bold ${activePicker === "gif" ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"}`}
+            onClick={() => setActivePicker(activePicker === "gif" ? null : "gif")}
+            title="Send GIF"
+          >
+            GIF
+          </button>
+          <button
+            type="button"
+            className={`p-1.5 rounded-md transition-colors ${activePicker === "emoji" ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"}`}
+            onClick={() => setActivePicker(activePicker === "emoji" ? null : "emoji")}
+            title="Add emoji"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+              <line x1="9" y1="9" x2="9.01" y2="9" />
+              <line x1="15" y1="9" x2="15.01" y2="9" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );
