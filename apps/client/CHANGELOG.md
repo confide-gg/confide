@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.1](https://github.com/confide-gg/confide/compare/confide-client-v0.25.0...confide-client-v0.25.1) (2025-12-25)
+
+
+### Bug Fixes
+
+* add missing babel-plugin-react-compiler dependency ([ef47575](https://github.com/confide-gg/confide/commit/ef475754da1b5f05fdd0315f65a3d71a08c66ca8))
+
 ## [0.25.0](https://github.com/confide-gg/confide/compare/confide-client-v0.24.0...confide-client-v0.25.0) (2025-12-25)
 
 
