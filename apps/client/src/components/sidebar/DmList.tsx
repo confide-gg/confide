@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { X, Plus } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
 import { Avatar } from "../ui/avatar";
@@ -170,7 +170,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
           onClick={(e) => handleCloseDm(e, preview)}
           title={preview.isGroup ? "Leave Group" : "Close DM"}
         >
-          <X className="w-3.5 h-3.5" />
+          <FontAwesomeIcon icon="xmark" className="w-3.5 h-3.5" />
         </div>
       </button>
     );
@@ -186,7 +186,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
             </span>
             {onCreateGroup && (
               <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onCreateGroup}>
-                <Plus className="w-4 h-4" />
+                <FontAwesomeIcon icon="plus" className="w-4 h-4" />
               </Button>
             )}
           </div>

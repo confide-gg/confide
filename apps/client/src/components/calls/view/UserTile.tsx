@@ -1,4 +1,4 @@
-import { MicOff, Monitor } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Avatar } from "../../ui/avatar";
 import { cn } from "@/lib/utils";
 import type { UserTileProps } from "./types";
@@ -64,7 +64,7 @@ export function UserTile({
           />
           {isMuted && (
             <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 flex items-center justify-center">
-              <MicOff className="w-2 h-2 text-white" />
+              <FontAwesomeIcon icon="microphone-slash" className="w-2 h-2 text-white" />
             </div>
           )}
         </div>
@@ -76,7 +76,7 @@ export function UserTile({
           </div>
           {isScreenSharing && (
             <div className="text-[10px] text-green-400 flex items-center gap-1">
-              <Monitor className="w-2.5 h-2.5" />
+              <FontAwesomeIcon icon="desktop" className="w-2.5 h-2.5" />
               Sharing
             </div>
           )}
@@ -109,7 +109,10 @@ export function UserTile({
               size === "lg" ? "w-6 h-6" : size === "md" ? "w-5 h-5" : "w-4 h-4"
             )}
           >
-            <MicOff className={cn("text-white", size === "lg" ? "w-3.5 h-3.5" : "w-2.5 h-2.5")} />
+            <FontAwesomeIcon
+              icon="microphone-slash"
+              className={cn("text-white", size === "lg" ? "w-3.5 h-3.5" : "w-2.5 h-2.5")}
+            />
           </div>
         )}
       </div>

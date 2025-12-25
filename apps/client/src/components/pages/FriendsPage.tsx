@@ -3,7 +3,7 @@ import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
 import { Avatar } from "../ui/avatar";
 import { Button } from "../ui/button";
-import { Search } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ActivityDisplay } from "../activity/ActivityDisplay";
 import { useUserActivity } from "../../hooks/useUserActivity";
 import { type Friend } from "../../types";
@@ -313,7 +313,10 @@ export function FriendsPage() {
                 placeholder="Search friends"
                 className="w-full bg-secondary/50 border border-transparent focus:border-primary rounded-lg px-4 py-2.5 pl-10 text-sm focus:outline-none transition-colors"
               />
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <FontAwesomeIcon
+                icon="magnifying-glass"
+                className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">

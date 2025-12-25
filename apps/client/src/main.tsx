@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { initPerformanceMonitoring } from "./utils/performance";
+import "./lib/fontawesome";
 import "@fontsource/geist-sans/100.css";
 import "@fontsource/geist-sans/200.css";
 import "@fontsource/geist-sans/300.css";

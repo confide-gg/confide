@@ -1,4 +1,5 @@
 import { useEffect, useRef, useLayoutEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useChat } from "../../context/chat";
 import { Message } from "./Message";
 import { SystemMessage } from "./SystemMessage";
@@ -165,16 +166,7 @@ export function ChatMessages() {
           onClick={handleScrollToNew}
           className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg text-sm font-medium hover:bg-primary/90 transition-all animate-in slide-in-from-bottom-2 flex items-center gap-2"
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          <FontAwesomeIcon icon="chevron-down" className="w-3.5 h-3.5" />
           New messages
         </button>
       )}

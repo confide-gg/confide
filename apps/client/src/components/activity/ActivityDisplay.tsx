@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Music } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cn } from "../../lib/utils";
 import type { UserActivity } from "../../features/profiles/types";
 import { open } from "@tauri-apps/plugin-shell";
@@ -65,7 +65,7 @@ export function ActivityDisplay({ activity, compact = false, className }: Activi
     return (
       <div className={cn("flex items-center gap-2 text-xs", className)}>
         <div className="w-5 h-5 bg-[#1DB954] rounded flex items-center justify-center flex-shrink-0">
-          <Music className="w-3 h-3 text-white" />
+          <FontAwesomeIcon icon="music" className="w-3 h-3 text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="truncate font-medium">{activity.details}</p>
@@ -79,7 +79,7 @@ export function ActivityDisplay({ activity, compact = false, className }: Activi
     <div className={cn("p-3 bg-card rounded-lg border", className)}>
       <div className="flex items-center gap-2 mb-2">
         <div className="w-4 h-4 bg-[#1DB954] rounded-sm flex items-center justify-center flex-shrink-0">
-          <Music className="w-2.5 h-2.5 text-white" />
+          <FontAwesomeIcon icon="music" className="w-2.5 h-2.5 text-white" />
         </div>
         <span className="text-xs font-semibold text-muted-foreground">
           Listening to {activity.name}

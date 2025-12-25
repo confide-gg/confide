@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAttachmentBlob } from "../../features/attachments/useAttachment";
 import { attachmentDownloadService } from "../../features/attachments/AttachmentDownloadService";
 import type { FileMetadata } from "../../features/attachments/AttachmentUploadService";
@@ -82,19 +83,7 @@ export function AttachmentImage({ metadata }: AttachmentImageProps) {
     return (
       <div className="flex items-center gap-3 p-4 bg-destructive/5 border border-destructive/30 rounded-lg max-w-xs">
         <div className="shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="text-destructive"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
+          <FontAwesomeIcon icon="circle-exclamation" className="w-4.5 h-4.5 text-destructive" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium text-destructive">Failed to load image</div>
@@ -145,20 +134,10 @@ export function AttachmentImage({ metadata }: AttachmentImageProps) {
               onClick={handleExpand}
               className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors flex items-center gap-3 group/menuitem"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-muted-foreground group-hover/menuitem:text-foreground transition-colors"
-              >
-                <polyline points="15 3 21 3 21 9" />
-                <polyline points="9 21 3 21 3 15" />
-                <line x1="21" y1="3" x2="14" y2="10" />
-                <line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
+              <FontAwesomeIcon
+                icon="maximize"
+                className="w-4 h-4 text-muted-foreground group-hover/menuitem:text-foreground transition-colors"
+              />
               <span className="font-medium">Expand</span>
             </button>
             <div className="h-px bg-border/50 my-1" />
@@ -166,37 +145,20 @@ export function AttachmentImage({ metadata }: AttachmentImageProps) {
               onClick={handleDownload}
               className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors flex items-center gap-3 group/menuitem"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-muted-foreground group-hover/menuitem:text-foreground transition-colors"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
+              <FontAwesomeIcon
+                icon="download"
+                className="w-4 h-4 text-muted-foreground group-hover/menuitem:text-foreground transition-colors"
+              />
               <span className="font-medium">Download</span>
             </button>
             <button
               onClick={handleCopyImage}
               className="w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors flex items-center gap-3 group/menuitem"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-muted-foreground group-hover/menuitem:text-foreground transition-colors"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
+              <FontAwesomeIcon
+                icon="copy"
+                className="w-4 h-4 text-muted-foreground group-hover/menuitem:text-foreground transition-colors"
+              />
               <span className="font-medium">Copy Image</span>
             </button>
           </div>
@@ -213,17 +175,7 @@ export function AttachmentImage({ metadata }: AttachmentImageProps) {
               onClick={() => setShowExpanded(false)}
               className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
             >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <FontAwesomeIcon icon="xmark" className="w-6 h-6" />
             </button>
             <img
               src={data.blobUrl}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Download, CheckCircle, Copy, Check, Loader2, ShieldAlert } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAuth } from "../context/AuthContext";
 import { cryptoService, type RecoveryKeyData } from "../core/crypto/crypto";
 import { recoveryService } from "../core/auth/RecoveryService";
@@ -125,7 +125,7 @@ Generated: ${new Date().toISOString()}
     return (
       <div className="w-full max-w-md backdrop-blur-sm bg-white/5 p-8 rounded-2xl border border-white/10">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <FontAwesomeIcon icon="spinner" className="w-8 h-8 mx-auto mb-4 text-primary" spin />
           <p className="text-muted-foreground">Generating your recovery kit...</p>
         </div>
       </div>
@@ -136,7 +136,7 @@ Generated: ${new Date().toISOString()}
     <div className="w-full max-w-md backdrop-blur-sm bg-white/5 p-8 rounded-2xl border border-white/10">
       <div className="mb-8 text-center">
         <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/10">
-          <ShieldAlert className="w-8 h-8 text-amber-500" />
+          <FontAwesomeIcon icon="shield-halved" className="w-8 h-8 text-amber-500" />
         </div>
         <h1 className="text-2xl font-semibold text-foreground mb-2">Save Your Recovery Kit</h1>
         <p className="text-sm text-muted-foreground">
@@ -163,9 +163,9 @@ Generated: ${new Date().toISOString()}
               title="Copy to clipboard"
             >
               {copied ? (
-                <Check className="w-4 h-4 text-green-500" />
+                <FontAwesomeIcon icon="check" className="w-4 h-4 text-green-500" />
               ) : (
-                <Copy className="w-4 h-4 text-muted-foreground" />
+                <FontAwesomeIcon icon="copy" className="w-4 h-4 text-muted-foreground" />
               )}
             </button>
           </div>
@@ -175,9 +175,11 @@ Generated: ${new Date().toISOString()}
           onClick={handleDownload}
           className="w-full px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-foreground rounded-lg font-medium transition-all flex items-center justify-center gap-2"
         >
-          <Download className="w-4 h-4" />
+          <FontAwesomeIcon icon="download" className="w-4 h-4" />
           Download Recovery Kit
-          {hasDownloaded && <CheckCircle className="w-4 h-4 text-green-500" />}
+          {hasDownloaded && (
+            <FontAwesomeIcon icon="circle-check" className="w-4 h-4 text-green-500" />
+          )}
         </button>
 
         <div className="border-t border-white/10 pt-4">
@@ -200,7 +202,7 @@ Generated: ${new Date().toISOString()}
           disabled={!hasDownloaded || !hasAcknowledged || isSaving}
           className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
         >
-          {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+          {isSaving && <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />}
           {isSaving ? "Saving..." : "Continue to Chat"}
         </button>
       </div>

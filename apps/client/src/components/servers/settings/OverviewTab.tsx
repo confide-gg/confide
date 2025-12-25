@@ -1,7 +1,7 @@
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Switch } from "../../ui/switch";
-import { Users, Ban } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ServerRole, ServerBan } from "../../../features/servers/types";
 
 interface OverviewTabProps {
@@ -154,14 +154,14 @@ export function OverviewTab({
       <div className="grid grid-cols-2 gap-4">
         <div className="p-5 rounded-xl bg-secondary/30 space-y-2">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="w-4 h-4" />
+            <FontAwesomeIcon icon="users" className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wide">Roles</span>
           </div>
           <p className="text-3xl font-bold">{roles.length}</p>
         </div>
         <div className="p-5 rounded-xl bg-secondary/30 space-y-2">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Ban className="w-4 h-4" />
+            <FontAwesomeIcon icon="ban" className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wide">Bans</span>
           </div>
           <p className="text-3xl font-bold">{bans.length}</p>

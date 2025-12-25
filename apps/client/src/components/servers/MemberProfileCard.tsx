@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Avatar } from "../ui/avatar";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
@@ -135,7 +135,7 @@ export function MemberProfileCard({
                 onClick={onClose}
                 className="absolute top-2 right-2 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors"
               >
-                <X className="w-4 h-4" />
+                <FontAwesomeIcon icon="xmark" className="w-4 h-4" />
               </button>
             </div>
 

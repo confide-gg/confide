@@ -6,7 +6,7 @@ import { AppearanceSettings } from "../components/settings/AppearanceSettings";
 import { SpotifySettings } from "../components/settings/SpotifySettings";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Button } from "../components/ui/button";
-import { Mic, User, Palette, ArrowLeft, Shield, Link } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CLIENT_VERSION, CENTRAL_API_URL } from "../config";
 import { Panel } from "../components/layout/Panel";
 
@@ -29,17 +29,37 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
     id: "user",
     label: "USER SETTINGS",
     tabs: [
-      { id: "account", label: "My Account", icon: <Shield className="w-4 h-4" /> },
-      { id: "profile", label: "Profile", icon: <User className="w-4 h-4" /> },
+      {
+        id: "account",
+        label: "My Account",
+        icon: <FontAwesomeIcon icon="shield" className="w-4 h-4" />,
+      },
+      {
+        id: "profile",
+        label: "Profile",
+        icon: <FontAwesomeIcon icon="user" className="w-4 h-4" />,
+      },
     ],
   },
   {
     id: "app",
     label: "APP SETTINGS",
     tabs: [
-      { id: "appearance", label: "Appearance", icon: <Palette className="w-4 h-4" /> },
-      { id: "voice", label: "Voice & Audio", icon: <Mic className="w-4 h-4" /> },
-      { id: "connections", label: "Connections", icon: <Link className="w-4 h-4" /> },
+      {
+        id: "appearance",
+        label: "Appearance",
+        icon: <FontAwesomeIcon icon="palette" className="w-4 h-4" />,
+      },
+      {
+        id: "voice",
+        label: "Voice & Audio",
+        icon: <FontAwesomeIcon icon="microphone" className="w-4 h-4" />,
+      },
+      {
+        id: "connections",
+        label: "Connections",
+        icon: <FontAwesomeIcon icon="link" className="w-4 h-4" />,
+      },
     ],
   },
 ];
@@ -116,7 +136,7 @@ export function Settings() {
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
+              <FontAwesomeIcon icon="arrow-left" className="h-4 w-4" />
             </Button>
             <h1 className="text-lg font-semibold">
               {ALL_TABS.find((t) => t.id === activeTab)?.label}

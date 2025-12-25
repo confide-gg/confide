@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Server, Loader2, AlertCircle, Lock, ArrowLeft } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { federationService } from "../../features/servers/federation";
 
 interface JoinServerModalProps {
@@ -104,10 +104,10 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
                 onClick={handleBack}
                 disabled={isLoading}
               >
-                <ArrowLeft className="w-4 h-4" />
+                <FontAwesomeIcon icon="arrow-left" className="w-4 h-4" />
               </Button>
             )}
-            <Server className="w-5 h-5 text-primary" />
+            <FontAwesomeIcon icon="server" className="w-5 h-5 text-primary" />
             {step === "domain" ? "Join a Server" : `Join ${serverInfo?.name || "Server"}`}
           </DialogTitle>
         </DialogHeader>
@@ -130,7 +130,7 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
 
             {error && (
               <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+                <FontAwesomeIcon icon="circle-exclamation" className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
@@ -142,7 +142,7 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
               <Button type="submit" disabled={isLoading || !domain.trim()}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <FontAwesomeIcon icon="spinner" className="w-4 h-4 mr-2" spin />
                     Connecting...
                   </>
                 ) : (
@@ -154,7 +154,7 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
         ) : (
           <form onSubmit={handleJoinWithPassword} className="space-y-4">
             <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-md">
-              <Lock className="w-4 h-4 text-muted-foreground" />
+              <FontAwesomeIcon icon="lock" className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
                 This server requires a password to join
               </span>
@@ -176,7 +176,7 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
 
             {error && (
               <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+                <FontAwesomeIcon icon="circle-exclamation" className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
@@ -188,7 +188,7 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
               <Button type="submit" disabled={isLoading || !password.trim()}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <FontAwesomeIcon icon="spinner" className="w-4 h-4 mr-2" spin />
                     Joining...
                   </>
                 ) : (

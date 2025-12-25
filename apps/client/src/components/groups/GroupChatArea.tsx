@@ -1,4 +1,4 @@
-import { Pin, UserPlus } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/chat";
@@ -229,7 +229,7 @@ export function GroupChatArea() {
                 className="p-2 rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
                 title="Add members"
               >
-                <UserPlus className="w-5 h-5" />
+                <FontAwesomeIcon icon="user-plus" className="w-5 h-5" />
               </button>
             )}
             <button
@@ -241,7 +241,7 @@ export function GroupChatArea() {
               }`}
               title="Pinned Messages"
             >
-              <Pin className="w-5 h-5" />
+              <FontAwesomeIcon icon="thumbtack" className="w-5 h-5" />
             </button>
           </div>
         </div>

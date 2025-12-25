@@ -16,16 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import {
-  LogOut,
-  Pencil,
-  Check,
-  ChevronDown,
-  Mic,
-  MicOff,
-  Headphones,
-  Settings,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 const STATUS_OPTIONS: { value: UserStatus; label: string; color: string }[] = [
@@ -97,9 +88,9 @@ export function UserProfile() {
                     }`}
                   >
                     {callState.is_muted ? (
-                      <MicOff className="h-4 w-4" />
+                      <FontAwesomeIcon icon="microphone-slash" className="h-4 w-4" />
                     ) : (
-                      <Mic className="h-4 w-4" />
+                      <FontAwesomeIcon icon="microphone" className="h-4 w-4" />
                     )}
                   </button>
                 </TooltipTrigger>
@@ -118,7 +109,8 @@ export function UserProfile() {
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    <Headphones
+                    <FontAwesomeIcon
+                      icon="headphones"
                       className={`h-4 w-4 ${callState.is_deafened ? "line-through" : ""}`}
                     />
                   </button>
@@ -162,7 +154,10 @@ export function UserProfile() {
                   {profile?.custom_status || currentStatus.label}
                 </div>
               </div>
-              <ChevronDown className="shrink-0 w-4 h-4 text-muted-foreground" />
+              <FontAwesomeIcon
+                icon="chevron-down"
+                className="shrink-0 w-4 h-4 text-muted-foreground"
+              />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
@@ -180,16 +175,16 @@ export function UserProfile() {
                   style={{ background: option.color }}
                 />
                 <span className="flex-1">{option.label}</span>
-                {status === option.value && <Check className="w-4 h-4" />}
+                {status === option.value && <FontAwesomeIcon icon="check" className="w-4 h-4" />}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/settings")}>
-              <Pencil className="w-4 h-4" />
+              <FontAwesomeIcon icon="pen-to-square" className="w-4 h-4" />
               <span>Edit Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/settings")}>
-              <Settings className="w-4 h-4" />
+              <FontAwesomeIcon icon="gear" className="w-4 h-4" />
               <span>Settings</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -197,7 +192,7 @@ export function UserProfile() {
               onClick={logout}
               className="text-destructive focus:text-destructive focus:bg-destructive/10"
             >
-              <LogOut className="w-4 h-4" />
+              <FontAwesomeIcon icon="arrow-right-from-bracket" className="w-4 h-4" />
               <span>Log Out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

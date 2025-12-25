@@ -1,15 +1,5 @@
 import { memo } from "react";
-import {
-  Crown,
-  LogOut,
-  Phone,
-  PhoneIncoming,
-  PhoneMissed,
-  PhoneOff,
-  Pin,
-  UserMinus,
-  UserPlus,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { formatDate } from "../../utils/formatters";
 import type { DecryptedMessage } from "../../types";
 
@@ -40,25 +30,25 @@ export const SystemMessage = memo(function SystemMessage({
   const getIcon = () => {
     switch (message.systemType) {
       case "call_started":
-        return <PhoneIncoming className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="phone-flip" className="w-4 h-4" />;
       case "call_ended":
-        return <Phone className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="phone" className="w-4 h-4" />;
       case "call_missed":
-        return <PhoneMissed className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="phone" className="w-4 h-4" />;
       case "call_rejected":
-        return <PhoneOff className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="phone-slash" className="w-4 h-4" />;
       case "channel_pin":
-        return <Pin className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="thumbtack" className="w-4 h-4" />;
       case "group_member_added":
-        return <UserPlus className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="user-plus" className="w-4 h-4" />;
       case "group_member_removed":
-        return <UserMinus className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="user-minus" className="w-4 h-4" />;
       case "group_member_left":
-        return <LogOut className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="arrow-right-from-bracket" className="w-4 h-4" />;
       case "group_owner_changed":
-        return <Crown className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="crown" className="w-4 h-4" />;
       default:
-        return <Phone className="w-4 h-4" />;
+        return <FontAwesomeIcon icon="phone" className="w-4 h-4" />;
     }
   };
 

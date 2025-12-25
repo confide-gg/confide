@@ -1,12 +1,4 @@
-import {
-  Signal,
-  SignalHigh,
-  SignalLow,
-  SignalZero,
-  Maximize2,
-  Minimize2,
-  ChevronUp,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../../ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -44,13 +36,13 @@ export function CallHeader({
     const iconClass = "w-4 h-4";
     switch (quality) {
       case "excellent":
-        return <Signal className={cn(iconClass, "text-green-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-green-400")} />;
       case "good":
-        return <SignalHigh className={cn(iconClass, "text-green-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-green-400")} />;
       case "fair":
-        return <SignalLow className={cn(iconClass, "text-yellow-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-yellow-400")} />;
       case "poor":
-        return <SignalZero className={cn(iconClass, "text-red-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-red-400")} />;
     }
   };
 
@@ -160,9 +152,9 @@ export function CallHeader({
                 onClick={onToggleFullscreen}
               >
                 {isFullscreen ? (
-                  <Minimize2 className="w-3.5 h-3.5" />
+                  <FontAwesomeIcon icon="minimize" className="w-3.5 h-3.5" />
                 ) : (
-                  <Maximize2 className="w-3.5 h-3.5" />
+                  <FontAwesomeIcon icon="maximize" className="w-3.5 h-3.5" />
                 )}
               </Button>
             </TooltipTrigger>
@@ -181,7 +173,7 @@ export function CallHeader({
                   className="h-7 w-7 p-0 text-white/60 hover:text-white hover:bg-white/10"
                   onClick={onMinimize}
                 >
-                  <ChevronUp className="w-3.5 h-3.5" />
+                  <FontAwesomeIcon icon="chevron-up" className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs bg-card border-border">

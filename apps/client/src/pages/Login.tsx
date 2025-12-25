@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Loader2 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export function Login() {
   const [username, setUsername] = useState("");
@@ -77,7 +77,7 @@ export function Login() {
             disabled={isLoading}
             className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
-            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isLoading && <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />}
             {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>

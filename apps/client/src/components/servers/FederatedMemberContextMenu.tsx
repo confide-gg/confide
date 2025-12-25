@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Shield, Check } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ServerRole } from "../../features/servers/types";
 import type { FederatedServerClient } from "../../features/servers/federatedClient";
 import {
@@ -95,7 +95,7 @@ export function FederatedMemberContextMenu({
       <DropdownMenuContent className="w-56" side="left" align="start" sideOffset={0}>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="gap-2">
-            <Shield className="w-4 h-4" />
+            <FontAwesomeIcon icon="shield" className="w-4 h-4" />
             {isSelf ? "Manage My Roles" : "Manage Roles"}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="ml-1">
@@ -122,7 +122,7 @@ export function FederatedMemberContextMenu({
                       <span className="flex-1" style={{ color: hasRole ? role.color : undefined }}>
                         {role.name}
                       </span>
-                      {hasRole && <Check className="w-4 h-4 shrink-0" />}
+                      {hasRole && <FontAwesomeIcon icon="check" className="w-4 h-4 shrink-0" />}
                     </DropdownMenuItem>
                   );
                 })

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { HardDrive, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 interface RegisterServerModalProps {
   isOpen: boolean;
@@ -68,14 +68,14 @@ export function RegisterServerModal({ isOpen, onClose, onRegister }: RegisterSer
       <DialogContent className="max-w-md bg-card border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <HardDrive className="w-5 h-5 text-primary" />
+            <FontAwesomeIcon icon="server" className="w-5 h-5 text-primary" />
             Register Your Server
           </DialogTitle>
         </DialogHeader>
 
         {success ? (
           <div className="flex flex-col items-center gap-4 py-6">
-            <CheckCircle2 className="w-12 h-12 text-green-500" />
+            <FontAwesomeIcon icon="circle-check" className="w-12 h-12 text-green-500" />
             <p className="text-center text-muted-foreground">
               Server registered! You can now configure server details in settings.
             </p>
@@ -116,7 +116,7 @@ export function RegisterServerModal({ isOpen, onClose, onRegister }: RegisterSer
 
             {error && (
               <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+                <FontAwesomeIcon icon="circle-exclamation" className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
@@ -128,7 +128,7 @@ export function RegisterServerModal({ isOpen, onClose, onRegister }: RegisterSer
               <Button type="submit" disabled={isLoading || !domain.trim() || !setupToken.trim()}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <FontAwesomeIcon icon="spinner" className="w-4 h-4 mr-2" spin />
                     Registering...
                   </>
                 ) : (

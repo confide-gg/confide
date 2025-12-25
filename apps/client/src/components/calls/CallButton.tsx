@@ -1,4 +1,4 @@
-import { Phone } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 import { useCall } from "./context";
 import {
@@ -71,7 +71,7 @@ export function CallButton({
       disabled={disabled || isInCall}
       title={isInCall ? "Already in a call" : "Start voice call"}
     >
-      <Phone className="h-5 w-5" />
+      <FontAwesomeIcon icon="phone" className="h-5 w-5" />
     </Button>
   );
 }

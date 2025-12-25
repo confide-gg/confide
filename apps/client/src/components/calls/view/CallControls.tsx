@@ -1,13 +1,4 @@
-import {
-  PhoneOff,
-  Mic,
-  MicOff,
-  Headphones,
-  HeadphoneOff,
-  Monitor,
-  MonitorOff,
-  PhoneIncoming,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../../ui/button";
 import { ControlButton } from "./ControlButton";
 
@@ -48,13 +39,19 @@ export function CallControls({
             size="sm"
             className="h-9 px-4 rounded-full bg-green-600 hover:bg-green-700 text-white font-medium text-xs"
           >
-            <PhoneIncoming className="w-4 h-4 mr-1.5" />
+            <FontAwesomeIcon icon="phone-flip" className="w-4 h-4 mr-1.5" />
             {isRejoining ? "Rejoining..." : "Rejoin"}
           </Button>
         ) : (
           <>
             <ControlButton
-              icon={isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              icon={
+                isMuted ? (
+                  <FontAwesomeIcon icon="microphone-slash" className="w-4 h-4" />
+                ) : (
+                  <FontAwesomeIcon icon="microphone" className="w-4 h-4" />
+                )
+              }
               onClick={onToggleMute}
               active={isMuted}
               disabled={!isActive}
@@ -63,9 +60,9 @@ export function CallControls({
             <ControlButton
               icon={
                 isDeafened ? (
-                  <HeadphoneOff className="w-4 h-4" />
+                  <FontAwesomeIcon icon="headphones" className="w-4 h-4" />
                 ) : (
-                  <Headphones className="w-4 h-4" />
+                  <FontAwesomeIcon icon="headphones" className="w-4 h-4" />
                 )
               }
               onClick={onToggleDeafen}
@@ -76,9 +73,9 @@ export function CallControls({
             <ControlButton
               icon={
                 isScreenSharing ? (
-                  <MonitorOff className="w-4 h-4" />
+                  <FontAwesomeIcon icon="desktop" className="w-4 h-4" />
                 ) : (
-                  <Monitor className="w-4 h-4" />
+                  <FontAwesomeIcon icon="desktop" className="w-4 h-4" />
                 )
               }
               onClick={onScreenShareToggle}
@@ -89,7 +86,7 @@ export function CallControls({
             />
             <div className="w-px h-6 bg-white/10 mx-1" />
             <ControlButton
-              icon={<PhoneOff className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon="phone-slash" className="w-4 h-4" />}
               onClick={onLeave}
               variant="danger"
               tooltip="Leave Call"

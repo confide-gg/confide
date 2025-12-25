@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cryptoService } from "../../core/crypto/crypto";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
@@ -94,19 +95,7 @@ export function VerifyModal({
         ) : (
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-muted-foreground">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-primary shrink-0"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+              <FontAwesomeIcon icon="shield" className="w-6 h-6 text-primary shrink-0" />
               <p className="text-sm">
                 Compare these numbers with{" "}
                 <strong className="text-foreground">{theirUsername}</strong> to verify your secure

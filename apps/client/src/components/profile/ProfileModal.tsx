@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import type { PublicProfile, UserStatus } from "../../types";
@@ -86,7 +86,7 @@ export function ProfileModal({
             onClick={onClose}
             className="absolute top-2 right-2 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors"
           >
-            <X className="w-4 h-4" />
+            <FontAwesomeIcon icon="xmark" className="w-4 h-4" />
           </button>
         </div>
 

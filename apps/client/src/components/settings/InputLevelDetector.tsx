@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Mic, MicOff, Shield, Keyboard } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 import {
   checkMicrophonePermission,
@@ -390,7 +390,7 @@ export function InputLevelDetector({
                       : "bg-secondary/50 text-muted-foreground"
                   }`}
                 >
-                  <Keyboard className="w-3 h-3" />
+                  <FontAwesomeIcon icon="keyboard" className="w-3 h-3" />
                   <span>{isPTTActive ? "Transmitting" : pttKey || "No key"}</span>
                 </div>
               )}
@@ -422,12 +422,12 @@ export function InputLevelDetector({
           >
             {isTesting ? (
               <>
-                <MicOff className="w-4 h-4" />
+                <FontAwesomeIcon icon="microphone-slash" className="w-4 h-4" />
                 Stop
               </>
             ) : (
               <>
-                <Mic className="w-4 h-4" />
+                <FontAwesomeIcon icon="microphone" className="w-4 h-4" />
                 Test Mic
               </>
             )}
@@ -443,7 +443,7 @@ export function InputLevelDetector({
               : "bg-destructive/10 text-destructive"
           }`}
         >
-          {permissionDenied && <Shield className="w-5 h-5 flex-shrink-0" />}
+          {permissionDenied && <FontAwesomeIcon icon="shield" className="w-5 h-5 flex-shrink-0" />}
           <p>{error}</p>
         </div>
       )}

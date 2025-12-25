@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "../../ui/dialog";
-import { AlertTriangle } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ServerRole } from "../../../features/servers/types";
 import { PERMISSION_GROUPS } from "./types";
 
@@ -140,7 +140,7 @@ export function DeleteRoleDialog({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
+            <FontAwesomeIcon icon="triangle-exclamation" className="w-5 h-5 text-destructive" />
             Delete Role
           </DialogTitle>
           <DialogDescription>
@@ -181,7 +181,7 @@ export function DeleteServerDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="w-5 h-5" />
+            <FontAwesomeIcon icon="triangle-exclamation" className="w-5 h-5" />
             Delete Server
           </DialogTitle>
           <DialogDescription className="space-y-2">

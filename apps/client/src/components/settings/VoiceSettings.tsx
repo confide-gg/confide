@@ -9,7 +9,7 @@ import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
-import { Mic, Volume2, Radio, Keyboard, Sparkles } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 interface LocalSettings {
   input_device: string | null;
@@ -195,7 +195,7 @@ export function VoiceSettings() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mic className="w-3.5 h-3.5" />
+                <FontAwesomeIcon icon="microphone" className="w-3.5 h-3.5" />
                 <span>Input</span>
               </div>
               <Select
@@ -223,7 +223,7 @@ export function VoiceSettings() {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Volume2 className="w-3.5 h-3.5" />
+                <FontAwesomeIcon icon="volume-high" className="w-3.5 h-3.5" />
                 <span>Output</span>
               </div>
               <Select
@@ -310,7 +310,7 @@ export function VoiceSettings() {
           <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-secondary/30">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <FontAwesomeIcon icon="wand-magic-sparkles" className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <span className="font-medium text-sm">Noise Suppression</span>
@@ -354,7 +354,7 @@ export function VoiceSettings() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-muted-foreground" />
+                  <FontAwesomeIcon icon="radio" className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Voice Activity</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-0.5">
@@ -386,7 +386,7 @@ export function VoiceSettings() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <Keyboard className="w-4 h-4 text-muted-foreground" />
+                  <FontAwesomeIcon icon="keyboard" className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Push to Talk</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-0.5">

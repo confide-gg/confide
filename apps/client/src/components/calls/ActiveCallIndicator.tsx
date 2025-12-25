@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { PhoneCall, Timer, Volume2, VolumeX, Video, VideoOff, Monitor } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCall } from "./context";
 
 interface ActiveCallIndicatorProps {
@@ -78,8 +78,12 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
         </div>
 
         <div className="flex items-center gap-1 ml-auto">
-          {callState.is_screen_sharing && <Monitor className="h-3 w-3 text-green-400" />}
-          {callState.peer_is_screen_sharing && <Video className="h-3 w-3 text-blue-400" />}
+          {callState.is_screen_sharing && (
+            <FontAwesomeIcon icon="desktop" className="h-3 w-3 text-green-400" />
+          )}
+          {callState.peer_is_screen_sharing && (
+            <FontAwesomeIcon icon="video" className="h-3 w-3 text-blue-400" />
+          )}
         </div>
       </div>
     );
@@ -97,7 +101,7 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
               className="h-10 w-10"
             />
             <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-card flex items-center justify-center">
-              <PhoneCall className="h-2 w-2 text-white" />
+              <FontAwesomeIcon icon="phone" className="h-2 w-2 text-white" />
             </div>
           </div>
 
@@ -106,17 +110,17 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
               {callState.peer_display_name || callState.peer_username || "Unknown"}
             </h4>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Timer className="h-3 w-3" />
+              <FontAwesomeIcon icon="clock" className="h-3 w-3" />
               <span>{callDuration}</span>
               {callState.is_screen_sharing && (
                 <div className="flex items-center gap-1 text-green-400">
-                  <Monitor className="h-3 w-3" />
+                  <FontAwesomeIcon icon="desktop" className="h-3 w-3" />
                   <span>Sharing screen</span>
                 </div>
               )}
               {callState.peer_is_screen_sharing && (
                 <div className="flex items-center gap-1 text-blue-400">
-                  <Video className="h-3 w-3" />
+                  <FontAwesomeIcon icon="video" className="h-3 w-3" />
                   <span>Peer sharing</span>
                 </div>
               )}
@@ -135,7 +139,11 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
                 : "bg-secondary text-foreground hover:bg-secondary/80"
             }`}
           >
-            {callState.is_muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            {callState.is_muted ? (
+              <FontAwesomeIcon icon="volume-xmark" className="h-4 w-4" />
+            ) : (
+              <FontAwesomeIcon icon="volume-high" className="h-4 w-4" />
+            )}
           </Button>
 
           <Button
@@ -149,9 +157,9 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
             }`}
           >
             {callState.is_deafened ? (
-              <VideoOff className="h-4 w-4" />
+              <FontAwesomeIcon icon="video-slash" className="h-4 w-4" />
             ) : (
-              <Video className="h-4 w-4" />
+              <FontAwesomeIcon icon="video" className="h-4 w-4" />
             )}
           </Button>
         </div>

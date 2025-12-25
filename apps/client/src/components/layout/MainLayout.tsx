@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useChat } from "../../context/chat";
 import { useAuth } from "../../context/AuthContext";
 import { useServer } from "../../context/server";
@@ -162,19 +163,7 @@ export function MainLayout() {
         <div className="absolute inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-in fade-in duration-150">
           <div className="flex flex-col items-center gap-4 p-8 bg-card border-2 border-dashed border-primary rounded-2xl shadow-2xl">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="text-primary"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
+              <FontAwesomeIcon icon="upload" className="w-8 h-8 text-primary" />
             </div>
             <div className="text-center">
               <div className="text-lg font-semibold text-foreground">Drop file to attach</div>

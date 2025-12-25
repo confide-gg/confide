@@ -1,4 +1,4 @@
-import { WifiOff } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 import { centralWebSocketService } from "../../core/network/CentralWebSocketService";
 import { useState } from "react";
@@ -21,7 +21,7 @@ export function ServerOfflineOverlay() {
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-card border border-border rounded-lg shadow-lg max-w-md w-full p-8 flex flex-col items-center text-center space-y-6">
         <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
-          <WifiOff className="h-8 w-8 text-destructive" />
+          <FontAwesomeIcon icon="wifi" className="h-8 w-8 text-destructive" />
         </div>
 
         <div className="space-y-2">

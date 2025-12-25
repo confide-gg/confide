@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { ScrollArea } from "../../ui/scroll-area";
-import { X, Settings, Shield, Ban } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Panel } from "../../layout/Panel";
 import type { ServerSettingsProps, Tab } from "./types";
 import { useServerSettings } from "./useServerSettings";
@@ -131,7 +131,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
               onClick={onClose}
               className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
             >
-              <X className="w-5 h-5" />
+              <FontAwesomeIcon icon="xmark" className="w-5 h-5" />
             </button>
           </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Monitor } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ScreenShareCanvasProps } from "./types";
 
 export function ScreenShareCanvas({ peerName }: ScreenShareCanvasProps) {
@@ -208,7 +208,7 @@ export function ScreenShareCanvas({ peerName }: ScreenShareCanvasProps) {
 
       {dimensions.width === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70">
-          <Monitor className="w-10 h-10 mb-2 animate-pulse" />
+          <FontAwesomeIcon icon="desktop" className="w-10 h-10 mb-2 animate-pulse" />
           <p className="text-sm">Waiting for {peerName}'s screen...</p>
         </div>
       )}

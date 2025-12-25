@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Search, Star, Loader2, ArrowLeft } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { tenor, TenorGif, TenorCategory } from "../../features/chat/tenor";
 import { gifFavoritesService, FavoriteGif } from "../../features/chat/gifFavorites";
 import { cn } from "../../lib/utils";
@@ -181,11 +181,14 @@ export function GifPicker({ onSelect, onTabChange, activeTab = "gif", className 
               className="p-1.5 hover:bg-secondary/50 rounded-md transition-colors shrink-0"
               title="Back to categories"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <FontAwesomeIcon icon="arrow-left" className="w-4 h-4" />
             </button>
           )}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <FontAwesomeIcon
+              icon="magnifying-glass"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+            />
             <input
               type="text"
               value={query}
@@ -200,7 +203,7 @@ export function GifPicker({ onSelect, onTabChange, activeTab = "gif", className 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {isLoading ? (
           <div className="h-full flex items-center justify-center text-muted-foreground">
-            <Loader2 className="w-6 h-6 animate-spin" />
+            <FontAwesomeIcon icon="spinner" className="w-6 h-6" spin />
           </div>
         ) : viewMode === "categories" ? (
           <div className="grid grid-cols-2 gap-3">
@@ -296,7 +299,7 @@ export function GifPicker({ onSelect, onTabChange, activeTab = "gif", className 
                     className="absolute top-2 right-2 p-1.5 bg-primary/80 backdrop-blur-sm rounded-md opacity-0 group-hover:opacity-100 hover:bg-primary transition-all"
                     onClick={(e) => toggleFavorite(fav.gif_url, fav.gif_preview_url, e)}
                   >
-                    <Star className="w-3.5 h-3.5 fill-current" />
+                    <FontAwesomeIcon icon="star" className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
@@ -304,7 +307,7 @@ export function GifPicker({ onSelect, onTabChange, activeTab = "gif", className 
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-3">
               <div className="w-16 h-16 rounded-full bg-secondary/30 flex items-center justify-center">
-                <Star className="w-8 h-8" />
+                <FontAwesomeIcon icon="star" className="w-8 h-8" />
               </div>
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium">No favorites yet</p>
@@ -344,7 +347,7 @@ export function GifPicker({ onSelect, onTabChange, activeTab = "gif", className 
                     )}
                     onClick={(e) => toggleFavorite(url, previewUrl, e)}
                   >
-                    <Star className={cn("w-3.5 h-3.5", isFav ? "fill-current" : "")} />
+                    <FontAwesomeIcon icon="star" className={cn("w-3.5 h-3.5")} />
                   </button>
                 </div>
               );

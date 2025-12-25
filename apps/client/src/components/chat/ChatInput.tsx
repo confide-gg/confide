@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useChat } from "../../context/chat";
 import { GifPicker } from "./GifPicker";
 import { EmojiPicker } from "./EmojiPicker";
@@ -294,18 +295,10 @@ export function ChatInput() {
     return (
       <div className="h-auto min-h-[60px] px-6 py-3 flex items-center">
         <div className="flex items-center gap-3 px-4 py-2 bg-secondary/30 border border-border/50 rounded-md w-full">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="text-muted-foreground shrink-0"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-          </svg>
+          <FontAwesomeIcon
+            icon="ban"
+            className="w-[18px] h-[18px] text-muted-foreground shrink-0"
+          />
           <span className="text-sm text-muted-foreground">
             You cannot send messages to this user because you are not friends.
           </span>
@@ -328,86 +321,18 @@ export function ChatInput() {
 
           const getFileIcon = (mimeType: string) => {
             if (mimeType.startsWith("video/")) {
-              return (
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-primary"
-                >
-                  <polygon points="23 7 16 12 23 17 23 7" />
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                </svg>
-              );
+              return <FontAwesomeIcon icon="video" className="w-5 h-5 text-primary" />;
             }
             if (mimeType.startsWith("audio/")) {
-              return (
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-primary"
-                >
-                  <path d="M9 18V5l12-2v13" />
-                  <circle cx="6" cy="18" r="3" />
-                  <circle cx="18" cy="16" r="3" />
-                </svg>
-              );
+              return <FontAwesomeIcon icon="music" className="w-5 h-5 text-primary" />;
             }
             if (mimeType === "application/pdf") {
-              return (
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-primary"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              );
+              return <FontAwesomeIcon icon="file" className="w-5 h-5 text-primary" />;
             }
             if (mimeType.startsWith("text/") || mimeType === "application/json") {
-              return (
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-primary"
-                >
-                  <polyline points="16 18 22 12 16 6" />
-                  <polyline points="8 6 2 12 8 18" />
-                </svg>
-              );
+              return <FontAwesomeIcon icon="file" className="w-5 h-5 text-primary" />;
             }
-            return (
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-primary"
-              >
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-                <polyline points="13 2 13 9 20 9" />
-              </svg>
-            );
+            return <FontAwesomeIcon icon="file" className="w-5 h-5 text-primary" />;
           };
 
           return (
@@ -428,18 +353,10 @@ export function ChatInput() {
                 )}
                 <div className="flex flex-col gap-0.5 overflow-hidden min-w-0">
                   <div className="flex items-center gap-2">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-muted-foreground shrink-0"
-                    >
-                      <polyline points="9 10 4 15 9 20" />
-                      <path d="M20 4v7a4 4 0 0 1-4 4H4" />
-                    </svg>
+                    <FontAwesomeIcon
+                      icon="reply"
+                      className="w-3 h-3 text-muted-foreground shrink-0"
+                    />
                     <span className="text-xs font-medium text-muted-foreground">Replying to</span>
                     <span className="text-xs font-semibold text-foreground">
                       {replyTo.senderName}
@@ -455,18 +372,10 @@ export function ChatInput() {
                 onClick={() => setReplyTo(null)}
                 title="Cancel reply"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-muted-foreground group-hover:text-foreground transition-colors"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <FontAwesomeIcon
+                  icon="xmark"
+                  className="w-[14px] h-[14px] text-muted-foreground group-hover:text-foreground transition-colors"
+                />
               </button>
             </div>
           );
@@ -488,18 +397,7 @@ export function ChatInput() {
               )}
               {!selectedFile.type.startsWith("image/") && (
                 <div className="w-24 h-24 flex items-center justify-center bg-secondary/50 rounded-lg border-2 border-border shadow-sm">
-                  <svg
-                    width="36"
-                    height="36"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="text-muted-foreground"
-                  >
-                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-                    <polyline points="13 2 13 9 20 9" />
-                  </svg>
+                  <FontAwesomeIcon icon="file" className="w-9 h-9 text-muted-foreground" />
                 </div>
               )}
               <button
@@ -507,32 +405,12 @@ export function ChatInput() {
                 className="absolute -top-2 -right-2 w-7 h-7 flex items-center justify-center bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full shadow-lg transition-all hover:scale-110"
                 title="Remove file"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <FontAwesomeIcon icon="xmark" className="w-[14px] h-[14px]" />
               </button>
             </div>
             <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
               <div className="flex items-center gap-2">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="text-primary shrink-0"
-                >
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
+                <FontAwesomeIcon icon="paperclip" className="w-4 h-4 text-primary shrink-0" />
                 <div className="text-sm font-medium text-foreground truncate">
                   {selectedFile.name}
                 </div>
@@ -552,27 +430,7 @@ export function ChatInput() {
           <div className="flex items-center gap-4">
             <div className="shrink-0">
               <div className="w-12 h-12 rounded-lg bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
-                <div className="relative w-8 h-8">
-                  <svg
-                    className="w-8 h-8 animate-spin text-primary"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                </div>
+                <FontAwesomeIcon icon="spinner" className="w-8 h-8 text-primary" spin />
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -652,20 +510,7 @@ export function ChatInput() {
             title="Attach file"
             disabled={!!uploadingFile}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
+            <FontAwesomeIcon icon="plus" className="w-[18px] h-[18px]" />
           </button>
           <div className="relative" ref={timedMenuRef}>
             <button
@@ -674,19 +519,7 @@ export function ChatInput() {
               onClick={() => setShowTimedMenu(!showTimedMenu)}
               title="Timed message"
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
+              <FontAwesomeIcon icon="clock" className="w-[18px] h-[18px]" />
               {timedMessageDuration && (
                 <span className="text-[10px] font-semibold">
                   {timedMessageDuration >= 60
@@ -746,21 +579,7 @@ export function ChatInput() {
             onClick={() => setActivePicker(activePicker === "emoji" ? null : "emoji")}
             title="Add emoji"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-              <line x1="9" y1="9" x2="9.01" y2="9" />
-              <line x1="15" y1="9" x2="15.01" y2="9" />
-            </svg>
+            <FontAwesomeIcon icon="face-smile" className="w-[18px] h-[18px]" />
           </button>
         </div>
       </div>
