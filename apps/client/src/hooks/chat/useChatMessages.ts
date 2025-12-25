@@ -81,7 +81,11 @@ export function useChatMessages(friendsList: Friend[]) {
 
   useEffect(() => {
     if (cachedDecryptedMessages && activeChat) {
-      setChatMessages(cachedDecryptedMessages);
+      const now = Date.now();
+      const filtered = cachedDecryptedMessages.filter(
+        (msg) => !msg.expiresAt || new Date(msg.expiresAt).getTime() > now
+      );
+      setChatMessages(filtered);
       setIsLoadingChat(isLoadingDecrypted);
     }
   }, [cachedDecryptedMessages, activeChat, isLoadingDecrypted]);

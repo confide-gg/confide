@@ -100,7 +100,9 @@ async function decryptMessages(
         content = cryptoService.bytesToString(contentBytes);
       }
 
-      decryptionCache.set(msg.id, { content, senderName });
+      if (!msg.expires_at) {
+        decryptionCache.set(msg.id, { content, senderName });
+      }
 
       return { id: msg.id, content, senderName, isSystem: false };
     } catch (err) {
