@@ -30,6 +30,8 @@ import { conversationService } from "../../features/chat/conversations";
 import { cryptoService } from "../../core/crypto/crypto";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { KeyboardShortcutsModal } from "../common/KeyboardShortcutsModal";
+import { useOnboarding } from "../../hooks/useOnboarding";
+import { WelcomeScreen } from "../onboarding";
 
 export function MainLayout() {
   const { user, keys } = useAuth();
@@ -75,6 +77,7 @@ export function MainLayout() {
   } = useChat();
   const { isDragging } = useDropzone();
   const { showShortcutsModal, setShowShortcutsModal } = useKeyboardShortcuts();
+  const { shouldShowWelcome, completeOnboarding } = useOnboarding();
 
   const unreadDms = useMemo(() => {
     return dmPreviews
@@ -458,6 +461,8 @@ export function MainLayout() {
         isOpen={showShortcutsModal}
         onClose={() => setShowShortcutsModal(false)}
       />
+
+      {shouldShowWelcome && <WelcomeScreen onComplete={completeOnboarding} />}
     </div>
   );
 }
