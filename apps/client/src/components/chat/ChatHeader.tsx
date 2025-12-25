@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useCall } from "../calls/context";
 import { Avatar } from "../ui/avatar";
 import { PinnedMessages } from "./PinnedMessages";
+import { ConnectionStatus } from "../ui/ConnectionStatus";
 
 const STATUS_LABELS: Record<string, string> = {
   online: "Online",
@@ -103,6 +104,7 @@ export function ChatHeader() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ConnectionStatus />
           {isDm && (
             <button
               onClick={handleCall}

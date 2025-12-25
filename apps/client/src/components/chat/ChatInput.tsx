@@ -71,9 +71,9 @@ export function ChatInput() {
 
   useEffect(() => {
     if (activeChat) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         inputRef.current?.focus();
-      }, 100);
+      });
     }
   }, [activeChat?.conversationId]);
 
@@ -372,7 +372,7 @@ export function ChatInput() {
           };
 
           return (
-            <div className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-2.5 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2 duration-200">
+            <div className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-2.5 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2 duration-100">
               <div className="flex items-center gap-3 overflow-hidden min-w-0">
                 <div className="shrink-0 w-1 h-10 bg-primary rounded-full" />
                 {fileMetadata && fileMetadata.file.mimeType.startsWith("image/") && (
@@ -434,7 +434,7 @@ export function ChatInput() {
         })()}
 
       {selectedFile && !uploadingFile && (
-        <div className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 animate-in slide-in-from-bottom-2 duration-100">
           <div className="flex items-start gap-4">
             <div className="relative shrink-0 group/preview">
               {selectedFile.type.startsWith("image/") && filePreviewUrl && (
@@ -509,7 +509,7 @@ export function ChatInput() {
       )}
 
       {uploadingFile && (
-        <div className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-full left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 animate-in slide-in-from-bottom-2 duration-100">
           <div className="flex items-center gap-4">
             <div className="shrink-0">
               <div className="w-12 h-12 rounded-lg bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
@@ -570,7 +570,7 @@ export function ChatInput() {
 
       {activePicker && (
         <div
-          className="absolute bottom-[70px] left-6 z-50 shadow-lg rounded-lg overflow-hidden border border-border animate-in slide-in-from-bottom-4 zoom-in-95 duration-200"
+          className="absolute bottom-[70px] left-6 z-50 shadow-lg rounded-lg overflow-hidden border border-border animate-in slide-in-from-bottom-4 zoom-in-95 duration-100"
           ref={pickerRef}
         >
           {activePicker === "emoji" && (

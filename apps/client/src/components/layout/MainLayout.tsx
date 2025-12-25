@@ -26,6 +26,8 @@ import { groupService } from "../../features/groups/groupService";
 import { AddGroupMembersModal } from "../groups/AddGroupMembersModal";
 import { conversationService } from "../../features/chat/conversations";
 import { cryptoService } from "../../core/crypto/crypto";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { KeyboardShortcutsModal } from "../common/KeyboardShortcutsModal";
 
 export function MainLayout() {
   const { user, keys } = useAuth();
@@ -67,6 +69,7 @@ export function MainLayout() {
     hasConnectedOnce,
   } = useChat();
   const { isDragging } = useDropzone();
+  const { showShortcutsModal, setShowShortcutsModal } = useKeyboardShortcuts();
 
   useEffect(() => {
     const handleClick = () => {
@@ -403,6 +406,11 @@ export function MainLayout() {
           theirIdentityKey={verifyModal.theirIdentityKey}
         />
       )}
+
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
     </div>
   );
 }

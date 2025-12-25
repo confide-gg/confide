@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import type { DmPreview } from "../../types/index";
 import { ActivityDisplay } from "../activity/ActivityDisplay";
 import { Button } from "../ui/button";
+import { usePrefetchConversation } from "../../hooks/usePrefetchConversation";
 
 interface DmListProps {
   onCreateGroup?: () => void;
@@ -29,6 +30,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
   } = useChat();
   const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } =
     usePresence();
+  const { prefetch } = usePrefetchConversation();
 
   const { directMessages, groupMessages } = useMemo(() => {
     return {
@@ -109,12 +111,18 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
         key={preview.conversationId}
         className={`group relative flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors ${
           isActive
-            ? "bg-secondary text-foreground"
-            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            ? "bg-secondary text-foreground cursor-default"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
         }`}
-        onClick={() =>
-          preview.isGroup ? openGroupFromPreview(preview) : openDmFromPreview(preview)
-        }
+        onClick={() => {
+          if (isActive) return;
+          preview.isGroup ? openGroupFromPreview(preview) : openDmFromPreview(preview);
+        }}
+        onMouseEnter={() => {
+          if (!isActive) {
+            prefetch(preview.conversationId);
+          }
+        }}
         onContextMenu={(e) => handleContextMenu(e, preview)}
       >
         {preview.isGroup ? (

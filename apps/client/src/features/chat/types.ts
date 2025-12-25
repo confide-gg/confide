@@ -371,6 +371,8 @@ export interface ReplyTo {
   senderName: string;
 }
 
+export type MessageStatus = "pending" | "sent" | "error";
+
 export interface DecryptedMessage {
   id: string;
   senderId: string;
@@ -388,6 +390,7 @@ export interface DecryptedMessage {
   systemType?: SystemMessageType;
   callDurationSeconds?: number | null;
   pinnedAt?: string | null;
+  status?: MessageStatus;
 }
 
 export interface ActiveChat {

@@ -398,6 +398,9 @@ export const Message = memo(function Message({ message, showHeader }: MessagePro
               {message.senderName || "Unknown"}
             </span>
             <span className="text-xs text-muted-foreground">{formatDate(message.createdAt)}</span>
+            {message.isMine && message.id.startsWith("temp-") && (
+              <span className="w-3 h-3 rounded-full border-2 border-muted-foreground/40 border-t-muted-foreground animate-spin" />
+            )}
             {message.editedAt && <span className="text-xs text-muted-foreground">(edited)</span>}
             {message.expiresAt && timeLeft !== null && (
               <span className="flex items-center gap-1 text-xs text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-sm">
