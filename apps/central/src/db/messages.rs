@@ -410,11 +410,21 @@ impl Database {
             return Ok(());
         }
 
+        let mut seen = std::collections::HashSet::new();
+        let unique_keys: Vec<_> = keys
+            .iter()
+            .filter(|(user_id, _)| seen.insert(*user_id))
+            .collect();
+
+        if unique_keys.is_empty() {
+            return Ok(());
+        }
+
         let mut query_builder = sqlx::QueryBuilder::new(
             "INSERT INTO message_keys (message_id, user_id, encrypted_key) ",
         );
 
-        query_builder.push_values(keys, |mut b, (user_id, encrypted_key)| {
+        query_builder.push_values(unique_keys, |mut b, (user_id, encrypted_key)| {
             b.push_bind(message_id)
                 .push_bind(user_id)
                 .push_bind(encrypted_key);

@@ -508,6 +508,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
     });
 
     let state_clone = state.clone();
+    let send_tx_for_recv = send_tx.clone();
     let recv_handle = tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
             match msg {
@@ -522,7 +523,14 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
                         break;
                     }
                     if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
-                        handle_client_message(&state_clone, user_id, ws_msg, &pubsub_handle).await;
+                        handle_client_message(
+                            &state_clone,
+                            user_id,
+                            ws_msg,
+                            &pubsub_handle,
+                            &send_tx_for_recv,
+                        )
+                        .await;
                     }
                 }
                 Message::Close(_) => break,
@@ -547,6 +555,7 @@ async fn handle_client_message(
     user_id: Uuid,
     msg: WsMessage,
     pubsub_handle: &super::pubsub::PubSubHandle,
+    tx: &mpsc::Sender<String>,
 ) {
     match msg {
         WsMessage::SubscribeConversation(data) => {
@@ -609,7 +618,7 @@ async fn handle_client_message(
                         custom_status,
                     });
                     if let Ok(json) = serde_json::to_string(&presence_msg) {
-                        let _ = publish_message(&state.redis, &channel, &json).await;
+                        let _ = tx.send(json).await;
                     }
                 }
             }
