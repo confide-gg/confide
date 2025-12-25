@@ -276,6 +276,9 @@ export function useCacheSync() {
           case "typing":
           case "typing_start":
           case "typing_stop":
+          case "presence_update":
+          case "presence_batch":
+          case "activity_update":
             break;
 
           default:

@@ -181,7 +181,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
       {directMessages.length > 0 && (
         <div>
           <div className="flex items-center justify-between px-2 py-1 mb-1">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Direct Messages
             </span>
             {onCreateGroup && (
@@ -197,7 +197,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
       {groupMessages.length > 0 && (
         <div>
           <div className="flex items-center justify-between px-2 py-1 mb-1">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Groups
             </span>
           </div>
