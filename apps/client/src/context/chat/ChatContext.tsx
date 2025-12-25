@@ -4,7 +4,7 @@ import { usePresence } from "../PresenceContext";
 import { centralWebSocketService } from "../../core/network/CentralWebSocketService";
 import { conversationService } from "../../features/chat/conversations";
 import { useFriends } from "../../hooks/useFriends";
-import { useChatMessages } from "../../hooks/useChatMessages";
+import { useChatMessages } from "../../hooks/chat";
 import { useGroups } from "../../hooks/useGroups";
 import type { Friend, DmPreview } from "../../types/index";
 import type { ChatContextType } from "./types";

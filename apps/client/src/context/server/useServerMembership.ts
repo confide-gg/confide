@@ -8,7 +8,7 @@ import type { RegisterServerData } from "./types";
 
 interface UseServerMembershipParams {
   user: { id: string; username: string } | null;
-  keys: { kem_public_key: Uint8Array; kem_secret_key: Uint8Array; dsa_public_key: Uint8Array } | null;
+  keys: { kem_public_key: number[]; kem_secret_key: number[]; dsa_public_key: number[] } | null;
   federatedServers: FederatedServer[];
   activeServer: AnyServer | null;
   setFederatedServers: React.Dispatch<React.SetStateAction<FederatedServer[]>>;

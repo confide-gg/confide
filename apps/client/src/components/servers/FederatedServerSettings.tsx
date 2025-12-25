@@ -23,7 +23,7 @@ import {
   Trash2,
   AlertTriangle,
 } from "lucide-react";
-import { useServer } from "../../context/ServerContext";
+import { useServer } from "../../context/server";
 import { Permissions, hasPermission } from "../../features/servers/permissions";
 import type { FederatedServer } from "../../features/servers/types";
 

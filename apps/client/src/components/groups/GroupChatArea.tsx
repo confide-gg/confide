@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { Pin, UserPlus } from "lucide-react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { ChatMessages } from "../chat/ChatMessages";
 import { ChatInput } from "../chat/ChatInput";
 import { TypingIndicator } from "../chat/TypingIndicator";

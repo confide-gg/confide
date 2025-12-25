@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useChat } from "../../context/ChatContext";
-import { useCall } from "../calls/CallContext";
+import { useChat } from "../../context/chat";
+import { useCall } from "../calls/context";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
@@ -8,7 +8,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { MessageContextMenu } from "./MessageContextMenu";
 import { ProfileSidePanel } from "../profile/ProfileSidePanel";
 import { CallHeader } from "../calls/CallHeader";
-import { useMessages } from "../../hooks/useQueries";
+import { useMessages } from "../../hooks/queries";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 

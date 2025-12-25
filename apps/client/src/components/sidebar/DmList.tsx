@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { X, Plus } from "lucide-react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
 import { Avatar } from "../ui/avatar";
 import { AvatarPile } from "../ui/avatar-pile";

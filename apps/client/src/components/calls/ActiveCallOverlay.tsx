@@ -4,8 +4,8 @@ import { PhoneOff, Mic, MicOff, Monitor, MonitorOff, Signal, SignalHigh, SignalL
 import { Button } from "../ui/button";
 import { Avatar } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
-import { useCall } from "./CallContext";
-import { useChat } from "../../context/ChatContext";
+import { useCall } from "./context";
+import { useChat } from "../../context/chat";
 import { CallQuality, CallQualityStats } from "./types";
 import { ScreenSharePicker } from "./ScreenSharePicker";
 import { cn } from "@/lib/utils";

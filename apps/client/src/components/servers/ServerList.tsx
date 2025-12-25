@@ -1,4 +1,4 @@
-import { useServer } from "../../context/ServerContext";
+import { useServer } from "../../context/server";
 import { Home, Plus } from "lucide-react";
 import { useState } from "react";
 import {

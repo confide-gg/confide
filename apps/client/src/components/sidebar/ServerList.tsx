@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, Globe, HardDrive, Compass } from "lucide-react";
-import { useServer } from "../../context/ServerContext";
-import { useChat } from "../../context/ChatContext";
+import { useServer } from "../../context/server";
+import { useChat } from "../../context/chat";
 import { JoinServerModal } from "./JoinServerModal";
 import { RegisterServerModal, type RegisterServerData } from "./RegisterServerModal";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";

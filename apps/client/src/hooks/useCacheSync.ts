@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { centralWebSocketService } from "../core/network/CentralWebSocketService";
-import { queryKeys } from "./useQueries";
+import { queryKeys } from "./queries";
 import type { Message, ApiMessageReaction } from "../features/chat/types";
 
 export function useCacheSync() {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { useAuth } from "../../context/AuthContext";
-import { useServer } from "../../context/ServerContext";
+import { useServer } from "../../context/server";
 import { cn } from "../../lib/utils";
 import { Sidebar } from "../sidebar/Sidebar";
 import { ChatArea } from "../chat/ChatArea";

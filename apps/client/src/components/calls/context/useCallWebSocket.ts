@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { CallState, IncomingCallInfo, KeyCompleteResult } from "../types";
+import { IncomingCallInfo, KeyCompleteResult } from "../types";
 import { centralWebSocketService } from "../../../core/network/CentralWebSocketService";
 import { callService as callsApi } from "../../../features/calls/calls";
 import type { WsMessage } from "../../../core/network/wsTypes";

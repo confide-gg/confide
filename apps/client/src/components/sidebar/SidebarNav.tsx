@@ -1,5 +1,5 @@
 import { Users } from "lucide-react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 
 export function SidebarNav() {
   const { sidebarView, setSidebarView, friendRequests, setActiveChat } = useChat();

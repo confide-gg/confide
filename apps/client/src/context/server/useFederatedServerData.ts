@@ -6,7 +6,7 @@ import type { WsMember } from "../../features/servers/federatedWebSocket";
 import { getLastChannelForServer } from "./storage";
 
 interface UseFederatedServerDataParams {
-  keys: { kem_public_key: Uint8Array; kem_secret_key: Uint8Array } | null;
+  keys: { kem_public_key: number[]; kem_secret_key: number[] } | null;
   setIsLoading: (loading: boolean) => void;
   setCategories: React.Dispatch<React.SetStateAction<DecryptedCategory[]>>;
   setChannels: React.Dispatch<React.SetStateAction<DecryptedChannel[]>>;

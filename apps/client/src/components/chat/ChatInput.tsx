@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { GifPicker } from "./GifPicker";
 import data from "@emoji-mart/data";
 import type { PickerType, TimedMessageDuration } from "../../types";

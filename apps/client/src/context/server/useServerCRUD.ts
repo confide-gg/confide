@@ -5,7 +5,7 @@ import { isFederatedServer } from "../../features/servers/types";
 import { FederatedServerClient } from "../../features/servers/federatedClient";
 
 interface UseServerCRUDParams {
-  keys: { kem_public_key: Uint8Array; kem_secret_key: Uint8Array } | null;
+  keys: { kem_public_key: number[]; kem_secret_key: number[] } | null;
   activeServer: AnyServer | null;
   channels: DecryptedChannel[];
   activeChannel: DecryptedChannel | null;

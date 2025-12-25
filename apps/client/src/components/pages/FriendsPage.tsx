@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
 import { Avatar } from "../ui/avatar";
 import { Button } from "../ui/button";

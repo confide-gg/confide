@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { PhoneCall, Timer, Volume2, VolumeX, Video, VideoOff, Monitor } from "lucide-react";
-import { useCall } from "./CallContext";
+import { useCall } from "./context";
 
 interface ActiveCallIndicatorProps {
   compact?: boolean;

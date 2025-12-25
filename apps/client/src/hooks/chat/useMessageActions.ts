@@ -18,12 +18,12 @@ interface UseMessageActionsParams {
     activeChatRef: MutableRefObject<ActiveChat | null>;
     setChatMessages: React.Dispatch<React.SetStateAction<DecryptedMessage[]>>;
     setDmPreviews: React.Dispatch<React.SetStateAction<DmPreview[]>>;
-    deleteMessageMutation: { mutateAsync: (messageId: string) => Promise<void> };
-    pinMessageMutation: { mutateAsync: (messageId: string) => Promise<void> };
-    unpinMessageMutation: { mutateAsync: (messageId: string) => Promise<void> };
-    editMessageMutation: { mutateAsync: (params: { messageId: string; data: EditMessageRequest }) => Promise<void> };
-    addReactionMutation: { mutateAsync: (params: { messageId: string; emoji: string }) => Promise<void> };
-    removeReactionMutation: { mutateAsync: (params: { messageId: string; emoji: string }) => Promise<void> };
+    deleteMessageMutation: { mutateAsync: (messageId: string) => Promise<unknown> };
+    pinMessageMutation: { mutateAsync: (messageId: string) => Promise<unknown> };
+    unpinMessageMutation: { mutateAsync: (messageId: string) => Promise<unknown> };
+    editMessageMutation: { mutateAsync: (params: { messageId: string; data: EditMessageRequest }) => Promise<unknown> };
+    addReactionMutation: { mutateAsync: (params: { messageId: string; emoji: string }) => Promise<unknown> };
+    removeReactionMutation: { mutateAsync: (params: { messageId: string; emoji: string }) => Promise<unknown> };
 }
 
 export function useMessageActions({

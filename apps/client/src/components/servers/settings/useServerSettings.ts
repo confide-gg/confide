@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { serverService } from "../../../features/servers/servers";
-import { useServer } from "../../../context/ServerContext";
+import { useServer } from "../../../context/server";
 import type { ServerRole, ServerBan } from "../../../features/servers/types";
 import type { Tab } from "./types";
 

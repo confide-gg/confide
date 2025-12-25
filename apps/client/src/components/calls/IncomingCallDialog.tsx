@@ -3,7 +3,7 @@ import { Phone, PhoneOff, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { Avatar } from "../ui/avatar";
-import { useCall } from "./CallContext";
+import { useCall } from "./context";
 import { callService as callsApi } from "../../features/calls/calls";
 import { checkMicrophonePermission, requestMicrophonePermission } from "tauri-plugin-macos-permissions-api";
 import { platform } from "@tauri-apps/plugin-os";

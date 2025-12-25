@@ -1,4 +1,4 @@
-import { useServer } from "../../context/ServerContext";
+import { useServer } from "../../context/server";
 import { Hash, ChevronDown, ChevronRight, Plus, Settings, Loader2, GripVertical } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -20,7 +20,7 @@ import {
 import { cn } from "../../lib/utils";
 import { UserProfile } from "../sidebar/UserProfile";
 import { isFederatedServer } from "../../features/servers/types";
-import { ServerSettings } from "./ServerSettings";
+import { ServerSettings } from "./settings";
 import { Panel } from "../layout/Panel";
 import { serverService } from "../../features/servers/servers";
 import { ChannelSidebarContextMenu } from "./ChannelSidebarContextMenu";

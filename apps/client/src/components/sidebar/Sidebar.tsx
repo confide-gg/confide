@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { SidebarNav } from "./SidebarNav";
 import { DmList } from "./DmList";
 import { UserProfile } from "./UserProfile";
 import { ActiveCallIndicator } from "../calls/ActiveCallIndicator";
 import { Panel } from "../layout/Panel";
 import { CreateGroupModal } from "../groups/CreateGroupModal";
-import { useConversations, useFriends, useFriendRequests } from "../../hooks/useQueries";
+import { useConversations, useFriends, useFriendRequests } from "../../hooks/queries";
 
 interface SidebarProps {
   onLeaveGroup?: (conversationId: string) => void;

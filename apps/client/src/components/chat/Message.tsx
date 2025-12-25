@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, memo, useMemo } from "react";
 import { Avatar } from "../ui/avatar";
 import { formatDate } from "../../utils/formatters";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
 import { useAuth } from "../../context/AuthContext";
 import { uploadService } from "../../features/uploads/UploadService";

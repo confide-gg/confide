@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useServer } from "../../context/ServerContext";
+import { useServer } from "../../context/server";
 import { discoveryService } from "../../features/discovery/DiscoveryService";
 import type { DiscoverableServer } from "../../features/discovery/DiscoveryService";
 import { Button } from "../ui/button";

@@ -12,7 +12,7 @@ import {
     useRejectFriendRequest as useRejectFriendRequestMutation,
     useAcceptFriendRequest as useAcceptFriendRequestMutation,
     queryKeys,
-} from "./useQueries";
+} from "./queries";
 
 export function useFriends() {
     const { keys, user } = useAuth();

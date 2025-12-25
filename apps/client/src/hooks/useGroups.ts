@@ -5,7 +5,7 @@ import type { Friend } from "../features/friends/types";
 import { cryptoService } from "../core/crypto/crypto";
 import { groupService } from "../features/groups/groupService";
 import { createGroupEncryptionPayload } from "../features/groups/groupEncryption";
-import { useConversations, useCreateGroup } from "./useQueries";
+import { useConversations, useCreateGroup } from "./queries";
 
 export function useGroups() {
   const { user, keys } = useAuth();

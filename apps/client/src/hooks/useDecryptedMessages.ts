@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { messageService } from "../features/chat/messages";
 import { conversationService } from "../features/chat/conversations";
 import { cryptoService } from "../core/crypto/crypto";
-import { queryKeys } from "./useQueries";
+import { queryKeys } from "./queries";
 import type { Message } from "../features/chat/types";
 import type { DecryptedMessage } from "../types";
 

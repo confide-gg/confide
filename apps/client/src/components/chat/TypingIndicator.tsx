@@ -1,4 +1,4 @@
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 
 export function TypingIndicator() {
   const { typingUsers, friendsList, activeChat } = useChat();

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useLayoutEffect } from "react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { Message } from "./Message";
 import { SystemMessage } from "./SystemMessage";
 import type { DecryptedMessage } from "../../types";

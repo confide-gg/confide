@@ -4,7 +4,7 @@ import { messageService } from "../../features/chat/messages";
 import { cryptoService } from "../../core/crypto/crypto";
 import { useAuth } from "../../context/AuthContext";
 import { formatDate } from "../../utils/formatters";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 
 interface PinnedMessagesProps {
   conversationId: string;

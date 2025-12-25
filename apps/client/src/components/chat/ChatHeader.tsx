@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Phone, Pin } from "lucide-react";
-import { useChat } from "../../context/ChatContext";
+import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
 import { useAuth } from "../../context/AuthContext";
-import { useCall } from "../calls/CallContext";
+import { useCall } from "../calls/context";
 import { Avatar } from "../ui/avatar";
 import { PinnedMessages } from "./PinnedMessages";
 

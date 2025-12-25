@@ -3,11 +3,11 @@ import { PhoneOff, PhoneIncoming, Mic, MicOff, Headphones, HeadphoneOff, Monitor
 import { Button } from "../ui/button";
 import { Avatar } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
-import { useCall } from "./CallContext";
+import { useCall } from "./context";
 
 import { ScreenSharePicker } from "./ScreenSharePicker";
 import { ScreenShareViewer } from "./ScreenShareViewer";
-import { CallView } from "./CallView";
+import { CallView } from "./view";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_HEIGHT = 360;

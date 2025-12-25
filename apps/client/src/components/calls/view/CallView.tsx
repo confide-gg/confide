@@ -1,4 +1,4 @@
-import { useCall } from "../CallContext";
+import { useCall } from "../context";
 import { useAuth } from "@/context/AuthContext";
 import { ScreenSharePicker } from "../ScreenSharePicker";
 import { cn } from "@/lib/utils";

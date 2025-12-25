@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
-import { useCall } from "../calls/CallContext";
+import { useCall } from "../calls/context";
 import { AvatarRoot, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useServer } from "../../context/ServerContext";
+import { useServer } from "../../context/server";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
 import { AlertTriangle, Smile, Hash } from "lucide-react";

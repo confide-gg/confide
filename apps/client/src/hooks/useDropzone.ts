@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useChat } from "../context/ChatContext";
+import { useChat } from "../context/chat";
 import { toast } from "sonner";
 
 export function useDropzone() {

@@ -1,6 +1,6 @@
 import { Phone } from "lucide-react";
 import { Button } from "../ui/button";
-import { useCall } from "./CallContext";
+import { useCall } from "./context";
 import { checkMicrophonePermission, requestMicrophonePermission } from "tauri-plugin-macos-permissions-api";
 import { platform } from "@tauri-apps/plugin-os";
 

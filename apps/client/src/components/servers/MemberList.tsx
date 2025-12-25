@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useServer } from "../../context/ServerContext";
+import { useServer } from "../../context/server";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
 import { UserAvatar } from "../ui/user-avatar";
