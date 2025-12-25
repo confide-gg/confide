@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.12.1](https://github.com/confide-gg/confide/compare/confide-central-v0.12.0...confide-central-v0.12.1) (2025-12-25)
+
+
+### Bug Fixes
+
+* broadcast presence on WebSocket connect ([fc50db2](https://github.com/confide-gg/confide/commit/fc50db267a5dc967b87fa4cedbe7ca2a755954a6))
+* dedupe message keys and direct presence response ([a9b9d66](https://github.com/confide-gg/confide/commit/a9b9d660c8ba978afbb937371dec716547f55084))
+* discovery sync and pagination ([65a2523](https://github.com/confide-gg/confide/commit/65a25236fc98a68014b21be66b281c1d6e649326))
+* ensure WebSocket cleanup on panic with guard pattern ([3419ca8](https://github.com/confide-gg/confide/commit/3419ca8c9d0b156a7267a75a7efbf7363430a079))
+* security hardening ([c6afcf0](https://github.com/confide-gg/confide/commit/c6afcf06b4eddcec83835ed679d31bafeb6b08a7))
+* security hardening and race condition fixes ([a759af3](https://github.com/confide-gg/confide/commit/a759af390dd3280ba78436ee316b50410ce5fa29))
+
+
+### Performance Improvements
+
+* optimize database queries and async operations ([b435188](https://github.com/confide-gg/confide/commit/b435188a4c0429484beb9eaf6e67f04af89292ee))
+
 ## [0.12.0](https://github.com/confide-gg/confide/compare/confide-central-v0.11.1...confide-central-v0.12.0) (2025-12-21)
 
 

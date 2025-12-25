@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.2](https://github.com/confide-gg/confide/compare/confide-server-v0.7.1...confide-server-v0.7.2) (2025-12-25)
+
+
+### Bug Fixes
+
+* discovery sync and pagination ([65a2523](https://github.com/confide-gg/confide/commit/65a25236fc98a68014b21be66b281c1d6e649326))
+* ensure WebSocket cleanup on panic with guard pattern ([3419ca8](https://github.com/confide-gg/confide/commit/3419ca8c9d0b156a7267a75a7efbf7363430a079))
+* security hardening and race condition fixes ([a759af3](https://github.com/confide-gg/confide/commit/a759af390dd3280ba78436ee316b50410ce5fa29))
+
+
+### Performance Improvements
+
+* optimize database queries and async operations ([b435188](https://github.com/confide-gg/confide/commit/b435188a4c0429484beb9eaf6e67f04af89292ee))
+
 ## [0.7.1](https://github.com/confide-gg/confide/compare/confide-server-v0.7.0...confide-server-v0.7.1) (2025-12-18)
 
 
