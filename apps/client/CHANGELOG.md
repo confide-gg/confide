@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.0](https://github.com/confide-gg/confide/compare/confide-client-v0.26.0...confide-client-v0.27.0) (2025-12-25)
+
+
+### Features
+
+* add WebGL 3D background to auth pages ([bcfc522](https://github.com/confide-gg/confide/commit/bcfc5229f570834ce3abc2cd078b97c033b9ccbd))
+* add welcome screen with confetti after registration ([84163e0](https://github.com/confide-gg/confide/commit/84163e0855e687b4fc67bc86f210e76753a49726))
+
 ## [0.26.0](https://github.com/confide-gg/confide/compare/confide-client-v0.25.1...confide-client-v0.26.0) (2025-12-25)
 
 
