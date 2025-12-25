@@ -74,83 +74,95 @@ export function useCallLifecycle({
     });
   }, [refreshState, bringWindowToFront, setIncomingCall, setIncomingCallQueue]);
 
-  const initiateCall = useCallback(async (callerId: string, calleeId: string, calleeIdentityKey: number[], dsaSecretKey: number[], peerInfo: PeerInfo) => {
-    const currentState = await invoke<CallState>("get_call_state");
-    if (currentState.status === "active") {
-      const leaveCallId = await invoke<string | null>("leave_call");
-      if (leaveCallId) {
-        await callsApi.leaveCall(leaveCallId).catch(console.error);
+  const initiateCall = useCallback(
+    async (
+      callerId: string,
+      calleeId: string,
+      calleeIdentityKey: number[],
+      dsaSecretKey: number[],
+      peerInfo: PeerInfo
+    ) => {
+      const currentState = await invoke<CallState>("get_call_state");
+      if (currentState.status === "active") {
+        const leaveCallId = await invoke<string | null>("leave_call");
+        if (leaveCallId) {
+          await callsApi.leaveCall(leaveCallId).catch(console.error);
+        }
       }
-    }
 
-    refs.peerIdentityKeyRef.current = calleeIdentityKey;
-    refs.callPeerIdRef.current = calleeId;
-    setPeerHasLeft(false);
+      refs.peerIdentityKeyRef.current = calleeIdentityKey;
+      refs.callPeerIdRef.current = calleeId;
+      setPeerHasLeft(false);
 
-    const result = await invoke<CallOfferResult>("create_call_offer", {
-      callerId,
-      calleeId,
-      dsaSecretKey,
-      peerUsername: peerInfo.username,
-      peerDisplayName: peerInfo.displayName || null,
-      peerAvatarUrl: peerInfo.avatarUrl || null,
-    });
-
-    try {
-      await callsApi.initiateCall({
-        call_id: result.call_id,
-        callee_id: calleeId,
-        ephemeral_kem_public: Array.from(result.ephemeral_kem_public),
-        signature: Array.from(result.signature),
+      const result = await invoke<CallOfferResult>("create_call_offer", {
+        callerId,
+        calleeId,
+        dsaSecretKey,
+        peerUsername: peerInfo.username,
+        peerDisplayName: peerInfo.displayName || null,
+        peerAvatarUrl: peerInfo.avatarUrl || null,
       });
-    } catch (e) {
-      console.error("[CallContext] Failed to initiate call on server:", e);
-      refs.peerIdentityKeyRef.current = null;
-      await invoke("end_call");
+
+      try {
+        await callsApi.initiateCall({
+          call_id: result.call_id,
+          callee_id: calleeId,
+          ephemeral_kem_public: Array.from(result.ephemeral_kem_public),
+          signature: Array.from(result.signature),
+        });
+      } catch (e) {
+        console.error("[CallContext] Failed to initiate call on server:", e);
+        refs.peerIdentityKeyRef.current = null;
+        await invoke("end_call");
+        await refreshState();
+        throw e;
+      }
+
       await refreshState();
-      throw e;
-    }
+      return result;
+    },
+    [refs, refreshState, setPeerHasLeft]
+  );
 
-    await refreshState();
-    return result;
-  }, [refs, refreshState, setPeerHasLeft]);
+  const handleIncomingCall = useCallback(
+    (info: IncomingCallInfo) => {
+      const currentState = refs.callStateRef.current;
+      const hasCurrentIncomingCall = incomingCall !== null;
 
-  const handleIncomingCall = useCallback((info: IncomingCallInfo) => {
-    const currentState = refs.callStateRef.current;
-    const hasCurrentIncomingCall = incomingCall !== null;
+      if (currentState.status !== "idle" || hasCurrentIncomingCall) {
+        setIncomingCallQueue((prev) => {
+          if (prev.length >= MAX_INCOMING_CALL_QUEUE) {
+            callsApi.rejectCall(info.call_id, "busy").catch(console.error);
+            return prev;
+          }
+          if (prev.some((c) => c.call_id === info.call_id)) {
+            return prev;
+          }
+          return [...prev, info];
+        });
+        return;
+      }
 
-    if (currentState.status !== "idle" || hasCurrentIncomingCall) {
-      setIncomingCallQueue((prev) => {
-        if (prev.length >= MAX_INCOMING_CALL_QUEUE) {
-          callsApi.rejectCall(info.call_id, "busy").catch(console.error);
-          return prev;
-        }
-        if (prev.some((c) => c.call_id === info.call_id)) {
-          return prev;
-        }
-        return [...prev, info];
+      setIncomingCall(info);
+      refs.callPeerIdRef.current = info.caller_id;
+      bringWindowToFront();
+      invoke("handle_incoming_call", { info }).then(() => refreshState());
+    },
+    [refs, refreshState, incomingCall, bringWindowToFront, setIncomingCall, setIncomingCallQueue]
+  );
+
+  const acceptCall = useCallback(
+    async (callerIdentityPublic: number[], dsaSecretKey: number[]) => {
+      const result = await invoke<CallAnswerResult>("accept_incoming_call", {
+        callerIdentityPublic,
+        dsaSecretKey,
       });
-      return;
-    }
-
-    setIncomingCall(info);
-    refs.callPeerIdRef.current = info.caller_id;
-    bringWindowToFront();
-    invoke("handle_incoming_call", { info }).then(() => refreshState());
-  }, [refs, refreshState, incomingCall, bringWindowToFront, setIncomingCall, setIncomingCallQueue]);
-
-  const acceptCall = useCallback(async (
-    callerIdentityPublic: number[],
-    dsaSecretKey: number[]
-  ) => {
-    const result = await invoke<CallAnswerResult>("accept_incoming_call", {
-      callerIdentityPublic,
-      dsaSecretKey,
-    });
-    setIncomingCall(null);
-    await refreshState();
-    return result;
-  }, [refreshState, setIncomingCall]);
+      setIncomingCall(null);
+      await refreshState();
+      return result;
+    },
+    [refreshState, setIncomingCall]
+  );
 
   const rejectCall = useCallback(async () => {
     const currentIncoming = incomingCall;
@@ -175,8 +187,11 @@ export function useCallLifecycle({
     await invoke("end_call");
 
     if (currentState.call_id && currentState.status !== "left") {
-      const isPreConnectedOutgoing = currentState.is_caller &&
-        (currentState.status === "initiating" || currentState.status === "ringing" || currentState.status === "connecting");
+      const isPreConnectedOutgoing =
+        currentState.is_caller &&
+        (currentState.status === "initiating" ||
+          currentState.status === "ringing" ||
+          currentState.status === "connecting");
 
       if (isPreConnectedOutgoing) {
         await callsApi.cancelCall(currentState.call_id).catch(console.error);

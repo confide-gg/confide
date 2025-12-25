@@ -1,9 +1,9 @@
-import { compressionService } from './CompressionService';
-import { fileEncryptionService } from './FileEncryptionService';
-import { validateFile, sanitizeFilename } from '../../utils/fileValidation';
+import { compressionService } from "./CompressionService";
+import { fileEncryptionService } from "./FileEncryptionService";
+import { validateFile, sanitizeFilename } from "../../utils/fileValidation";
 
 export interface FileMetadata {
-  type: 'file';
+  type: "file";
   text?: string;
   file: {
     url: string;
@@ -17,7 +17,7 @@ export interface FileMetadata {
 }
 
 export interface UploadProgress {
-  stage: 'compressing' | 'encrypting' | 'uploading' | 'complete';
+  stage: "compressing" | "encrypting" | "uploading" | "complete";
   progress: number;
 }
 
@@ -32,16 +32,14 @@ class AttachmentUploadService {
       throw new Error(validation.error);
     }
 
-    onProgress?.({ stage: 'compressing', progress: 0 });
+    onProgress?.({ stage: "compressing", progress: 0 });
     const compressionResult = await compressionService.compressFile(file);
-    onProgress?.({ stage: 'compressing', progress: 100 });
+    onProgress?.({ stage: "compressing", progress: 100 });
 
-    onProgress?.({ stage: 'encrypting', progress: 0 });
-    const encryptedFile = await fileEncryptionService.encryptFile(
-      compressionResult.compressedData
-    );
-    onProgress?.({ stage: 'encrypting', progress: 100 });
-    onProgress?.({ stage: 'uploading', progress: 0 });
+    onProgress?.({ stage: "encrypting", progress: 0 });
+    const encryptedFile = await fileEncryptionService.encryptFile(compressionResult.compressedData);
+    onProgress?.({ stage: "encrypting", progress: 100 });
+    onProgress?.({ stage: "uploading", progress: 0 });
 
     const encryptedBlob = encryptedFile.encryptedData;
 
@@ -50,15 +48,15 @@ class AttachmentUploadService {
       conversationId,
       file.name,
       file.type,
-      (progress) => onProgress?.({ stage: 'uploading', progress })
+      (progress) => onProgress?.({ stage: "uploading", progress })
     );
 
-    onProgress?.({ stage: 'complete', progress: 100 });
+    onProgress?.({ stage: "complete", progress: 100 });
 
     const s3Url = `s3://${s3_key}`;
 
     const metadata: FileMetadata = {
-      type: 'file',
+      type: "file",
       file: {
         url: s3Url,
         name: sanitizeFilename(file.name),
@@ -83,14 +81,14 @@ class AttachmentUploadService {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
-      xhr.upload.addEventListener('progress', (e) => {
+      xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
           const progress = Math.round((e.loaded / e.total) * 100);
           onProgress?.(progress);
         }
       });
 
-      xhr.addEventListener('load', () => {
+      xhr.addEventListener("load", () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           const response = JSON.parse(xhr.responseText);
           resolve(response.s3_key);
@@ -99,18 +97,18 @@ class AttachmentUploadService {
         }
       });
 
-      xhr.addEventListener('error', () => reject(new Error('Upload failed')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+      xhr.addEventListener("error", () => reject(new Error("Upload failed")));
+      xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
 
       xhr.open(
-        'POST',
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/attachments/upload`
+        "POST",
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/attachments/upload`
       );
-      xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('auth_token')}`);
-      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-      xhr.setRequestHeader('x-conversation-id', conversationId);
-      xhr.setRequestHeader('x-filename', filename);
-      xhr.setRequestHeader('x-mime-type', mimeType);
+      xhr.setRequestHeader("Authorization", `Bearer ${localStorage.getItem("auth_token")}`);
+      xhr.setRequestHeader("Content-Type", "application/octet-stream");
+      xhr.setRequestHeader("x-conversation-id", conversationId);
+      xhr.setRequestHeader("x-filename", filename);
+      xhr.setRequestHeader("x-mime-type", mimeType);
 
       xhr.send(encryptedBlob);
     });

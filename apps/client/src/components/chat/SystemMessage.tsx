@@ -1,5 +1,15 @@
 import { memo } from "react";
-import { Crown, LogOut, Phone, PhoneIncoming, PhoneMissed, PhoneOff, Pin, UserMinus, UserPlus } from "lucide-react";
+import {
+  Crown,
+  LogOut,
+  Phone,
+  PhoneIncoming,
+  PhoneMissed,
+  PhoneOff,
+  Pin,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
 import { formatDate } from "../../utils/formatters";
 import type { DecryptedMessage } from "../../types";
 
@@ -23,7 +33,10 @@ function formatDuration(seconds: number): string {
   return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
 }
 
-export const SystemMessage = memo(function SystemMessage({ message, peerName }: SystemMessageProps) {
+export const SystemMessage = memo(function SystemMessage({
+  message,
+  peerName,
+}: SystemMessageProps) {
   const getIcon = () => {
     switch (message.systemType) {
       case "call_started":
@@ -75,7 +88,7 @@ export const SystemMessage = memo(function SystemMessage({ message, peerName }: 
       return message.content;
     }
 
-    const actor = message.isMine ? "You" : (peerName || message.senderName || "They");
+    const actor = message.isMine ? "You" : peerName || message.senderName || "They";
 
     switch (message.systemType) {
       case "call_started":
@@ -104,15 +117,9 @@ export const SystemMessage = memo(function SystemMessage({ message, peerName }: 
 
   return (
     <div className="flex items-center gap-2 px-8 py-1.5 my-1">
-      <div className={`flex-shrink-0 ${getIconColor()}`}>
-        {getIcon()}
-      </div>
-      <span className="text-sm text-muted-foreground">
-        {getMessageText()}
-      </span>
-      <span className="text-xs text-muted-foreground/50 ml-1">
-        {formatDate(message.createdAt)}
-      </span>
+      <div className={`flex-shrink-0 ${getIconColor()}`}>{getIcon()}</div>
+      <span className="text-sm text-muted-foreground">{getMessageText()}</span>
+      <span className="text-xs text-muted-foreground/50 ml-1">{formatDate(message.createdAt)}</span>
     </div>
   );
 });

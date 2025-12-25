@@ -23,15 +23,29 @@ const queryClient = new QueryClient({
   },
 });
 
-const Login = lazy(() => import("./pages/Login").then(m => ({ default: m.Login })));
-const Register = lazy(() => import("./pages/Register").then(m => ({ default: m.Register })));
-const Chat = lazy(() => import("./pages/Chat").then(m => ({ default: m.Chat })));
-const RecoveryKit = lazy(() => import("./pages/RecoveryKit").then(m => ({ default: m.RecoveryKit })));
-const ResetPassword = lazy(() => import("./pages/ResetPassword").then(m => ({ default: m.ResetPassword })));
-const Settings = lazy(() => import("./pages/Settings").then(m => ({ default: m.Settings })));
-const AuthenticatedLayout = lazy(() => import("./components/layout/AuthenticatedLayout").then(m => ({ default: m.AuthenticatedLayout })));
+const Login = lazy(() => import("./pages/Login").then((m) => ({ default: m.Login })));
+const Register = lazy(() => import("./pages/Register").then((m) => ({ default: m.Register })));
+const Chat = lazy(() => import("./pages/Chat").then((m) => ({ default: m.Chat })));
+const RecoveryKit = lazy(() =>
+  import("./pages/RecoveryKit").then((m) => ({ default: m.RecoveryKit }))
+);
+const ResetPassword = lazy(() =>
+  import("./pages/ResetPassword").then((m) => ({ default: m.ResetPassword }))
+);
+const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const AuthenticatedLayout = lazy(() =>
+  import("./components/layout/AuthenticatedLayout").then((m) => ({
+    default: m.AuthenticatedLayout,
+  }))
+);
 
-function ProtectedRoute({ children, allowRecoverySetup = false }: { children: React.ReactNode; allowRecoverySetup?: boolean }) {
+function ProtectedRoute({
+  children,
+  allowRecoverySetup = false,
+}: {
+  children: React.ReactNode;
+  allowRecoverySetup?: boolean;
+}) {
   const { isAuthenticated, isLoading, keys, needsRecoverySetup } = useAuth();
 
   if (isLoading) {
@@ -106,7 +120,13 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
+        <Route
+          element={
+            <ProtectedRoute>
+              <AuthenticatedLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/chat" element={<Chat />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
@@ -145,7 +165,10 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Profiler id="App" onRender={(id, phase, actualDuration) => measureRenderTime(id, phase, actualDuration)}>
+      <Profiler
+        id="App"
+        onRender={(id, phase, actualDuration) => measureRenderTime(id, phase, actualDuration)}
+      >
         <BrowserRouter>
           <ErrorBoundary>
             <AuthProvider>

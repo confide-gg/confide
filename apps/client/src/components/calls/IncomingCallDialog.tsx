@@ -5,7 +5,10 @@ import { Dialog, DialogContent } from "../ui/dialog";
 import { Avatar } from "../ui/avatar";
 import { useCall } from "./context";
 import { callService as callsApi } from "../../features/calls/calls";
-import { checkMicrophonePermission, requestMicrophonePermission } from "tauri-plugin-macos-permissions-api";
+import {
+  checkMicrophonePermission,
+  requestMicrophonePermission,
+} from "tauri-plugin-macos-permissions-api";
 import { platform } from "@tauri-apps/plugin-os";
 import { toast } from "sonner";
 
@@ -34,10 +37,13 @@ export function IncomingCallDialog({ dsaSecretKey }: IncomingCallDialogProps) {
           if (!granted) {
             console.error("Microphone permission denied");
             toast.error("Microphone permission required", {
-              description: "Please grant microphone access in System Settings > Privacy & Security > Microphone",
+              description:
+                "Please grant microphone access in System Settings > Privacy & Security > Microphone",
               duration: 5000,
             });
-            await callsApi.rejectCall(incomingCall.call_id, "permission_denied").catch(console.error);
+            await callsApi
+              .rejectCall(incomingCall.call_id, "permission_denied")
+              .catch(console.error);
             await rejectCall();
             return;
           }
@@ -48,10 +54,7 @@ export function IncomingCallDialog({ dsaSecretKey }: IncomingCallDialogProps) {
         return;
       }
 
-      const answer = await acceptCall(
-        incomingCall.caller_identity_key,
-        dsaSecretKey
-      );
+      const answer = await acceptCall(incomingCall.caller_identity_key, dsaSecretKey);
 
       await callsApi.answerCall(incomingCall.call_id, {
         ephemeral_kem_public: answer.ephemeral_kem_public,

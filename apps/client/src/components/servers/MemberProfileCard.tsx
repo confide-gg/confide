@@ -54,7 +54,9 @@ export function MemberProfileCard({
 
   const presence = getUserPresence(userId);
   const userIsOnline = presence !== undefined;
-  const displayStatus = (userIsOnline ? (presence?.status || "online") : (status || "offline")) as UserStatus;
+  const displayStatus = (
+    userIsOnline ? presence?.status || "online" : status || "offline"
+  ) as UserStatus;
   const customStatus = presence?.customStatus || profile?.custom_status;
   const activity = getUserActivity(userId);
 
@@ -216,9 +218,12 @@ export function MemberProfileCard({
                         >
                           <span
                             className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: role.color || '#71717a' }}
+                            style={{ backgroundColor: role.color || "#71717a" }}
                           />
-                          <span className="text-xs font-medium" style={{ color: role.color || 'inherit' }}>
+                          <span
+                            className="text-xs font-medium"
+                            style={{ color: role.color || "inherit" }}
+                          >
                             {role.name}
                           </span>
                         </div>

@@ -5,13 +5,15 @@ let legacyInitialized = false;
 
 export async function initNotifications() {
   if (legacyInitialized) return;
-  
+
   try {
     await NotificationService.initialize();
     legacyInitialized = true;
   } catch (error) {
     console.error("Failed to initialize notifications:", error);
-    const { isPermissionGranted, requestPermission } = await import("@tauri-apps/plugin-notification");
+    const { isPermissionGranted, requestPermission } = await import(
+      "@tauri-apps/plugin-notification"
+    );
     try {
       const granted = await isPermissionGranted();
       if (!granted) {
@@ -29,10 +31,8 @@ export function playChatSound() {
     const audio = new Audio("/chat_ping.mp3");
     const prefs = NotificationService.getPreferences();
     audio.volume = prefs.soundEnabled ? prefs.soundVolume : 0;
-    audio.play().catch(() => {
-    });
-  } catch (error) {
-  }
+    audio.play().catch(() => {});
+  } catch (error) {}
 }
 
 export function playFriendRequestSound() {
@@ -40,19 +40,21 @@ export function playFriendRequestSound() {
     const audio = new Audio("/friend_request.mp3");
     const prefs = NotificationService.getPreferences();
     audio.volume = prefs.soundEnabled ? prefs.soundVolume : 0;
-    audio.play().catch(() => {
-    });
-  } catch (error) {
-  }
+    audio.play().catch(() => {});
+  } catch (error) {}
 }
 
-export async function showMessageNotification(senderName: string, message: string, userStatus?: string) {
+export async function showMessageNotification(
+  senderName: string,
+  message: string,
+  userStatus?: string
+) {
   if (!legacyInitialized) {
     await initNotifications();
   }
 
   const isDND = userStatus === "dnd";
-  
+
   try {
     const notificationId = await NotificationService.showMessageNotification(senderName, message, {
       priority: isDND ? NotificationPriority.Low : NotificationPriority.Normal,
@@ -68,14 +70,15 @@ export async function showMessageNotification(senderName: string, message: strin
     if (!isDND) {
       playChatSound();
     }
-    
+
     try {
       const { sendNotification } = await import("@tauri-apps/plugin-notification");
-      const body = message.startsWith("https://") && message.includes("tenor")
-        ? "sent a GIF"
-        : message.length > 100
-        ? message.slice(0, 100) + "..."
-        : message;
+      const body =
+        message.startsWith("https://") && message.includes("tenor")
+          ? "sent a GIF"
+          : message.length > 100
+            ? message.slice(0, 100) + "..."
+            : message;
 
       await sendNotification({
         title: `@${senderName}`,
@@ -90,4 +93,8 @@ export async function showMessageNotification(senderName: string, message: strin
 // New enhanced exports for modern usage
 export { default as NotificationService } from "@/services/notificationService";
 export { NotificationPriority } from "@/services/notificationService";
-export type { NotificationOptions, NotificationPreferences, NotificationStats } from "@/services/notificationService";
+export type {
+  NotificationOptions,
+  NotificationPreferences,
+  NotificationStats,
+} from "@/services/notificationService";

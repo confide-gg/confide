@@ -8,13 +8,7 @@ import { ChatArea } from "../chat/ChatArea";
 import { GroupChatArea } from "../groups/GroupChatArea";
 import { FriendsPage, DiscoveryPage } from "../pages";
 import { Panel } from "./Panel";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { ContextMenu } from "../common/ContextMenu";
 import { DmContextMenu } from "../sidebar/DmContextMenu";
 import { GroupContextMenu } from "../groups/GroupContextMenu";
@@ -136,8 +130,6 @@ export function MainLayout() {
     setSidebarView("friends");
   };
 
-
-
   return (
     <div className="flex h-screen bg-background text-foreground p-3 gap-3 relative">
       {!isConnected && hasConnectedOnce && <ServerOfflineOverlay />}
@@ -145,7 +137,15 @@ export function MainLayout() {
         <div className="absolute inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-in fade-in duration-150">
           <div className="flex flex-col items-center gap-4 p-8 bg-card border-2 border-dashed border-primary rounded-2xl shadow-2xl">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="text-primary"
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
@@ -160,22 +160,22 @@ export function MainLayout() {
       )}
       <aside className="w-16 h-full shrink-0">
         <Panel className="h-full flex flex-col items-center">
-        <div className="h-14 w-full flex items-center justify-center shrink-0">
-          <button
-            onClick={handleHomeClick}
-            className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 font-bold text-lg",
-              !activeServer
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary/30 hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
-            )}
-          >
-            C
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto py-4 w-full">
-          <ServerList onOpenDiscovery={handleOpenDiscovery} />
-        </div>
+          <div className="h-14 w-full flex items-center justify-center shrink-0">
+            <button
+              onClick={handleHomeClick}
+              className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 font-bold text-lg",
+                !activeServer
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary/30 hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              C
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto py-4 w-full">
+            <ServerList onOpenDiscovery={handleOpenDiscovery} />
+          </div>
         </Panel>
       </aside>
 
@@ -190,9 +190,7 @@ export function MainLayout() {
       )}
 
       {!activeServer && (
-        <Panel className="flex-1 flex flex-col min-w-0 relative">
-          {renderMainContent()}
-        </Panel>
+        <Panel className="flex-1 flex flex-col min-w-0 relative">{renderMainContent()}</Panel>
       )}
 
       {activeServer && activeChannel && (
@@ -212,7 +210,6 @@ export function MainLayout() {
           </div>
         </Panel>
       )}
-
 
       {contextMenu && (
         <ContextMenu
@@ -280,11 +277,17 @@ export function MainLayout() {
             }
           }}
           onLeave={() => {
-            setConfirmGroupAction({ type: "leave", conversationId: groupContextMenu.conversationId });
+            setConfirmGroupAction({
+              type: "leave",
+              conversationId: groupContextMenu.conversationId,
+            });
             setGroupContextMenu(null);
           }}
           onDelete={() => {
-            setConfirmGroupAction({ type: "delete", conversationId: groupContextMenu.conversationId });
+            setConfirmGroupAction({
+              type: "delete",
+              conversationId: groupContextMenu.conversationId,
+            });
             setGroupContextMenu(null);
           }}
         />
@@ -302,7 +305,10 @@ export function MainLayout() {
         />
       )}
 
-      <Dialog open={!!confirmGroupAction} onOpenChange={(open) => !open && setConfirmGroupAction(null)}>
+      <Dialog
+        open={!!confirmGroupAction}
+        onOpenChange={(open) => !open && setConfirmGroupAction(null)}
+      >
         <DialogContent className="max-w-[460px] bg-card border-border">
           <DialogHeader>
             <DialogTitle>
@@ -356,14 +362,22 @@ export function MainLayout() {
             <DialogTitle>Remove Friend</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <p>Are you sure you want to remove <strong>@{confirmRemove?.username}</strong> from your friends?</p>
-            <p className="text-muted-foreground text-sm">This will remove them from your friends list. You can add them back later.</p>
+            <p>
+              Are you sure you want to remove <strong>@{confirmRemove?.username}</strong> from your
+              friends?
+            </p>
+            <p className="text-muted-foreground text-sm">
+              This will remove them from your friends list. You can add them back later.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setConfirmRemove(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => confirmRemove && removeFriend(confirmRemove)}>
+            <Button
+              variant="destructive"
+              onClick={() => confirmRemove && removeFriend(confirmRemove)}
+            >
               Remove Friend
             </Button>
           </DialogFooter>

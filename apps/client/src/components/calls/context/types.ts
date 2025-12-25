@@ -1,4 +1,11 @@
-import type { CallState, IncomingCallInfo, CallOfferResult, CallAnswerResult, KeyCompleteResult, ScreenCaptureSource } from "../types";
+import type {
+  CallState,
+  IncomingCallInfo,
+  CallOfferResult,
+  CallAnswerResult,
+  KeyCompleteResult,
+  ScreenCaptureSource,
+} from "../types";
 
 export const MAX_INCOMING_CALL_QUEUE = 3;
 export const RING_TIMEOUT_MS = 30000;
@@ -18,12 +25,15 @@ export interface CallContextValue {
   peerHasLeft: boolean;
   isPTTActive: boolean;
   isPTTEnabled: boolean;
-  initiateCall: (callerId: string, calleeId: string, calleeIdentityKey: number[], dsaSecretKey: number[], peerInfo: PeerInfo) => Promise<CallOfferResult>;
+  initiateCall: (
+    callerId: string,
+    calleeId: string,
+    calleeIdentityKey: number[],
+    dsaSecretKey: number[],
+    peerInfo: PeerInfo
+  ) => Promise<CallOfferResult>;
   handleIncomingCall: (info: IncomingCallInfo) => void;
-  acceptCall: (
-    callerIdentityPublic: number[],
-    dsaSecretKey: number[]
-  ) => Promise<CallAnswerResult>;
+  acceptCall: (callerIdentityPublic: number[], dsaSecretKey: number[]) => Promise<CallAnswerResult>;
   rejectCall: () => Promise<void>;
   endCall: () => Promise<void>;
   leaveCall: () => Promise<void>;
@@ -75,14 +85,28 @@ export const defaultCallState: CallState = {
 export interface CallProviderProps {
   children: React.ReactNode;
   currentUserId?: string;
-  onCallAnswerReceived?: (data: { call_id: string; callee_id: string; ephemeral_kem_public: number[]; kem_ciphertext: number[]; signature: number[] }) => void;
+  onCallAnswerReceived?: (data: {
+    call_id: string;
+    callee_id: string;
+    ephemeral_kem_public: number[];
+    kem_ciphertext: number[];
+    signature: number[];
+  }) => void;
   onKeyCompleteReceived?: (data: { call_id: string; kem_ciphertext: number[] }) => void;
-  onMediaReadyReceived?: (data: { call_id: string; relay_endpoint: string; relay_token: number[]; expires_at: string }) => void;
+  onMediaReadyReceived?: (data: {
+    call_id: string;
+    relay_endpoint: string;
+    relay_token: number[];
+    expires_at: string;
+  }) => void;
 }
 
 export interface CallRefs {
   peerIdentityKeyRef: React.MutableRefObject<number[] | null>;
-  pendingMediaReadyRef: React.MutableRefObject<{ relay_endpoint: string; relay_token: number[] } | null>;
+  pendingMediaReadyRef: React.MutableRefObject<{
+    relay_endpoint: string;
+    relay_token: number[];
+  } | null>;
   calleeKeyExchangeDoneRef: React.MutableRefObject<boolean>;
   peerLeftTimeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
   callStartTimeRef: React.MutableRefObject<number | null>;

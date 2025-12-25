@@ -46,7 +46,7 @@ export function FederatedMemberContextMenu({
   const canManageRoles = (userPermissions & (1 << 10)) !== 0; // MANAGE_ROLES = 1 << 10
   const isAdministrator = (userPermissions & (1 << 9)) !== 0; // ADMINISTRATOR = 1 << 9
   const hasPermission = canManageRoles || isAdministrator || isOwner;
-  
+
   // Always show menu when right-clicking yourself (to view roles), but only allow management if you have permission
   // For others, require MANAGE_ROLES permission, ADMINISTRATOR permission, or owner status
   const canManageThisMember = hasPermission;
@@ -92,12 +92,7 @@ export function FederatedMemberContextMenu({
           style={{ top: position.y, left: position.x }}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-56"
-        side="left"
-        align="start"
-        sideOffset={0}
-      >
+      <DropdownMenuContent className="w-56" side="left" align="start" sideOffset={0}>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="gap-2">
             <Shield className="w-4 h-4" />
@@ -138,4 +133,3 @@ export function FederatedMemberContextMenu({
     </DropdownMenu>
   );
 }
-

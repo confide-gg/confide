@@ -27,14 +27,16 @@ export function useCacheSync() {
                     reply_to_id: data.data?.reply_to_id || data.reply_to_id || null,
                     expires_at: data.data?.expires_at || data.expires_at || null,
                     sender_chain_id: data.data?.sender_chain_id || data.sender_chain_id,
-                    sender_chain_iteration: data.data?.sender_chain_iteration || data.sender_chain_iteration,
+                    sender_chain_iteration:
+                      data.data?.sender_chain_iteration || data.sender_chain_iteration,
                     reactions: [],
                     created_at: data.data?.created_at || data.created_at,
                     message_type: data.data?.message_type || data.message_type,
                     call_id: data.data?.call_id || data.call_id,
-                    call_duration_seconds: data.data?.call_duration_seconds || data.call_duration_seconds,
+                    call_duration_seconds:
+                      data.data?.call_duration_seconds || data.call_duration_seconds,
                   };
-                  const exists = old.some(msg => msg.id === newMessage.id);
+                  const exists = old.some((msg) => msg.id === newMessage.id);
                   return exists ? old : [...old, newMessage];
                 }
               );
@@ -51,16 +53,18 @@ export function useCacheSync() {
             if (conversationId && messageId) {
               queryClient.setQueryData<Message[]>(
                 queryKeys.messages.list(conversationId),
-                (old) => old?.map(msg =>
-                  msg.id === messageId
-                    ? {
-                        ...msg,
-                        encrypted_content: data.data?.encrypted_content || data.encrypted_content,
-                        signature: data.data?.signature || data.signature,
-                        edited_at: data.data?.edited_at || data.edited_at || new Date().toISOString()
-                      }
-                    : msg
-                ) || []
+                (old) =>
+                  old?.map((msg) =>
+                    msg.id === messageId
+                      ? {
+                          ...msg,
+                          encrypted_content: data.data?.encrypted_content || data.encrypted_content,
+                          signature: data.data?.signature || data.signature,
+                          edited_at:
+                            data.data?.edited_at || data.edited_at || new Date().toISOString(),
+                        }
+                      : msg
+                  ) || []
               );
             }
             break;
@@ -72,7 +76,7 @@ export function useCacheSync() {
             if (conversationId && messageId) {
               queryClient.setQueryData<Message[]>(
                 queryKeys.messages.list(conversationId),
-                (old) => old?.filter(msg => msg.id !== messageId) || []
+                (old) => old?.filter((msg) => msg.id !== messageId) || []
               );
               queryClient.invalidateQueries({
                 queryKey: queryKeys.conversations.list(),
@@ -87,11 +91,16 @@ export function useCacheSync() {
             if (conversationId && messageId) {
               queryClient.setQueryData<Message[]>(
                 queryKeys.messages.list(conversationId),
-                (old) => old?.map(msg =>
-                  msg.id === messageId
-                    ? { ...msg, pinned_at: data.data?.pinned_at || data.pinned_at || new Date().toISOString() }
-                    : msg
-                ) || []
+                (old) =>
+                  old?.map((msg) =>
+                    msg.id === messageId
+                      ? {
+                          ...msg,
+                          pinned_at:
+                            data.data?.pinned_at || data.pinned_at || new Date().toISOString(),
+                        }
+                      : msg
+                  ) || []
               );
               queryClient.invalidateQueries({
                 queryKey: queryKeys.messages.pinned(conversationId),
@@ -106,11 +115,10 @@ export function useCacheSync() {
             if (conversationId && messageId) {
               queryClient.setQueryData<Message[]>(
                 queryKeys.messages.list(conversationId),
-                (old) => old?.map(msg =>
-                  msg.id === messageId
-                    ? { ...msg, pinned_at: undefined }
-                    : msg
-                ) || []
+                (old) =>
+                  old?.map((msg) =>
+                    msg.id === messageId ? { ...msg, pinned_at: undefined } : msg
+                  ) || []
               );
               queryClient.invalidateQueries({
                 queryKey: queryKeys.messages.pinned(conversationId),
@@ -126,23 +134,25 @@ export function useCacheSync() {
             if (conversationId && messageId) {
               queryClient.setQueryData<Message[]>(
                 queryKeys.messages.list(conversationId),
-                (old) => old?.map(msg => {
-                  if (msg.id === messageId) {
-                    const newReaction: ApiMessageReaction = {
-                      id: data.data?.id || data.id || `reaction-${Date.now()}`,
-                      message_id: messageId,
-                      user_id: data.data?.user_id || data.user_id || "",
-                      emoji: data.data?.emoji || data.emoji || "",
-                      created_at: data.data?.created_at || data.created_at || new Date().toISOString(),
-                    };
-                    const exists = msg.reactions.some(r => r.id === newReaction.id);
-                    return {
-                      ...msg,
-                      reactions: exists ? msg.reactions : [...msg.reactions, newReaction]
-                    };
-                  }
-                  return msg;
-                }) || []
+                (old) =>
+                  old?.map((msg) => {
+                    if (msg.id === messageId) {
+                      const newReaction: ApiMessageReaction = {
+                        id: data.data?.id || data.id || `reaction-${Date.now()}`,
+                        message_id: messageId,
+                        user_id: data.data?.user_id || data.user_id || "",
+                        emoji: data.data?.emoji || data.emoji || "",
+                        created_at:
+                          data.data?.created_at || data.created_at || new Date().toISOString(),
+                      };
+                      const exists = msg.reactions.some((r) => r.id === newReaction.id);
+                      return {
+                        ...msg,
+                        reactions: exists ? msg.reactions : [...msg.reactions, newReaction],
+                      };
+                    }
+                    return msg;
+                  }) || []
               );
             }
             break;
@@ -156,15 +166,18 @@ export function useCacheSync() {
             if (conversationId && messageId && userId && emoji) {
               queryClient.setQueryData<Message[]>(
                 queryKeys.messages.list(conversationId),
-                (old) => old?.map(msg => {
-                  if (msg.id === messageId) {
-                    return {
-                      ...msg,
-                      reactions: msg.reactions.filter(r => !(r.user_id === userId && r.emoji === emoji))
-                    };
-                  }
-                  return msg;
-                }) || []
+                (old) =>
+                  old?.map((msg) => {
+                    if (msg.id === messageId) {
+                      return {
+                        ...msg,
+                        reactions: msg.reactions.filter(
+                          (r) => !(r.user_id === userId && r.emoji === emoji)
+                        ),
+                      };
+                    }
+                    return msg;
+                  }) || []
               );
             }
             break;

@@ -13,7 +13,13 @@ interface GroupContextMenuProps {
   onDelete: () => void;
 }
 
-export function GroupContextMenu({ data, onClose, onAddMember, onLeave, onDelete }: GroupContextMenuProps) {
+export function GroupContextMenu({
+  data,
+  onClose,
+  onAddMember,
+  onLeave,
+  onDelete,
+}: GroupContextMenuProps) {
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -59,4 +65,3 @@ export function GroupContextMenu({ data, onClose, onAddMember, onLeave, onDelete
     </div>
   );
 }
-

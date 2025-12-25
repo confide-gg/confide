@@ -13,13 +13,19 @@ export function ScreenShareCanvas({ peerName }: ScreenShareCanvasProps) {
   const webCodecsFailedRef = useRef(false);
   const decoderRef = useRef<VideoDecoder | null>(null);
   const lastDrawTsRef = useRef<number>(0);
-  const lastFetchRef = useRef<{ queued_at_ms: number; drained: number; frame_id: number; is_keyframe: boolean } | null>(null);
+  const lastFetchRef = useRef<{
+    queued_at_ms: number;
+    drained: number;
+    frame_id: number;
+    is_keyframe: boolean;
+  } | null>(null);
   const needKeyframeRef = useRef(false);
 
   useEffect(() => {
     isPollingRef.current = true;
 
-    usingWebCodecsRef.current = typeof (window as unknown as { VideoDecoder?: unknown }).VideoDecoder !== "undefined";
+    usingWebCodecsRef.current =
+      typeof (window as unknown as { VideoDecoder?: unknown }).VideoDecoder !== "undefined";
     webCodecsFailedRef.current = false;
 
     const drawToCanvas = (source: CanvasImageSource, codedWidth: number, codedHeight: number) => {
@@ -55,10 +61,26 @@ export function ScreenShareCanvas({ peerName }: ScreenShareCanvasProps) {
 
       try {
         if (usingWebCodecsRef.current && !webCodecsFailedRef.current) {
-          const chunk = await invoke<{ width: number; height: number; timestamp: number; frame_id: number; is_keyframe: boolean; data_b64: string; queued_at_ms: number; age_ms: number; drained: number; reasm_ms: number } | null>("get_h264_chunk");
+          const chunk = await invoke<{
+            width: number;
+            height: number;
+            timestamp: number;
+            frame_id: number;
+            is_keyframe: boolean;
+            data_b64: string;
+            queued_at_ms: number;
+            age_ms: number;
+            drained: number;
+            reasm_ms: number;
+          } | null>("get_h264_chunk");
           if (chunk) {
             setDimensions({ width: chunk.width, height: chunk.height });
-            lastFetchRef.current = { queued_at_ms: chunk.queued_at_ms, drained: chunk.drained, frame_id: chunk.frame_id, is_keyframe: chunk.is_keyframe };
+            lastFetchRef.current = {
+              queued_at_ms: chunk.queued_at_ms,
+              drained: chunk.drained,
+              frame_id: chunk.frame_id,
+              is_keyframe: chunk.is_keyframe,
+            };
 
             if (needKeyframeRef.current && chunk.is_keyframe) {
               needKeyframeRef.current = false;
@@ -137,7 +159,9 @@ export function ScreenShareCanvas({ peerName }: ScreenShareCanvasProps) {
             }
           }
         } else {
-          const frame = await invoke<{ width: number; height: number; rgba_data: number[] } | null>("get_video_frame");
+          const frame = await invoke<{ width: number; height: number; rgba_data: number[] } | null>(
+            "get_video_frame"
+          );
           if (frame && canvasRef.current) {
             setDimensions({ width: frame.width, height: frame.height });
             const canvas = canvasRef.current;
@@ -180,11 +204,7 @@ export function ScreenShareCanvas({ peerName }: ScreenShareCanvasProps) {
 
   return (
     <div ref={wrapperRef} className="absolute inset-0 flex items-center justify-center">
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full"
-        style={{ imageRendering: "auto" }}
-      />
+      <canvas ref={canvasRef} className="w-full h-full" style={{ imageRendering: "auto" }} />
 
       {dimensions.width === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70">

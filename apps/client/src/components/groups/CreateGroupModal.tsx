@@ -1,11 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Avatar } from "../ui/avatar";
@@ -65,7 +59,8 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
       const selectedUsernames = Array.from(selected)
         .map((id) => friends.find((f) => f.id === id)?.username)
         .filter(Boolean);
-      const groupName = selectedUsernames.slice(0, 3).join(", ") + (selectedUsernames.length > 3 ? "..." : "");
+      const groupName =
+        selectedUsernames.slice(0, 3).join(", ") + (selectedUsernames.length > 3 ? "..." : "");
 
       await onCreate({
         name: groupName,
@@ -133,8 +128,18 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
                         )}
                       >
                         {isSelected && (
-                          <svg className="w-4 h-4 text-primary-foreground" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <svg
+                            className="w-4 h-4 text-primary-foreground"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <path
+                              d="M20 6L9 17L4 12"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           </svg>
                         )}
                       </div>
@@ -152,18 +157,10 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
           )}
 
           <DialogFooter className="px-4 py-4 mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={resetAndClose}
-              disabled={isLoading}
-            >
+            <Button type="button" variant="outline" onClick={resetAndClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || selected.size === 0}
-            >
+            <Button type="submit" disabled={isLoading || selected.size === 0}>
               Create DM
             </Button>
           </DialogFooter>
@@ -172,4 +169,3 @@ export function CreateGroupModal({ isOpen, onClose, friends, onCreate }: CreateG
     </Dialog>
   );
 }
-

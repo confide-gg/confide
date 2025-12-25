@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { cryptoService } from "../../core/crypto/crypto";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 
 interface VerifyModalProps {
@@ -33,7 +27,8 @@ export function VerifyModal({
   useEffect(() => {
     if (isOpen && ourIdentityKey.length > 0 && theirIdentityKey.length > 0) {
       setLoading(true);
-      cryptoService.generateSafetyNumber(ourIdentityKey, theirIdentityKey)
+      cryptoService
+        .generateSafetyNumber(ourIdentityKey, theirIdentityKey)
         .then((number) => {
           setSafetyNumber(number);
           setLoading(false);
@@ -79,26 +74,43 @@ export function VerifyModal({
               <strong className="text-foreground">How is this number generated?</strong>
             </p>
             <p>
-              This safety number is created by combining both users' public identity keys and hashing them together. The result is a unique fingerprint that represents your specific encrypted connection.
+              This safety number is created by combining both users' public identity keys and
+              hashing them together. The result is a unique fingerprint that represents your
+              specific encrypted connection.
             </p>
             <p>
               <strong className="text-foreground">Why does this work?</strong>
             </p>
             <p>
-              If an attacker tried to intercept your messages (a "man-in-the-middle" attack), they would need to use their own keys instead of your friend's real keyService. This would produce a completely different safety number.
+              If an attacker tried to intercept your messages (a "man-in-the-middle" attack), they
+              would need to use their own keys instead of your friend's real keyService. This would
+              produce a completely different safety number.
             </p>
             <p>
-              By comparing these numbers in person or through a trusted channel (like a phone call), you can confirm that no one is secretly intercepting your conversation.
+              By comparing these numbers in person or through a trusted channel (like a phone call),
+              you can confirm that no one is secretly intercepting your conversation.
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-muted-foreground">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-primary shrink-0"
+              >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
               <p className="text-sm">
-                Compare these numbers with <strong className="text-foreground">{theirUsername}</strong> to verify your secure connection.
+                Compare these numbers with{" "}
+                <strong className="text-foreground">{theirUsername}</strong> to verify your secure
+                connection.
               </p>
             </div>
 
@@ -114,7 +126,9 @@ export function VerifyModal({
                   </div>
                   <div className="grid grid-cols-4 gap-2 font-mono text-lg text-center">
                     {groups.slice(0, 12).map((group, i) => (
-                      <span key={i} className="text-foreground">{group}</span>
+                      <span key={i} className="text-foreground">
+                        {group}
+                      </span>
                     ))}
                   </div>
                 </div>

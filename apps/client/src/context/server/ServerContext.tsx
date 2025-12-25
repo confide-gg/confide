@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useAuth } from "../AuthContext";
 import { centralWebSocketService } from "../../core/network/CentralWebSocketService";
 import type {
@@ -9,10 +17,17 @@ import type {
   AnyServer,
 } from "../../features/servers/types";
 import { isFederatedServer } from "../../features/servers/types";
-import { FederatedServerClient, type FederatedMember as Member } from "../../features/servers/federatedClient";
+import {
+  FederatedServerClient,
+  type FederatedMember as Member,
+} from "../../features/servers/federatedClient";
 import { FederatedWebSocketService as FederatedWsClient } from "../../features/servers/federatedWebSocket";
 import type { ServerContextType, RoleEventCallback } from "./types";
-import { saveLastChannelForServer, loadFederatedServersFromDB, migrateFromLocalStorage } from "./storage";
+import {
+  saveLastChannelForServer,
+  loadFederatedServersFromDB,
+  migrateFromLocalStorage,
+} from "./storage";
 import { FEDERATED_SERVERS_KEY } from "./types";
 import { useFederatedServerData } from "./useFederatedServerData";
 import { useServerCRUD } from "./useServerCRUD";
@@ -59,59 +74,69 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     myMemberRef,
   });
 
-  const notifyRoleEvent = useCallback((serverId: string) => {
-    roleEventCallbacks.forEach(callback => callback(serverId));
-  }, [roleEventCallbacks]);
+  const notifyRoleEvent = useCallback(
+    (serverId: string) => {
+      roleEventCallbacks.forEach((callback) => callback(serverId));
+    },
+    [roleEventCallbacks]
+  );
 
-  const setActiveServer = useCallback((server: AnyServer | null) => {
-    if (federatedWsRef.current) {
-      federatedWsRef.current.disconnect();
-      federatedWsRef.current = null;
-    }
+  const setActiveServer = useCallback(
+    (server: AnyServer | null) => {
+      if (federatedWsRef.current) {
+        federatedWsRef.current.disconnect();
+        federatedWsRef.current = null;
+      }
 
-    setActiveServerState(server);
-    activeServerRef.current = server;
-    setActiveChannelState(null);
-    federatedClientRef.current = null;
+      setActiveServerState(server);
+      activeServerRef.current = server;
+      setActiveChannelState(null);
+      federatedClientRef.current = null;
 
-    if (server) {
-      if (isFederatedServer(server)) {
-        loadFederatedServerData(server, true);
+      if (server) {
+        if (isFederatedServer(server)) {
+          loadFederatedServerData(server, true);
 
-        if (server.session_token) {
-          const wsClient = new FederatedWsClient(server.domain, server.session_token);
-          federatedWsRef.current = wsClient;
+          if (server.session_token) {
+            const wsClient = new FederatedWsClient(server.domain, server.session_token);
+            federatedWsRef.current = wsClient;
 
-          wsClient.onMessage((message) => {
-            if (message.type === "member_joined") {
-              const newMember = message.member;
-              if (server.is_owner && myMemberRef.current && federatedClientRef.current) {
-                distributeKeysToMember(federatedClientRef.current, newMember, myMemberRef.current);
+            wsClient.onMessage((message) => {
+              if (message.type === "member_joined") {
+                const newMember = message.member;
+                if (server.is_owner && myMemberRef.current && federatedClientRef.current) {
+                  distributeKeysToMember(
+                    federatedClientRef.current,
+                    newMember,
+                    myMemberRef.current
+                  );
+                }
               }
-            }
-            if (
-              message.type === "member_roles_updated" ||
-              message.type === "role_created" ||
-              message.type === "role_updated" ||
-              message.type === "role_deleted"
-            ) {
-              notifyRoleEvent(server.id);
-            }
-          });
+              if (
+                message.type === "member_roles_updated" ||
+                message.type === "role_created" ||
+                message.type === "role_updated" ||
+                message.type === "role_deleted"
+              ) {
+                notifyRoleEvent(server.id);
+              }
+            });
 
-          wsClient.connect().catch((err) => {
-            console.error("Failed to connect WebSocket:", err);
-          });
+            wsClient.connect().catch((err) => {
+              console.error("Failed to connect WebSocket:", err);
+            });
+          }
+        } else {
+          setCategories([]);
+          setChannels([]);
         }
       } else {
         setCategories([]);
         setChannels([]);
       }
-    } else {
-      setCategories([]);
-      setChannels([]);
-    }
-  }, [loadFederatedServerData, distributeKeysToMember, notifyRoleEvent]);
+    },
+    [loadFederatedServerData, distributeKeysToMember, notifyRoleEvent]
+  );
 
   const { createServer, createCategory, createChannel, deleteChannel } = useServerCRUD({
     keys,
@@ -123,15 +148,16 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     loadFederatedServerData,
   });
 
-  const { joinServerByDomain, registerAndJoinServer, leaveServer, deleteServer } = useServerMembership({
-    user,
-    keys,
-    federatedServers,
-    activeServer,
-    setFederatedServers,
-    setActiveServer,
-    setActiveChannel: () => setActiveChannelState(null),
-  });
+  const { joinServerByDomain, registerAndJoinServer, leaveServer, deleteServer } =
+    useServerMembership({
+      user,
+      keys,
+      federatedServers,
+      activeServer,
+      setFederatedServers,
+      setActiveServer,
+      setActiveChannel: () => setActiveChannelState(null),
+    });
 
   const reloadServerData = useCallback(async () => {
     if (!activeServer) return;
@@ -140,12 +166,15 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     }
   }, [activeServer, loadFederatedServerData]);
 
-  const onRoleEvent = useCallback((callback: RoleEventCallback) => {
-    roleEventCallbacks.add(callback);
-    return () => {
-      roleEventCallbacks.delete(callback);
-    };
-  }, [roleEventCallbacks]);
+  const onRoleEvent = useCallback(
+    (callback: RoleEventCallback) => {
+      roleEventCallbacks.add(callback);
+      return () => {
+        roleEventCallbacks.delete(callback);
+      };
+    },
+    [roleEventCallbacks]
+  );
 
   useEffect(() => {
     if (keys) {

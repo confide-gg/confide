@@ -3,13 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { audioSettingsService } from "../../features/calls/audioSettings";
 import type { AudioDevices, AudioSettings as TauriAudioSettings } from "../calls/types";
 import { InputLevelDetector } from "./InputLevelDetector";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Label } from "../ui/label";
 import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
@@ -32,13 +26,7 @@ interface SyncedSettings {
   noise_suppression_enabled: boolean;
 }
 
-function SettingsSection({ 
-  title, 
-  children 
-}: { 
-  title: string; 
-  children: React.ReactNode;
-}) {
+function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-4">
       <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -183,7 +171,7 @@ export function VoiceSettings() {
 
     if (!["Control", "Alt", "Shift", "Meta"].includes(e.key)) {
       const fullKey = [...modifiers, keyName].join(" + ");
-      setSyncedSettings(prev => ({ ...prev, push_to_talk_key: fullKey }));
+      setSyncedSettings((prev) => ({ ...prev, push_to_talk_key: fullKey }));
       setIsRecordingKey(false);
     }
   }, []);
@@ -202,7 +190,6 @@ export function VoiceSettings() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-8 pr-2">
-        
         {/* Audio Devices */}
         <SettingsSection title="Audio Devices">
           <div className="grid grid-cols-2 gap-4">
@@ -214,7 +201,10 @@ export function VoiceSettings() {
               <Select
                 value={localSettings.input_device || "default"}
                 onValueChange={(value) =>
-                  setLocalSettings({ ...localSettings, input_device: value === "default" ? null : value })
+                  setLocalSettings({
+                    ...localSettings,
+                    input_device: value === "default" ? null : value,
+                  })
                 }
               >
                 <SelectTrigger className="h-10 bg-secondary/50 border-0">
@@ -239,7 +229,10 @@ export function VoiceSettings() {
               <Select
                 value={localSettings.output_device || "default"}
                 onValueChange={(value) =>
-                  setLocalSettings({ ...localSettings, output_device: value === "default" ? null : value })
+                  setLocalSettings({
+                    ...localSettings,
+                    output_device: value === "default" ? null : value,
+                  })
                 }
               >
                 <SelectTrigger className="h-10 bg-secondary/50 border-0">
@@ -270,7 +263,9 @@ export function VoiceSettings() {
               </div>
               <Slider
                 value={[syncedSettings.input_volume]}
-                onValueChange={([value]) => setSyncedSettings({ ...syncedSettings, input_volume: value })}
+                onValueChange={([value]) =>
+                  setSyncedSettings({ ...syncedSettings, input_volume: value })
+                }
                 min={0}
                 max={2}
                 step={0.01}
@@ -287,7 +282,9 @@ export function VoiceSettings() {
               </div>
               <Slider
                 value={[syncedSettings.output_volume]}
-                onValueChange={([value]) => setSyncedSettings({ ...syncedSettings, output_volume: value })}
+                onValueChange={([value]) =>
+                  setSyncedSettings({ ...syncedSettings, output_volume: value })
+                }
                 min={0}
                 max={2}
                 step={0.01}
@@ -343,12 +340,14 @@ export function VoiceSettings() {
                   : "bg-secondary/30 border-transparent hover:bg-secondary/50"
               )}
             >
-              <div className={cn(
-                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                syncedSettings.input_mode === "voice_activity"
-                  ? "border-primary"
-                  : "border-muted-foreground"
-              )}>
+              <div
+                className={cn(
+                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                  syncedSettings.input_mode === "voice_activity"
+                    ? "border-primary"
+                    : "border-muted-foreground"
+                )}
+              >
                 {syncedSettings.input_mode === "voice_activity" && (
                   <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                 )}
@@ -373,12 +372,14 @@ export function VoiceSettings() {
                   : "bg-secondary/30 border-transparent hover:bg-secondary/50"
               )}
             >
-              <div className={cn(
-                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                syncedSettings.input_mode === "push_to_talk"
-                  ? "border-primary"
-                  : "border-muted-foreground"
-              )}>
+              <div
+                className={cn(
+                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                  syncedSettings.input_mode === "push_to_talk"
+                    ? "border-primary"
+                    : "border-muted-foreground"
+                )}
+              >
                 {syncedSettings.input_mode === "push_to_talk" && (
                   <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                 )}
@@ -476,7 +477,6 @@ export function VoiceSettings() {
             </div>
           )}
         </SettingsSection>
-
       </div>
     </div>
   );

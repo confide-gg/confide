@@ -51,9 +51,7 @@ export function OverviewTab({
 }: OverviewTabProps) {
   return (
     <div className="space-y-8 max-w-2xl">
-      <p className="text-muted-foreground">
-        Manage your server settings and view statistics
-      </p>
+      <p className="text-muted-foreground">Manage your server settings and view statistics</p>
 
       <div className="space-y-6">
         <div className="flex items-start gap-6">
@@ -91,7 +89,9 @@ export function OverviewTab({
         <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30">
           <div className="space-y-1">
             <div className="text-sm font-medium">Discoverable</div>
-            <div className="text-xs text-muted-foreground">Allow this server to be found in public discovery</div>
+            <div className="text-xs text-muted-foreground">
+              Allow this server to be found in public discovery
+            </div>
           </div>
           <Switch
             checked={isDiscoverable}
@@ -182,10 +182,7 @@ export function OverviewTab({
                   Permanently delete this server and all its data
                 </div>
               </div>
-              <Button
-                variant="destructive"
-                onClick={onShowDeleteServer}
-              >
+              <Button variant="destructive" onClick={onShowDeleteServer}>
                 Delete Server
               </Button>
             </div>

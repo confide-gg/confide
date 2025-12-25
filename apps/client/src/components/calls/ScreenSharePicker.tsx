@@ -93,11 +93,7 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
       >
         <div className="relative aspect-video bg-muted">
           {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt={source.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={thumbnailUrl} alt={source.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               {source.source_type === "screen" ? (
@@ -135,7 +131,8 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
             <div className="text-center">
               <h3 className="font-semibold">Screen Recording Permission Required</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Please grant screen recording access in System Settings → Privacy & Security → Screen Recording
+                Please grant screen recording access in System Settings → Privacy & Security →
+                Screen Recording
               </p>
             </div>
             <Button variant="outline" onClick={loadSources}>
@@ -157,21 +154,15 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
 
             <TabsContent value="screens" className="mt-4">
               {screens.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No screens available
-                </p>
+                <p className="text-center text-muted-foreground py-8">No screens available</p>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {screens.map(renderSource)}
-                </div>
+                <div className="grid grid-cols-2 gap-3">{screens.map(renderSource)}</div>
               )}
             </TabsContent>
 
             <TabsContent value="windows" className="mt-4">
               {windows.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No windows available
-                </p>
+                <p className="text-center text-muted-foreground py-8">No windows available</p>
               ) : (
                 <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
                   {windows.map(renderSource)}
@@ -185,10 +176,7 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSelect}
-            disabled={!selectedId || starting}
-          >
+          <Button onClick={handleSelect} disabled={!selectedId || starting}>
             {starting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

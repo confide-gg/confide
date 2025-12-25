@@ -81,7 +81,7 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
   };
 
   const isAlreadyJoined = (server: DiscoverableServer) => {
-    return federatedServers.some(s => s.id === server.id || s.domain === server.domain);
+    return federatedServers.some((s) => s.id === server.id || s.domain === server.domain);
   };
 
   const formatMemberCount = (count: number) => {
@@ -132,14 +132,15 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
                 />
               </div>
               <Button type="submit" disabled={isSearching} className="h-12 px-6">
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Search"
-                )}
+                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
               </Button>
               {searchQuery && (
-                <Button type="button" variant="outline" onClick={handleClearSearch} className="h-12">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClearSearch}
+                  className="h-12"
+                >
                   Clear
                 </Button>
               )}
@@ -165,7 +166,9 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
                   <Globe className="w-10 h-10 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground font-medium">
-                  {searchQuery ? "No servers found matching your search." : "No servers available yet."}
+                  {searchQuery
+                    ? "No servers found matching your search."
+                    : "No servers available yet."}
                 </p>
               </div>
             ) : (

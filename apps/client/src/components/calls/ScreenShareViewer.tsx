@@ -81,33 +81,36 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
     ctx.putImageData(imageData, 0, 0);
   }, []);
 
-  const drawToCanvas = useCallback((source: CanvasImageSource, codedWidth: number, codedHeight: number) => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  const drawToCanvas = useCallback(
+    (source: CanvasImageSource, codedWidth: number, codedHeight: number) => {
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-    const rect = container.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    const targetW = Math.max(1, Math.floor(rect.width * dpr));
-    const targetH = Math.max(1, Math.floor(rect.height * dpr));
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const targetW = Math.max(1, Math.floor(rect.width * dpr));
+      const targetH = Math.max(1, Math.floor(rect.height * dpr));
 
-    if (canvas.width !== targetW || canvas.height !== targetH) {
-      canvas.width = targetW;
-      canvas.height = targetH;
-    }
+      if (canvas.width !== targetW || canvas.height !== targetH) {
+        canvas.width = targetW;
+        canvas.height = targetH;
+      }
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const scale = Math.min(canvas.width / codedWidth, canvas.height / codedHeight);
-    const drawW = Math.max(1, Math.floor(codedWidth * scale));
-    const drawH = Math.max(1, Math.floor(codedHeight * scale));
-    const x = Math.floor((canvas.width - drawW) / 2);
-    const y = Math.floor((canvas.height - drawH) / 2);
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(source, x, y, drawW, drawH);
-  }, []);
+      const scale = Math.min(canvas.width / codedWidth, canvas.height / codedHeight);
+      const drawW = Math.max(1, Math.floor(codedWidth * scale));
+      const drawH = Math.max(1, Math.floor(codedHeight * scale));
+      const x = Math.floor((canvas.width - drawW) / 2);
+      const y = Math.floor((canvas.height - drawH) / 2);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(source, x, y, drawW, drawH);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!isActive) {
@@ -134,7 +137,8 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
     }
 
     isPollingRef.current = true;
-    usingWebCodecsRef.current = typeof (window as unknown as { VideoDecoder?: unknown }).VideoDecoder !== "undefined";
+    usingWebCodecsRef.current =
+      typeof (window as unknown as { VideoDecoder?: unknown }).VideoDecoder !== "undefined";
     webCodecsFailedRef.current = false;
 
     const pollFrames = async () => {
@@ -248,7 +252,9 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70">
           <Monitor className="h-12 w-12 mb-2 animate-pulse" />
           <p className="text-sm">
-            {peerUsername ? `Waiting for ${peerUsername}'s screen...` : "Waiting for screen share..."}
+            {peerUsername
+              ? `Waiting for ${peerUsername}'s screen...`
+              : "Waiting for screen share..."}
           </p>
         </div>
       )}

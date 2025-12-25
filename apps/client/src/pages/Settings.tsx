@@ -44,18 +44,21 @@ const SETTINGS_CATEGORIES: SettingsCategory[] = [
   },
 ];
 
-const ALL_TABS = SETTINGS_CATEGORIES.flatMap(cat => cat.tabs);
+const ALL_TABS = SETTINGS_CATEGORIES.flatMap((cat) => cat.tabs);
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [centralVersion, setCentralVersion] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      navigate(-1);
-    }
-  }, [navigate]);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        navigate(-1);
+      }
+    },
+    [navigate]
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handleEscape);
@@ -64,8 +67,8 @@ export function Settings() {
 
   useEffect(() => {
     fetch(`${CENTRAL_API_URL}/version`)
-      .then(res => res.json())
-      .then(data => setCentralVersion(data.version))
+      .then((res) => res.json())
+      .then((data) => setCentralVersion(data.version))
       .catch(() => setCentralVersion(null));
   }, []);
 
@@ -102,7 +105,8 @@ export function Settings() {
           </ScrollArea>
           <div className="px-4 py-3">
             <p className="text-[10px] text-muted-foreground/60">
-              Client v{CLIENT_VERSION}{centralVersion && ` · Central v${centralVersion}`}
+              Client v{CLIENT_VERSION}
+              {centralVersion && ` · Central v${centralVersion}`}
             </p>
           </div>
         </Panel>
@@ -111,16 +115,11 @@ export function Settings() {
       <Panel className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="h-8 w-8"
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-8 w-8">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <h1 className="text-lg font-semibold">
-              {ALL_TABS.find(t => t.id === activeTab)?.label}
+              {ALL_TABS.find((t) => t.id === activeTab)?.label}
             </h1>
           </div>
         </div>
@@ -128,25 +127,25 @@ export function Settings() {
         <ScrollArea className="flex-1">
           <div className="p-6 min-h-full flex items-center justify-center">
             <div className="w-full max-w-4xl">
-              <Activity mode={activeTab === "profile" ? 'visible' : 'hidden'}>
+              <Activity mode={activeTab === "profile" ? "visible" : "hidden"}>
                 <ProfileSettings />
               </Activity>
 
-              <Activity mode={activeTab === "voice" ? 'visible' : 'hidden'}>
+              <Activity mode={activeTab === "voice" ? "visible" : "hidden"}>
                 <VoiceSettings />
               </Activity>
 
-              <Activity mode={activeTab === "account" ? 'visible' : 'hidden'}>
+              <Activity mode={activeTab === "account" ? "visible" : "hidden"}>
                 <div className="space-y-4 text-sm text-muted-foreground">
                   <p>Account settings coming soon...</p>
                 </div>
               </Activity>
 
-              <Activity mode={activeTab === "appearance" ? 'visible' : 'hidden'}>
+              <Activity mode={activeTab === "appearance" ? "visible" : "hidden"}>
                 <AppearanceSettings />
               </Activity>
 
-              <Activity mode={activeTab === "connections" ? 'visible' : 'hidden'}>
+              <Activity mode={activeTab === "connections" ? "visible" : "hidden"}>
                 <SpotifySettings />
               </Activity>
             </div>

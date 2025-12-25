@@ -98,17 +98,11 @@ class CryptoService {
     });
   }
 
-  public async encryptData(
-    kemSecretKey: number[],
-    data: number[]
-  ): Promise<number[]> {
+  public async encryptData(kemSecretKey: number[], data: number[]): Promise<number[]> {
     return invoke<number[]>("encrypt_data", { kemSecretKey, data });
   }
 
-  public async decryptData(
-    kemSecretKey: number[],
-    encrypted: number[]
-  ): Promise<number[]> {
+  public async decryptData(kemSecretKey: number[], encrypted: number[]): Promise<number[]> {
     return invoke<number[]>("decrypt_data", { kemSecretKey, encrypted });
   }
 
@@ -123,31 +117,19 @@ class CryptoService {
     return invoke<number[]>("encrypt_for_recipient", { recipientPublicKey, data });
   }
 
-  public async decryptFromSender(
-    mySecretKey: number[],
-    encrypted: number[]
-  ): Promise<number[]> {
+  public async decryptFromSender(mySecretKey: number[], encrypted: number[]): Promise<number[]> {
     return invoke<number[]>("decrypt_from_sender", { mySecretKey, encrypted });
   }
 
-  public async encryptWithKey(
-    key: number[],
-    data: number[]
-  ): Promise<number[]> {
+  public async encryptWithKey(key: number[], data: number[]): Promise<number[]> {
     return invoke<number[]>("encrypt_with_key", { key, data });
   }
 
-  public async decryptWithKey(
-    key: number[],
-    encrypted: number[]
-  ): Promise<number[]> {
+  public async decryptWithKey(key: number[], encrypted: number[]): Promise<number[]> {
     return invoke<number[]>("decrypt_with_key", { key, encrypted });
   }
 
-  public async dsaSign(
-    secretKey: number[],
-    message: number[]
-  ): Promise<number[]> {
+  public async dsaSign(secretKey: number[], message: number[]): Promise<number[]> {
     return invoke<number[]>("dsa_sign", { secretKey, message });
   }
 
@@ -216,7 +198,7 @@ class CryptoService {
   }
 
   public bytesToHex(bytes: number[]): string {
-    return bytes.map(b => b.toString(16).padStart(2, "0")).join("");
+    return bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
   public hexToBytes(hex: string): number[] {
@@ -308,24 +290,29 @@ class CryptoService {
     targetIteration: number,
     ciphertext: number[]
   ): Promise<number[]> {
-    return invoke<number[]>("decrypt_group_message", { stateBytes, targetChainId, targetIteration, ciphertext });
+    return invoke<number[]>("decrypt_group_message", {
+      stateBytes,
+      targetChainId,
+      targetIteration,
+      ciphertext,
+    });
   }
 
   public async updateSenderKeyStateAfterDecrypt(
     stateBytes: number[],
     targetIteration: number
   ): Promise<number[]> {
-    return invoke<number[]>("update_sender_key_state_after_decrypt", { stateBytes, targetIteration });
+    return invoke<number[]>("update_sender_key_state_after_decrypt", {
+      stateBytes,
+      targetIteration,
+    });
   }
 
   public async generateChannelKey(): Promise<number[]> {
     return invoke<number[]>("generate_channel_key");
   }
 
-  public async encryptWithChannelKey(
-    channelKey: number[],
-    plaintext: number[]
-  ): Promise<number[]> {
+  public async encryptWithChannelKey(channelKey: number[], plaintext: number[]): Promise<number[]> {
     return invoke<number[]>("encrypt_with_channel_key", { channelKey, plaintext });
   }
 

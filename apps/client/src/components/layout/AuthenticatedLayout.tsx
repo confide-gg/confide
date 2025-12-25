@@ -24,7 +24,8 @@ function CacheSync() {
 
 function PreferencesLoader() {
   useEffect(() => {
-    preferenceService.getPreferences()
+    preferenceService
+      .getPreferences()
       .then((prefs) => {
         applyTheme(prefs.theme as Theme);
       })
@@ -35,7 +36,15 @@ function PreferencesLoader() {
   return null;
 }
 
-function GlobalProviders({ children, userId, dsaSecretKey }: { children: React.ReactNode; userId: string; dsaSecretKey: number[] }) {
+function GlobalProviders({
+  children,
+  userId,
+  dsaSecretKey,
+}: {
+  children: React.ReactNode;
+  userId: string;
+  dsaSecretKey: number[];
+}) {
   return (
     <ErrorBoundary>
       <PresenceProvider>

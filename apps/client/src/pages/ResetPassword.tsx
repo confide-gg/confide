@@ -149,7 +149,7 @@ export function ResetPassword() {
 
       navigate("/login", {
         replace: true,
-        state: { message: "Password reset successful. Please log in with your new password." }
+        state: { message: "Password reset successful. Please log in with your new password." },
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reset password");
@@ -162,9 +162,7 @@ export function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Reset Password
-          </h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Reset Password</h1>
           <p className="text-muted-foreground">
             {step === "username" && "Enter your username to begin"}
             {step === "recovery" && "Enter your recovery key"}
@@ -203,9 +201,7 @@ export function ResetPassword() {
                 disabled={isLoading || !username}
                 className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isLoading && (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                )}
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {isLoading ? "Checking..." : "Continue"}
               </button>
             </form>
@@ -249,9 +245,7 @@ export function ResetPassword() {
                   disabled={isLoading || !recoveryKeyInput}
                   className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isLoading && (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  )}
+                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                   {isLoading ? "Verifying..." : "Verify Key"}
                 </button>
               </div>
@@ -315,9 +309,7 @@ export function ResetPassword() {
                   disabled={isLoading || !newPassword || !confirmPassword}
                   className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isLoading && (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  )}
+                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                   {isLoading ? "Resetting..." : "Reset Password"}
                 </button>
               </div>
@@ -327,7 +319,10 @@ export function ResetPassword() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Remember your password?{" "}
-          <Link to="/login" className="text-primary font-medium hover:text-primary/80 transition-colors">
+          <Link
+            to="/login"
+            className="text-primary font-medium hover:text-primary/80 transition-colors"
+          >
             Sign in
           </Link>
         </p>

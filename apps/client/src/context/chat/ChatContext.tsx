@@ -73,7 +73,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   };
 
   const openDmFromPreview = (preview: DmPreview) => {
-    const friend = friendsLogic.friendsList.find(f => f.id === preview.visitorId);
+    const friend = friendsLogic.friendsList.find((f) => f.id === preview.visitorId);
     if (friend) {
       chatLogic.openChat(friend);
     } else {
@@ -92,7 +92,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   };
 
   const closeDm = async (conversationId: string) => {
-    chatLogic.setDmPreviews(prev => prev.filter(p => p.conversationId !== conversationId));
+    chatLogic.setDmPreviews((prev) => prev.filter((p) => p.conversationId !== conversationId));
     try {
       await conversationService.hideConversation(conversationId);
     } catch (err) {
@@ -117,7 +117,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         seen.add(p.conversationId);
         return true;
       });
-      deduped.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+      deduped.sort(
+        (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      );
       return deduped;
     });
   }, [groupsLogic.groupPreviews]);

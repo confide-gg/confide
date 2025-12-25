@@ -39,7 +39,10 @@ export async function createGroupEncryptionPayload(params: {
             params.members.find((m) => m.id === userId)?.kem_public_key
           );
 
-    const encryptedSenderKey = await cryptoService.encryptForRecipient(kemPublicKey, conversationKey);
+    const encryptedSenderKey = await cryptoService.encryptForRecipient(
+      kemPublicKey,
+      conversationKey
+    );
     const role = userId === params.me.id ? "owner" : "member";
     const roleBytes = cryptoService.stringToBytes(JSON.stringify({ role }));
     const encryptedRole = await cryptoService.encryptForRecipient(kemPublicKey, roleBytes);
@@ -64,10 +67,15 @@ export async function addMemberEncryptionPayload(params: {
   userKemPublicKey?: number[];
 }): Promise<{ user_id: string; encrypted_sender_key: number[]; encrypted_role: number[] }> {
   const kemPublicKey = await resolveKemPublicKey(params.userId, params.userKemPublicKey);
-  const encryptedSenderKey = await cryptoService.encryptForRecipient(kemPublicKey, params.conversationKey);
+  const encryptedSenderKey = await cryptoService.encryptForRecipient(
+    kemPublicKey,
+    params.conversationKey
+  );
   const roleBytes = cryptoService.stringToBytes(JSON.stringify({ role: "member" }));
   const encryptedRole = await cryptoService.encryptForRecipient(kemPublicKey, roleBytes);
-  return { user_id: params.userId, encrypted_sender_key: encryptedSenderKey, encrypted_role: encryptedRole };
+  return {
+    user_id: params.userId,
+    encrypted_sender_key: encryptedSenderKey,
+    encrypted_role: encryptedRole,
+  };
 }
-
-

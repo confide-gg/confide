@@ -5,8 +5,7 @@ export function formatReplyPreview(content: string): string {
       const caption = parsed.text ? ` - ${parsed.text}` : "";
       return `${parsed.file.name}${caption}`;
     }
-  } catch {
-  }
+  } catch {}
   return content;
 }
 

@@ -13,24 +13,24 @@ export function UserTile({
   size = "md",
   isSelf,
   horizontal,
-  isScreenSharing
+  isScreenSharing,
 }: UserTileProps) {
   const avatarSizeMap = {
     sm: "sm" as const,
     md: "lg" as const,
-    lg: "xl" as const
+    lg: "xl" as const,
   };
 
   const containerSizeClasses = {
     sm: "w-8 h-8",
     md: "w-16 h-16",
-    lg: "w-20 h-20"
+    lg: "w-20 h-20",
   };
 
   const ringSize = {
     sm: "ring-2",
     md: "ring-[3px]",
-    lg: "ring-4"
+    lg: "ring-4",
   };
 
   const getRingColor = () => {
@@ -42,16 +42,20 @@ export function UserTile({
 
   if (horizontal) {
     return (
-      <div className={cn(
-        "flex items-center gap-2 p-1.5 rounded-lg",
-        isSelf ? "bg-white/5" : "bg-transparent"
-      )}>
-        <div className={cn(
-          "relative rounded-full flex-shrink-0",
-          containerSizeClasses.sm,
-          ringSize.sm,
-          getRingColor()
-        )}>
+      <div
+        className={cn(
+          "flex items-center gap-2 p-1.5 rounded-lg",
+          isSelf ? "bg-white/5" : "bg-transparent"
+        )}
+      >
+        <div
+          className={cn(
+            "relative rounded-full flex-shrink-0",
+            containerSizeClasses.sm,
+            ringSize.sm,
+            getRingColor()
+          )}
+        >
           <Avatar
             src={avatarUrl || undefined}
             fallback={name}
@@ -65,10 +69,9 @@ export function UserTile({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className={cn(
-            "text-xs font-medium truncate",
-            hasLeft ? "text-white/50" : "text-white"
-          )}>
+          <div
+            className={cn("text-xs font-medium truncate", hasLeft ? "text-white/50" : "text-white")}
+          >
             {name} {isSelf && "(You)"}
           </div>
           {isScreenSharing && (
@@ -85,39 +88,39 @@ export function UserTile({
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className={cn(
-        "relative rounded-full transition-all duration-200 flex items-center justify-center",
-        containerSizeClasses[size],
-        ringSize[size],
-        getRingColor()
-      )}>
+      <div
+        className={cn(
+          "relative rounded-full transition-all duration-200 flex items-center justify-center",
+          containerSizeClasses[size],
+          ringSize[size],
+          getRingColor()
+        )}
+      >
         <Avatar
           src={avatarUrl || undefined}
           fallback={name}
           size={avatarSizeMap[size]}
-          className={cn(
-            containerSizeClasses[size],
-            hasLeft && "opacity-50 grayscale"
-          )}
+          className={cn(containerSizeClasses[size], hasLeft && "opacity-50 grayscale")}
         />
         {isMuted && (
-          <div className={cn(
-            "absolute -bottom-0.5 -right-0.5 rounded-full bg-red-500 flex items-center justify-center",
-            size === "lg" ? "w-6 h-6" : size === "md" ? "w-5 h-5" : "w-4 h-4"
-          )}>
-            <MicOff className={cn(
-              "text-white",
-              size === "lg" ? "w-3.5 h-3.5" : "w-2.5 h-2.5"
-            )} />
+          <div
+            className={cn(
+              "absolute -bottom-0.5 -right-0.5 rounded-full bg-red-500 flex items-center justify-center",
+              size === "lg" ? "w-6 h-6" : size === "md" ? "w-5 h-5" : "w-4 h-4"
+            )}
+          >
+            <MicOff className={cn("text-white", size === "lg" ? "w-3.5 h-3.5" : "w-2.5 h-2.5")} />
           </div>
         )}
       </div>
       <div className="text-center">
-        <div className={cn(
-          "font-medium",
-          size === "lg" ? "text-sm" : "text-xs",
-          hasLeft ? "text-white/50" : "text-white"
-        )}>
+        <div
+          className={cn(
+            "font-medium",
+            size === "lg" ? "text-sm" : "text-xs",
+            hasLeft ? "text-white/50" : "text-white"
+          )}
+        >
           {name}
         </div>
         {isSelf && <div className="text-[10px] text-white/50">(You)</div>}

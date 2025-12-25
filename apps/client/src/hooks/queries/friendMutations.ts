@@ -7,8 +7,7 @@ export function useSendFriendRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: SendFriendRequestBody) =>
-      friendService.sendFriendRequest(data),
+    mutationFn: (data: SendFriendRequestBody) => friendService.sendFriendRequest(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.friends.requests(),
@@ -38,8 +37,7 @@ export function useRejectFriendRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (requestId: string) =>
-      friendService.rejectFriendRequest(requestId),
+    mutationFn: (requestId: string) => friendService.rejectFriendRequest(requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.friends.requests(),

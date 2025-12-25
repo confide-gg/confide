@@ -16,9 +16,14 @@ interface GroupMemberListProps {
   onOwnerIdChange?: (ownerId: string) => void;
 }
 
-export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: GroupMemberListProps) {
+export function GroupMemberList({
+  conversationId,
+  ownerId,
+  onOwnerIdChange,
+}: GroupMemberListProps) {
   const { user } = useAuth();
-  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } = usePresence();
+  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } =
+    usePresence();
 
   const [members, setMembers] = useState<MemberResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -94,7 +99,7 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
     });
   };
 
-  const selectedMember = members.find(m => m.user.id === selectedMemberId);
+  const selectedMember = members.find((m) => m.user.id === selectedMemberId);
 
   return (
     <>
@@ -157,7 +162,7 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
                   const memberIsOwner = ownerId ? m.user.id === ownerId : false;
                   const presence = getUserPresence(m.user.id);
                   const userIsOnline = isOnline(m.user.id);
-                  const status = userIsOnline ? (presence?.status || "online") : "offline";
+                  const status = userIsOnline ? presence?.status || "online" : "offline";
                   const activity = getUserActivity(m.user.id);
                   return (
                     <div
@@ -179,9 +184,13 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
                           <div className="text-sm font-medium truncate text-foreground">
                             {m.user.username}
                           </div>
-                          {memberIsOwner && <Crown className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
+                          {memberIsOwner && (
+                            <Crown className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                          )}
                         </div>
-                        {activity && <ActivityDisplay activity={activity} compact className="mt-0.5" />}
+                        {activity && (
+                          <ActivityDisplay activity={activity} compact className="mt-0.5" />
+                        )}
                       </div>
                     </div>
                   );
@@ -194,4 +203,3 @@ export function GroupMemberList({ conversationId, ownerId, onOwnerIdChange }: Gr
     </>
   );
 }
-

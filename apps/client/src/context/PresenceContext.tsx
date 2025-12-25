@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { centralWebSocketService } from "../core/network/CentralWebSocketService";
 import { useAuth } from "./AuthContext";
 import type { UserActivity } from "../features/profiles/types";
@@ -131,7 +139,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
 
   const updateMyPresence = (status: string, customStatus?: string) => {
     if (user) {
-      setUserPresence(prev => {
+      setUserPresence((prev) => {
         const next = new Map(prev);
         next.set(user.id, { status, customStatus, isOnline: true });
         return next;
@@ -140,16 +148,19 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const subscribeToUsers = useCallback((userIds: string[]) => {
-    for (const userId of userIds) {
-      if (!subscriptionManagerRef.current.subscribe(userId, 'user')) continue;
+  const subscribeToUsers = useCallback(
+    (userIds: string[]) => {
+      for (const userId of userIds) {
+        if (!subscriptionManagerRef.current.subscribe(userId, "user")) continue;
 
-      if (isWsConnected) {
-        centralWebSocketService.subscribeUser(userId);
-        subscriptionManagerRef.current.markActive(userId);
+        if (isWsConnected) {
+          centralWebSocketService.subscribeUser(userId);
+          subscriptionManagerRef.current.markActive(userId);
+        }
       }
-    }
-  }, [isWsConnected]);
+    },
+    [isWsConnected]
+  );
 
   const value = {
     userPresence,
@@ -162,11 +173,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     isWsConnected,
   };
 
-  return (
-    <PresenceContext.Provider value={value}>
-      {children}
-    </PresenceContext.Provider>
-  );
+  return <PresenceContext.Provider value={value}>{children}</PresenceContext.Provider>;
 }
 
 export const usePresence = () => {

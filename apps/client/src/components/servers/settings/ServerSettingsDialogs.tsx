@@ -44,9 +44,7 @@ export function CreateRoleDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Role</DialogTitle>
-          <DialogDescription>
-            Add a new role to organize your server members
-          </DialogDescription>
+          <DialogDescription>Add a new role to organize your server members</DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-6">
           <div className="space-y-4">
@@ -146,7 +144,8 @@ export function DeleteRoleDialog({
             Delete Role
           </DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete <strong>{role?.name}</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>{role?.name}</strong>? This action cannot be
+            undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -186,9 +185,12 @@ export function DeleteServerDialog({
             Delete Server
           </DialogTitle>
           <DialogDescription className="space-y-2">
-            <p>Are you absolutely sure you want to delete <strong>{serverName}</strong>?</p>
+            <p>
+              Are you absolutely sure you want to delete <strong>{serverName}</strong>?
+            </p>
             <p className="text-destructive font-semibold">
-              This action cannot be undone. All channels, messages, and roles will be permanently deleted.
+              This action cannot be undone. All channels, messages, and roles will be permanently
+              deleted.
             </p>
           </DialogDescription>
         </DialogHeader>

@@ -1,20 +1,26 @@
 enum SubscriptionState {
-  UNSUBSCRIBED = 'unsubscribed',
-  PENDING = 'pending',
-  ACTIVE = 'active',
-  FAILED = 'failed',
+  UNSUBSCRIBED = "unsubscribed",
+  PENDING = "pending",
+  ACTIVE = "active",
+  FAILED = "failed",
 }
 
 export class SubscriptionManager {
-  private subscriptions = new Map<string, {
-    state: SubscriptionState;
-    type: string;
-  }>();
+  private subscriptions = new Map<
+    string,
+    {
+      state: SubscriptionState;
+      type: string;
+    }
+  >();
 
   subscribe(id: string, type: string): boolean {
     const current = this.subscriptions.get(id);
 
-    if (current?.state === SubscriptionState.ACTIVE || current?.state === SubscriptionState.PENDING) {
+    if (
+      current?.state === SubscriptionState.ACTIVE ||
+      current?.state === SubscriptionState.PENDING
+    ) {
       return false;
     }
 

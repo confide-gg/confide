@@ -37,7 +37,7 @@ export function Register() {
       const result = await register(username, password);
       navigate("/recovery-kit", {
         state: { keys: result.keys },
-        replace: true
+        replace: true,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -53,9 +53,7 @@ export function Register() {
           <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-3xl mb-6 mx-auto">
             C
           </div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">
-            Create account
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Create account</h1>
           <p className="text-sm text-muted-foreground">Join Confide and start chatting securely</p>
         </div>
 
@@ -125,7 +123,10 @@ export function Register() {
         <div className="mt-8 pt-6 border-t border-border text-center">
           <p className="text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="text-foreground font-medium hover:text-primary transition-colors">
+            <Link
+              to="/login"
+              className="text-foreground font-medium hover:text-primary transition-colors"
+            >
               Sign in
             </Link>
           </p>

@@ -24,11 +24,13 @@ export function SidebarNav() {
       <Users className="w-5 h-5 shrink-0" />
       <span className="flex-1 truncate text-left text-sm font-medium">Friends</span>
       {hasPendingRequests && (
-        <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium ${
-          isActive
-            ? "bg-primary-foreground/20 text-primary-foreground"
-            : "bg-destructive text-destructive-foreground"
-        }`}>
+        <span
+          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium ${
+            isActive
+              ? "bg-primary-foreground/20 text-primary-foreground"
+              : "bg-destructive text-destructive-foreground"
+          }`}
+        >
           {friendRequests.length}
         </span>
       )}

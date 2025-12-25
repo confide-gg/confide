@@ -11,7 +11,10 @@ export function useConversations(options?: { enabled?: boolean }) {
   });
 }
 
-export function useConversationMembers(conversationId: string | null, options?: { enabled?: boolean }) {
+export function useConversationMembers(
+  conversationId: string | null,
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: queryKeys.conversations.members(conversationId || ""),
     queryFn: () => conversationService.getMembers(conversationId!),

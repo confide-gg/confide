@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -23,7 +17,9 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [serverInfo, setServerInfo] = useState<{ name: string; has_password: boolean } | null>(null);
+  const [serverInfo, setServerInfo] = useState<{ name: string; has_password: boolean } | null>(
+    null
+  );
   const [step, setStep] = useState<"domain" | "password">("domain");
 
   const handleCheckServer = async (e: React.FormEvent) => {
@@ -129,9 +125,7 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
                 disabled={isLoading}
                 className="bg-secondary/50"
               />
-              <p className="text-xs text-muted-foreground">
-                Ask your server admin for the address
-              </p>
+              <p className="text-xs text-muted-foreground">Ask your server admin for the address</p>
             </div>
 
             {error && (
@@ -161,7 +155,9 @@ export function JoinServerModal({ isOpen, onClose, onJoin }: JoinServerModalProp
           <form onSubmit={handleJoinWithPassword} className="space-y-4">
             <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-md">
               <Lock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">This server requires a password to join</span>
+              <span className="text-sm text-muted-foreground">
+                This server requires a password to join
+              </span>
             </div>
 
             <div className="space-y-2">

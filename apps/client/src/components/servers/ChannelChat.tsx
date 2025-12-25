@@ -45,16 +45,16 @@ function formatDate(dateStr: string): string {
   const isYesterday = date.toDateString() === yesterday.toDateString();
 
   if (isToday) {
-    return `Today at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+    return `Today at ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
   } else if (isYesterday) {
-    return `Yesterday at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+    return `Yesterday at ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
   } else {
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
-      ` at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+    return (
+      date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) +
+      ` at ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
+    );
   }
 }
-
-
 
 export function ChannelChat() {
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
@@ -102,7 +102,7 @@ export function ChannelChat() {
 
   useEffect(() => {
     if (members.length > 0 && isWsConnected) {
-      const centralUserIds = members.map(m => m.central_user_id).filter(Boolean);
+      const centralUserIds = members.map((m) => m.central_user_id).filter(Boolean);
       subscribeToUsers(centralUserIds);
     }
   }, [members, isWsConnected, subscribeToUsers]);
@@ -241,7 +241,7 @@ export function ChannelChat() {
     // Handle incoming WebSocket messages
     const unsubscribe = federatedWs.onMessage(async (message: ServerMessage) => {
       switch (message.type) {
-        case 'new_message': {
+        case "new_message": {
           if (message.data.channel_id !== activeChannel.id) return;
 
           const wsMsg = message.data;
@@ -265,7 +265,7 @@ export function ChannelChat() {
           break;
         }
 
-        case 'typing_start': {
+        case "typing_start": {
           if (message.data.channel_id !== activeChannel.id) return;
           if (message.data.member_id === myMember.id) return;
           setTypingUsers((prev) => {
@@ -289,7 +289,7 @@ export function ChannelChat() {
           break;
         }
 
-        case 'typing_stop': {
+        case "typing_stop": {
           if (message.data.channel_id !== activeChannel.id) return;
           const existingTimeout = typingClearTimeoutsRef.current.get(message.data.member_id);
           if (existingTimeout) {
@@ -304,7 +304,7 @@ export function ChannelChat() {
           break;
         }
 
-        case 'message_deleted': {
+        case "message_deleted": {
           if (message.data.channel_id !== activeChannel.id) return;
           setMessages((prev) => prev.filter((m) => m.id !== message.data.message_id));
           break;
@@ -342,7 +342,8 @@ export function ChannelChat() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChannel || !federatedClient || isSending || !keys || !myMember) return;
+    if (!newMessage.trim() || !activeChannel || !federatedClient || isSending || !keys || !myMember)
+      return;
 
     setIsSending(true);
     try {
@@ -411,22 +412,25 @@ export function ChannelChat() {
         </div>
       </div>
 
-      {selectedProfileId && (() => {
-        const selectedMember = members.find(m => m.id === selectedProfileId);
-        const selectedPresence = selectedMember ? getUserPresence(selectedMember.central_user_id) : undefined;
-        const memberIsOnline = selectedPresence !== undefined;
-        const memberStatus = memberIsOnline ? (selectedPresence?.status || "online") : "offline";
-        return (
-          <MemberProfileCard
-            userId={selectedMember?.central_user_id || selectedProfileId}
-            username={selectedMember?.username || "?"}
-            status={memberStatus}
-            roles={[]}
-            position={profilePosition}
-            onClose={() => setSelectedProfileId(null)}
-          />
-        );
-      })()}
+      {selectedProfileId &&
+        (() => {
+          const selectedMember = members.find((m) => m.id === selectedProfileId);
+          const selectedPresence = selectedMember
+            ? getUserPresence(selectedMember.central_user_id)
+            : undefined;
+          const memberIsOnline = selectedPresence !== undefined;
+          const memberStatus = memberIsOnline ? selectedPresence?.status || "online" : "offline";
+          return (
+            <MemberProfileCard
+              userId={selectedMember?.central_user_id || selectedProfileId}
+              username={selectedMember?.username || "?"}
+              status={memberStatus}
+              roles={[]}
+              position={profilePosition}
+              onClose={() => setSelectedProfileId(null)}
+            />
+          );
+        })()}
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (
@@ -439,14 +443,18 @@ export function ChannelChat() {
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-2">
               <Hash className="w-10 h-10 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground">Welcome to #{activeChannel.name}</h3>
-            <p className="text-sm max-w-sm">This is the start of the channel. Messages are end-to-end encrypted.</p>
+            <h3 className="text-lg font-semibold text-foreground">
+              Welcome to #{activeChannel.name}
+            </h3>
+            <p className="text-sm max-w-sm">
+              This is the start of the channel. Messages are end-to-end encrypted.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col py-6">
             {messages.map((msg, idx) => {
               const showHeader = shouldShowHeader(msg, idx, messages);
-              const member = members.find(m => m.id === msg.senderId);
+              const member = members.find((m) => m.id === msg.senderId);
 
               return (
                 <div
@@ -489,7 +497,9 @@ export function ChannelChat() {
 
                     <div className="text-sm text-foreground break-words">
                       {msg.decryptionFailed ? (
-                        <span className="text-destructive/80 italic">[Unable to decrypt message]</span>
+                        <span className="text-destructive/80 italic">
+                          [Unable to decrypt message]
+                        </span>
                       ) : msg.content.startsWith("http") ? (
                         msg.content.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                           <img
@@ -532,13 +542,17 @@ export function ChannelChat() {
                 <span className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full animate-bounce" />
               </div>
               <span className="font-medium">
-                {Array.from(typingUsers.values()).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing
+                {Array.from(typingUsers.values()).join(", ")}{" "}
+                {typingUsers.size === 1 ? "is" : "are"} typing
               </span>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2 h-10 rounded-xl bg-secondary px-4 ring-1 ring-transparent focus-within:ring-primary/50 transition-all">
+        <form
+          onSubmit={handleSendMessage}
+          className="flex items-center gap-2 h-10 rounded-xl bg-secondary px-4 ring-1 ring-transparent focus-within:ring-primary/50 transition-all"
+        >
           <div className="flex items-center gap-1 shrink-0">
             <Popover>
               <PopoverTrigger asChild>
@@ -550,7 +564,11 @@ export function ChannelChat() {
                   <span className="text-[10px] font-bold px-1">GIF</span>
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="start" className="p-0 border-none bg-transparent shadow-none w-[320px]">
+              <PopoverContent
+                side="top"
+                align="start"
+                className="p-0 border-none bg-transparent shadow-none w-[320px]"
+              >
                 <GifPicker
                   onSelect={(url) => {
                     setNewMessage(url);
@@ -569,11 +587,15 @@ export function ChannelChat() {
                   <Smile className="w-5 h-5" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="start" className="w-auto p-0 border-none bg-transparent shadow-none">
+              <PopoverContent
+                side="top"
+                align="start"
+                className="w-auto p-0 border-none bg-transparent shadow-none"
+              >
                 <Picker
                   data={data}
                   onEmojiSelect={(emoji: { native: string }) => {
-                    setNewMessage(prev => prev + emoji.native);
+                    setNewMessage((prev) => prev + emoji.native);
                     if (federatedWs && activeChannel) {
                       federatedWs.sendTyping(activeChannel.id);
                     }

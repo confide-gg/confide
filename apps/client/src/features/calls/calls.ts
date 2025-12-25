@@ -8,7 +8,7 @@ import {
   KeyCompleteRequest,
   KeyCompleteResponse,
   LeaveCallResponse,
-  RejoinCallResponse
+  RejoinCallResponse,
 } from "./types";
 
 class CallService {
@@ -32,7 +32,10 @@ class CallService {
     return httpClient.post<void>(`/calls/${callId}/end`, { reason });
   }
 
-  public async completeKeyExchange(callId: string, request: KeyCompleteRequest): Promise<KeyCompleteResponse> {
+  public async completeKeyExchange(
+    callId: string,
+    request: KeyCompleteRequest
+  ): Promise<KeyCompleteResponse> {
     return httpClient.post<KeyCompleteResponse>(`/calls/${callId}/key-complete`, request);
   }
 

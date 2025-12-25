@@ -31,7 +31,12 @@ const STATUS_LABELS: Record<string, string> = {
   offline: "Offline",
 };
 
-export function ProfileModal({ userId, username, isOnline: _isOnline, onClose }: ProfileModalProps) {
+export function ProfileModal({
+  userId,
+  username,
+  isOnline: _isOnline,
+  onClose,
+}: ProfileModalProps) {
   const { getUserPresence, subscribeToUsers, isWsConnected } = usePresence();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +72,7 @@ export function ProfileModal({ userId, username, isOnline: _isOnline, onClose }:
 
   const presence = getUserPresence(userId);
   const userIsOnline = presence !== undefined;
-  const displayStatus = (userIsOnline ? (presence?.status || "online") : "offline") as UserStatus;
+  const displayStatus = (userIsOnline ? presence?.status || "online" : "offline") as UserStatus;
   const customStatus = presence?.customStatus || profile?.custom_status;
   const accentColor = profile?.accent_color || "#c9ed7b";
   const activity = useUserActivity(userId);
@@ -112,7 +117,7 @@ export function ProfileModal({ userId, username, isOnline: _isOnline, onClose }:
                 status={displayStatus}
               />
             </div>
-            
+
             {customStatus && (
               <div className="relative mb-2 flex-1 min-w-0">
                 <div className="relative bg-secondary/80 backdrop-blur-sm rounded-xl px-3 py-2 text-sm">
@@ -133,7 +138,7 @@ export function ProfileModal({ userId, username, isOnline: _isOnline, onClose }:
               </h3>
               <p className="text-sm text-muted-foreground">@{username}</p>
             </div>
-            
+
             <div
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0"
               style={{

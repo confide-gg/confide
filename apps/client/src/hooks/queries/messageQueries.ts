@@ -11,13 +11,16 @@ export function useMessages(conversationId: string | null, options?: { enabled?:
   });
 }
 
-export function useInfiniteMessages(conversationId: string | null, options?: { enabled?: boolean }) {
+export function useInfiniteMessages(
+  conversationId: string | null,
+  options?: { enabled?: boolean }
+) {
   return useInfiniteQuery({
     queryKey: queryKeys.messages.infinite(conversationId || ""),
     queryFn: ({ pageParam }) =>
       messageService.getMessages(conversationId!, {
         limit: 50,
-        before: pageParam
+        before: pageParam,
       }),
     enabled: !!conversationId && (options?.enabled ?? true),
     initialPageParam: undefined as string | undefined,

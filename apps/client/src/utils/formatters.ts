@@ -14,7 +14,11 @@ export function formatDate(dateStr: string): string {
   } else if (date.toDateString() === yesterday.toDateString()) {
     return "Yesterday at " + formatTime(dateStr);
   } else {
-    return date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) + " at " + formatTime(dateStr);
+    return (
+      date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) +
+      " at " +
+      formatTime(dateStr)
+    );
   }
 }
 

@@ -38,7 +38,9 @@ class FederationService {
     const token = httpClient.getAuthToken();
     if (!token) throw new Error("Not authenticated");
 
-    return httpClient.post<FederationTokenResponse>("/federation/request-token", { server_domain: serverDomain });
+    return httpClient.post<FederationTokenResponse>("/federation/request-token", {
+      server_domain: serverDomain,
+    });
   }
 
   public async joinServerWithToken(
@@ -127,7 +129,7 @@ class FederationService {
       throw new Error("Server is not responding correctly");
     }
 
-    const serverStatus = await serverInfoResponse.json() as ServerStatus;
+    const serverStatus = (await serverInfoResponse.json()) as ServerStatus;
     if (!serverStatus.server_name) {
       throw new Error("Server has not completed initial setup");
     }
@@ -148,20 +150,25 @@ class FederationService {
 
     // Try to register with Central
     try {
-      const registerResult = await httpClient.post<{ server_id: string }>("/federation/register-server", {
-        dsa_public_key: serverStatus.dsa_public_key,
-        domain: data.domain,
-        display_name: serverStatus.server_name,
-        description: "",
-        is_discoverable: false,
-      });
+      const registerResult = await httpClient.post<{ server_id: string }>(
+        "/federation/register-server",
+        {
+          dsa_public_key: serverStatus.dsa_public_key,
+          domain: data.domain,
+          display_name: serverStatus.server_name,
+          description: "",
+          is_discoverable: false,
+        }
+      );
       centralServerId = registerResult.server_id;
     } catch (error: any) {
       console.error("[Federation] Registration error:", error);
       // Check if "already registered"
       const errorMessage = error?.message || JSON.stringify(error);
       if (errorMessage.includes("already registered")) {
-        console.log("[Federation] Server already registered on Central. Attempting to recover ID...");
+        console.log(
+          "[Federation] Server already registered on Central. Attempting to recover ID..."
+        );
         try {
           // Lookup the ID
           const tokenResponse = await this.requestFederationToken(data.domain);
@@ -177,7 +184,9 @@ class FederationService {
     }
 
     // Proceed to Claim
-    const federationToken = await httpClient.post<{ token: string }>("/federation/request-token", { server_domain: data.domain });
+    const federationToken = await httpClient.post<{ token: string }>("/federation/request-token", {
+      server_domain: data.domain,
+    });
 
     const claimResponse = await fetch(`${serverUrl}/api/setup/claim`, {
       method: "POST",
@@ -224,7 +233,7 @@ class FederationService {
     try {
       const json = JSON.parse(text);
       message = json.error || json.message || text;
-    } catch { }
+    } catch {}
     throw new Error(message);
   }
 }

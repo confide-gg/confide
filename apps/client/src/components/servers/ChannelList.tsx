@@ -1,5 +1,13 @@
 import { useServer } from "../../context/server";
-import { Hash, ChevronDown, ChevronRight, Plus, Settings, Loader2, GripVertical } from "lucide-react";
+import {
+  Hash,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Settings,
+  Loader2,
+  GripVertical,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -10,13 +18,7 @@ import {
   DialogDescription,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { UserProfile } from "../sidebar/UserProfile";
 import { isFederatedServer } from "../../features/servers/types";
@@ -120,7 +122,10 @@ export function ChannelList() {
   const commitDrag = async (from: DragItem, to: DragOver) => {
     if (!activeServer) return;
 
-    const updateChannel = async (channelId: string, data: { position?: number; category_id?: string | null }) => {
+    const updateChannel = async (
+      channelId: string,
+      data: { position?: number; category_id?: string | null }
+    ) => {
       if (federatedClient) {
         await federatedClient.updateChannel(channelId, data);
       } else {
@@ -324,309 +329,352 @@ export function ChannelList() {
           )}
         </div>
 
-      <div
-        className="flex-1 overflow-y-auto custom-scrollbar"
-        onContextMenu={(e) => {
-          const target = e.target as HTMLElement | null;
-          if (!target) return;
-          if (target.closest('[data-dnd-type="channel"], [data-dnd-type="category"], button')) return;
-          e.preventDefault();
-          setSidebarMenu({ x: e.clientX, y: e.clientY });
-        }}
-      >
-        {sidebarMenu && (
-          <ChannelSidebarContextMenu
-            x={sidebarMenu.x}
-            y={sidebarMenu.y}
-            onCreateChannel={() => {
-              setSidebarMenu(null);
-              setNewChannelCategoryId(undefined);
-              setShowCreateChannel(true);
-            }}
-            onCreateCategory={() => {
-              setSidebarMenu(null);
-              setShowCreateCategory(true);
-            }}
-          />
-        )}
-        <div className="p-2 space-y-4">
-          {categories.map((category) => {
-            const categoryChannels = channels
-              .filter((c) => c.category_id === category.id)
-              .sort((a, b) => a.position - b.position);
+        <div
+          className="flex-1 overflow-y-auto custom-scrollbar"
+          onContextMenu={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+            if (target.closest('[data-dnd-type="channel"], [data-dnd-type="category"], button'))
+              return;
+            e.preventDefault();
+            setSidebarMenu({ x: e.clientX, y: e.clientY });
+          }}
+        >
+          {sidebarMenu && (
+            <ChannelSidebarContextMenu
+              x={sidebarMenu.x}
+              y={sidebarMenu.y}
+              onCreateChannel={() => {
+                setSidebarMenu(null);
+                setNewChannelCategoryId(undefined);
+                setShowCreateChannel(true);
+              }}
+              onCreateCategory={() => {
+                setSidebarMenu(null);
+                setShowCreateCategory(true);
+              }}
+            />
+          )}
+          <div className="p-2 space-y-4">
+            {categories.map((category) => {
+              const categoryChannels = channels
+                .filter((c) => c.category_id === category.id)
+                .sort((a, b) => a.position - b.position);
 
-            return (
-              <div
-                key={category.id}
-              >
-                <div
-                  className={cn(
-                    "flex items-center justify-between px-2 py-1.5 text-muted-foreground hover:text-foreground group",
-                    dragItem?.type === "category" && dragOver?.type === "category" && dragOver.id === category.id
-                      ? dragOver.position === "above" ? "border-t-2 border-primary" : "border-b-2 border-primary"
-                      : "",
-                    dragItem?.type === "channel" && dragOver?.type === "category" && dragOver.id === category.id
-                      ? "ring-2 ring-primary/40 rounded-md"
-                      : "",
-                    dragItem?.type === "category" && dragItem.id === category.id ? "opacity-50" : ""
-                  )}
-                  data-dnd-type="category"
-                  data-dnd-id={category.id}
-                >
-                  <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
-                    <button
-                      type="button"
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDragItem({ type: "category", id: category.id });
-                        setDragOver({ type: "category", id: category.id, position: "below" });
-                        setDragPointerId(e.pointerId);
-                      }}
-                      className="p-1 -ml-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-                      aria-label="Drag category"
-                    >
-                      <GripVertical className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(category.id)}
-                      className="flex items-center gap-1.5 flex-1 overflow-hidden text-left"
-                    >
-                    {expandedCategories.has(category.id) ? (
-                      <ChevronDown className="w-3 h-3 flex-shrink-0" />
-                    ) : (
-                      <ChevronRight className="w-3 h-3 flex-shrink-0" />
-                    )}
-                    <span className="text-[11px] font-semibold uppercase tracking-wide truncate select-none">
-                      {category.name}
-                    </span>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setNewChannelCategoryId(category.id);
-                        setShowCreateChannel(true);
-                      }}
-                      className="p-1 hover:text-primary transition-colors"
-                      title="Create Channel"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-
-                {expandedCategories.has(category.id) && (
-                  <div className="mt-1 space-y-0.5">
-                    {categoryChannels.map((channel) => (
-                      <div
-                        key={channel.id}
-                        className={cn(
-                          "group",
-                          dragItem?.type === "channel" && dragOver?.type === "channel" && dragOver.id === channel.id
-                            ? dragOver.position === "above" ? "border-t-2 border-primary" : "border-b-2 border-primary"
-                            : "",
-                          dragItem?.type === "channel" && dragItem.id === channel.id ? "opacity-50" : ""
-                        )}
-                        data-dnd-type="channel"
-                        data-dnd-id={channel.id}
-                        data-dnd-category-id={category.id}
-                      >
-                        <div className="flex items-center gap-1 ml-2 w-[calc(100%-8px)]">
-                          <button
-                            type="button"
-                            onPointerDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setDragItem({ type: "channel", id: channel.id });
-                              setDragOver({ type: "channel", id: channel.id, position: "below", categoryId: category.id });
-                              setDragPointerId(e.pointerId);
-                            }}
-                            className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-                            aria-label="Drag channel"
-                          >
-                            <GripVertical className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setActiveChannel(channel)}
-                            className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${activeChannel?.id === channel.id
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                              }`}
-                          >
-                            <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
-                            <span className="truncate text-sm">{channel.name}</span>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {uncategorizedChannels.length > 0 && (
-            <div>
-              <div
-                className={cn(
-                  "px-2 py-1.5 text-muted-foreground text-[11px] font-semibold uppercase tracking-wide rounded-md",
-                  dragItem?.type === "channel" && dragOver?.type === "uncategorized" ? "ring-2 ring-primary/40" : ""
-                )}
-                data-dnd-type="uncategorized"
-              >
-                Text Channels
-              </div>
-              <div className="space-y-0.5">
-                {uncategorizedChannels.map((channel) => (
+              return (
+                <div key={category.id}>
                   <div
-                    key={channel.id}
                     className={cn(
-                      "group",
-                      dragItem?.type === "channel" && dragOver?.type === "channel" && dragOver.id === channel.id
-                        ? dragOver.position === "above" ? "border-t-2 border-primary" : "border-b-2 border-primary"
+                      "flex items-center justify-between px-2 py-1.5 text-muted-foreground hover:text-foreground group",
+                      dragItem?.type === "category" &&
+                        dragOver?.type === "category" &&
+                        dragOver.id === category.id
+                        ? dragOver.position === "above"
+                          ? "border-t-2 border-primary"
+                          : "border-b-2 border-primary"
                         : "",
-                      dragItem?.type === "channel" && dragItem.id === channel.id ? "opacity-50" : ""
+                      dragItem?.type === "channel" &&
+                        dragOver?.type === "category" &&
+                        dragOver.id === category.id
+                        ? "ring-2 ring-primary/40 rounded-md"
+                        : "",
+                      dragItem?.type === "category" && dragItem.id === category.id
+                        ? "opacity-50"
+                        : ""
                     )}
-                    data-dnd-type="channel"
-                    data-dnd-id={channel.id}
+                    data-dnd-type="category"
+                    data-dnd-id={category.id}
                   >
-                    <div className="flex items-center gap-1 w-full">
+                    <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
                       <button
                         type="button"
                         onPointerDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setDragItem({ type: "channel", id: channel.id });
-                          setDragOver({ type: "channel", id: channel.id, position: "below", categoryId: null });
+                          setDragItem({ type: "category", id: category.id });
+                          setDragOver({ type: "category", id: category.id, position: "below" });
                           setDragPointerId(e.pointerId);
                         }}
-                        className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-                        aria-label="Drag channel"
+                        className="p-1 -ml-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                        aria-label="Drag category"
                       >
                         <GripVertical className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => setActiveChannel(channel)}
-                        className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${activeChannel?.id === channel.id
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                          }`}
+                        type="button"
+                        onClick={() => toggleCategory(category.id)}
+                        className="flex items-center gap-1.5 flex-1 overflow-hidden text-left"
                       >
-                        <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
-                        <span className="truncate text-sm">{channel.name}</span>
+                        {expandedCategories.has(category.id) ? (
+                          <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                        )}
+                        <span className="text-[11px] font-semibold uppercase tracking-wide truncate select-none">
+                          {category.name}
+                        </span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNewChannelCategoryId(category.id);
+                          setShowCreateChannel(true);
+                        }}
+                        className="p-1 hover:text-primary transition-colors"
+                        title="Create Channel"
+                      >
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
-                ))}
+
+                  {expandedCategories.has(category.id) && (
+                    <div className="mt-1 space-y-0.5">
+                      {categoryChannels.map((channel) => (
+                        <div
+                          key={channel.id}
+                          className={cn(
+                            "group",
+                            dragItem?.type === "channel" &&
+                              dragOver?.type === "channel" &&
+                              dragOver.id === channel.id
+                              ? dragOver.position === "above"
+                                ? "border-t-2 border-primary"
+                                : "border-b-2 border-primary"
+                              : "",
+                            dragItem?.type === "channel" && dragItem.id === channel.id
+                              ? "opacity-50"
+                              : ""
+                          )}
+                          data-dnd-type="channel"
+                          data-dnd-id={channel.id}
+                          data-dnd-category-id={category.id}
+                        >
+                          <div className="flex items-center gap-1 ml-2 w-[calc(100%-8px)]">
+                            <button
+                              type="button"
+                              onPointerDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDragItem({ type: "channel", id: channel.id });
+                                setDragOver({
+                                  type: "channel",
+                                  id: channel.id,
+                                  position: "below",
+                                  categoryId: category.id,
+                                });
+                                setDragPointerId(e.pointerId);
+                              }}
+                              className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                              aria-label="Drag channel"
+                            >
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setActiveChannel(channel)}
+                              className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${
+                                activeChannel?.id === channel.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              }`}
+                            >
+                              <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
+                              <span className="truncate text-sm">{channel.name}</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {uncategorizedChannels.length > 0 && (
+              <div>
+                <div
+                  className={cn(
+                    "px-2 py-1.5 text-muted-foreground text-[11px] font-semibold uppercase tracking-wide rounded-md",
+                    dragItem?.type === "channel" && dragOver?.type === "uncategorized"
+                      ? "ring-2 ring-primary/40"
+                      : ""
+                  )}
+                  data-dnd-type="uncategorized"
+                >
+                  Text Channels
+                </div>
+                <div className="space-y-0.5">
+                  {uncategorizedChannels.map((channel) => (
+                    <div
+                      key={channel.id}
+                      className={cn(
+                        "group",
+                        dragItem?.type === "channel" &&
+                          dragOver?.type === "channel" &&
+                          dragOver.id === channel.id
+                          ? dragOver.position === "above"
+                            ? "border-t-2 border-primary"
+                            : "border-b-2 border-primary"
+                          : "",
+                        dragItem?.type === "channel" && dragItem.id === channel.id
+                          ? "opacity-50"
+                          : ""
+                      )}
+                      data-dnd-type="channel"
+                      data-dnd-id={channel.id}
+                    >
+                      <div className="flex items-center gap-1 w-full">
+                        <button
+                          type="button"
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDragItem({ type: "channel", id: channel.id });
+                            setDragOver({
+                              type: "channel",
+                              id: channel.id,
+                              position: "below",
+                              categoryId: null,
+                            });
+                            setDragPointerId(e.pointerId);
+                          }}
+                          className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                          aria-label="Drag channel"
+                        >
+                          <GripVertical className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setActiveChannel(channel)}
+                          className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${
+                            activeChannel?.id === channel.id
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          }`}
+                        >
+                          <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
+                          <span className="truncate text-sm">{channel.name}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
         <div className="p-2 shrink-0">
           <UserProfile />
         </div>
 
-      <Dialog open={showCreateChannel} onOpenChange={setShowCreateChannel}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Channel</DialogTitle>
-            <DialogDescription>
-              Create a new text channel in {newChannelCategoryId ? categories.find(c => c.id === newChannelCategoryId)?.name : "this server"}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Channel Name
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">#</span>
+        <Dialog open={showCreateChannel} onOpenChange={setShowCreateChannel}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Channel</DialogTitle>
+              <DialogDescription>
+                Create a new text channel in{" "}
+                {newChannelCategoryId
+                  ? categories.find((c) => c.id === newChannelCategoryId)?.name
+                  : "this server"}
+                .
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium">
+                  Channel Name
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    #
+                  </span>
+                  <input
+                    id="name"
+                    value={newChannelName}
+                    onChange={(e) =>
+                      setNewChannelName(e.target.value.toLowerCase().replace(/\s+/g, "-"))
+                    }
+                    placeholder="new-channel"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 pl-7 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Category (Optional)</label>
+                <Select value={newChannelCategoryId} onValueChange={setNewChannelCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateChannel(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateChannel} disabled={!newChannelName.trim() || isCreating}>
+                {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Create Channel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showCreateCategory} onOpenChange={setShowCreateCategory}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Category</DialogTitle>
+              <DialogDescription>Create a new folder to organize your channels.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label htmlFor="catName" className="text-sm font-medium">
+                  Category Name
+                </label>
                 <input
-                  id="name"
-                  value={newChannelName}
-                  onChange={(e) => setNewChannelName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                  placeholder="new-channel"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 pl-7 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  id="catName"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Text Channels"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category (Optional)</label>
-              <Select value={newChannelCategoryId} onValueChange={setNewChannelCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateChannel(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateChannel} disabled={!newChannelName.trim() || isCreating}>
-              {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Create Channel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateCategory(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateCategory}
+                disabled={!newCategoryName.trim() || isCreating}
+              >
+                {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Create Category
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      <Dialog open={showCreateCategory} onOpenChange={setShowCreateCategory}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Category</DialogTitle>
-            <DialogDescription>
-              Create a new folder to organize your channels.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="catName" className="text-sm font-medium">
-                Category Name
-              </label>
-              <input
-                id="catName"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="Text Channels"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateCategory(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateCategory} disabled={!newCategoryName.trim() || isCreating}>
-              {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Create Category
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Server Settings Modal */}
-      {isFederated && showSettings && activeServer && (
-        <ServerSettings
-          serverId={activeServer.id}
-          serverName={activeServer.name}
-          isOwner={(activeServer as any).is_owner || false}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
+        {/* Server Settings Modal */}
+        {isFederated && showSettings && activeServer && (
+          <ServerSettings
+            serverId={activeServer.id}
+            serverName={activeServer.name}
+            isOwner={(activeServer as any).is_owner || false}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
       </Panel>
     </aside>
   );
 }
-

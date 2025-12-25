@@ -31,7 +31,7 @@ export function useServerSettings({ serverId, serverName, onClose }: UseServerSe
     isDiscoverable: false,
     maxUsers: 100,
     maxUploadSize: 100,
-    messageRetention: "30d"
+    messageRetention: "30d",
   });
 
   const [showCreateRole, setShowCreateRole] = useState(false);
@@ -43,7 +43,8 @@ export function useServerSettings({ serverId, serverName, onClose }: UseServerSe
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<ServerRole | null>(null);
 
-  const hasChanges = name !== initialSettings.name ||
+  const hasChanges =
+    name !== initialSettings.name ||
     description !== initialSettings.description ||
     isDiscoverable !== initialSettings.isDiscoverable ||
     maxUsers !== initialSettings.maxUsers ||
@@ -66,7 +67,7 @@ export function useServerSettings({ serverId, serverName, onClose }: UseServerSe
         isDiscoverable: info.is_discoverable || false,
         maxUsers: info.max_users || 100,
         maxUploadSize: info.max_upload_size_mb || 100,
-        messageRetention: info.message_retention || "30d"
+        messageRetention: info.message_retention || "30d",
       });
     } catch (error) {
       console.error("Failed to load server settings:", error);
@@ -83,16 +84,32 @@ export function useServerSettings({ serverId, serverName, onClose }: UseServerSe
         is_discoverable: isDiscoverable,
         max_users: maxUsers,
         max_upload_size_mb: maxUploadSize,
-        message_retention: messageRetention
+        message_retention: messageRetention,
       });
-      setInitialSettings({ name, description, isDiscoverable, maxUsers, maxUploadSize, messageRetention });
+      setInitialSettings({
+        name,
+        description,
+        isDiscoverable,
+        maxUsers,
+        maxUploadSize,
+        messageRetention,
+      });
       await reloadServerData();
     } catch (error) {
       console.error("Failed to update settings:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [federatedClient, name, description, isDiscoverable, maxUsers, maxUploadSize, messageRetention, reloadServerData]);
+  }, [
+    federatedClient,
+    name,
+    description,
+    isDiscoverable,
+    maxUsers,
+    maxUploadSize,
+    messageRetention,
+    reloadServerData,
+  ]);
 
   const handleDeleteServer = useCallback(async () => {
     setIsLoading(true);
@@ -136,55 +153,72 @@ export function useServerSettings({ serverId, serverName, onClose }: UseServerSe
     }
   }, [serverId]);
 
-  const handleCreateRole = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRoleName.trim()) return;
+  const handleCreateRole = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newRoleName.trim()) return;
 
-    setIsLoading(true);
-    try {
-      if (federatedClient) {
-        await federatedClient.createRole({
-          name: newRoleName.trim(),
-          permissions: newRolePermissions,
-          color: newRoleColor,
-          position: roles.length,
-        });
-      } else {
-        await serverService.createRole(serverId, {
-          name: newRoleName.trim(),
-          permissions: newRolePermissions,
-          color: newRoleColor,
-          position: roles.length,
-        });
+      setIsLoading(true);
+      try {
+        if (federatedClient) {
+          await federatedClient.createRole({
+            name: newRoleName.trim(),
+            permissions: newRolePermissions,
+            color: newRoleColor,
+            position: roles.length,
+          });
+        } else {
+          await serverService.createRole(serverId, {
+            name: newRoleName.trim(),
+            permissions: newRolePermissions,
+            color: newRoleColor,
+            position: roles.length,
+          });
+        }
+
+        setNewRoleName("");
+        setNewRoleColor("#5865F2");
+        setNewRolePermissions(0);
+        setShowCreateRole(false);
+        loadRoles();
+      } catch (error) {
+        console.error("Failed to create role:", error);
+      } finally {
+        setIsLoading(false);
       }
+    },
+    [
+      federatedClient,
+      serverId,
+      newRoleName,
+      newRolePermissions,
+      newRoleColor,
+      roles.length,
+      loadRoles,
+    ]
+  );
 
-      setNewRoleName("");
-      setNewRoleColor("#5865F2");
-      setNewRolePermissions(0);
-      setShowCreateRole(false);
-      loadRoles();
-    } catch (error) {
-      console.error("Failed to create role:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [federatedClient, serverId, newRoleName, newRolePermissions, newRoleColor, roles.length, loadRoles]);
-
-  const handleUpdateRole = useCallback(async (roleId: string, updates: { permissions?: number; color?: string; position?: number; name?: string }) => {
-    try {
-      let updated: ServerRole;
-      if (federatedClient) {
-        updated = await federatedClient.updateRole(roleId, updates);
-      } else {
-        updated = await serverService.updateRole(serverId, roleId, updates);
+  const handleUpdateRole = useCallback(
+    async (
+      roleId: string,
+      updates: { permissions?: number; color?: string; position?: number; name?: string }
+    ) => {
+      try {
+        let updated: ServerRole;
+        if (federatedClient) {
+          updated = await federatedClient.updateRole(roleId, updates);
+        } else {
+          updated = await serverService.updateRole(serverId, roleId, updates);
+        }
+        loadRoles();
+        return updated;
+      } catch (error) {
+        console.error("Failed to update role:", error);
+        throw error;
       }
-      loadRoles();
-      return updated;
-    } catch (error) {
-      console.error("Failed to update role:", error);
-      throw error;
-    }
-  }, [federatedClient, serverId, loadRoles]);
+    },
+    [federatedClient, serverId, loadRoles]
+  );
 
   const handleUpdateRoleName = useCallback(async () => {
     if (!selectedRole) return;
@@ -222,57 +256,66 @@ export function useServerSettings({ serverId, serverName, onClose }: UseServerSe
     }
   }, [federatedClient, serverId, roleToDelete, loadRoles]);
 
-  const handleReorderRoles = useCallback(async (fromId: string, toId: string) => {
-    const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
-    const fromIndex = sortedRoles.findIndex(r => r.id === fromId);
-    const toIndex = sortedRoles.findIndex(r => r.id === toId);
-    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
+  const handleReorderRoles = useCallback(
+    async (fromId: string, toId: string) => {
+      const sortedRoles = [...roles].sort((a, b) => b.position - a.position);
+      const fromIndex = sortedRoles.findIndex((r) => r.id === fromId);
+      const toIndex = sortedRoles.findIndex((r) => r.id === toId);
+      if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
 
-    const next = [...sortedRoles];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
+      const next = [...sortedRoles];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
 
-    const updatedPositions = next.map((r, idx) => ({
-      ...r,
-      position: next.length - 1 - idx,
-    }));
-    setRoles(updatedPositions);
+      const updatedPositions = next.map((r, idx) => ({
+        ...r,
+        position: next.length - 1 - idx,
+      }));
+      setRoles(updatedPositions);
 
-    const roleIds = next.map(r => r.id);
-    try {
-      if (federatedClient) {
-        await federatedClient.reorderRoles(roleIds);
-      } else {
-        await serverService.reorderRoles(serverId, roleIds);
+      const roleIds = next.map((r) => r.id);
+      try {
+        if (federatedClient) {
+          await federatedClient.reorderRoles(roleIds);
+        } else {
+          await serverService.reorderRoles(serverId, roleIds);
+        }
+        loadRoles();
+      } catch (error) {
+        console.error("Failed to reorder roles:", error);
+        setRoles(sortedRoles);
       }
-      loadRoles();
-    } catch (error) {
-      console.error("Failed to reorder roles:", error);
-      setRoles(sortedRoles);
-    }
-  }, [roles, federatedClient, serverId, loadRoles]);
+    },
+    [roles, federatedClient, serverId, loadRoles]
+  );
 
-  const handleUnban = useCallback(async (userId: string) => {
-    setIsLoading(true);
-    try {
-      await serverService.unbanMember(serverId, userId);
-      loadBans();
-    } catch (error) {
-      console.error("Failed to unban member:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [serverId, loadBans]);
+  const handleUnban = useCallback(
+    async (userId: string) => {
+      setIsLoading(true);
+      try {
+        await serverService.unbanMember(serverId, userId);
+        loadBans();
+      } catch (error) {
+        console.error("Failed to unban member:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [serverId, loadBans]
+  );
 
   const togglePermission = useCallback((perm: number) => {
-    setNewRolePermissions(prev => prev ^ perm);
+    setNewRolePermissions((prev) => prev ^ perm);
   }, []);
 
-  const toggleRolePermission = useCallback((role: ServerRole, perm: number) => {
-    const newPerms = role.permissions ^ perm;
-    handleUpdateRole(role.id, { permissions: newPerms });
-    setSelectedRole({ ...role, permissions: newPerms });
-  }, [handleUpdateRole]);
+  const toggleRolePermission = useCallback(
+    (role: ServerRole, perm: number) => {
+      const newPerms = role.permissions ^ perm;
+      handleUpdateRole(role.id, { permissions: newPerms });
+      setSelectedRole({ ...role, permissions: newPerms });
+    },
+    [handleUpdateRole]
+  );
 
   useEffect(() => {
     if (activeTab === "overview" && federatedClient) {

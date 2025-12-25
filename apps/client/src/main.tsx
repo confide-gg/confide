@@ -19,5 +19,5 @@ document.addEventListener("contextmenu", (e) => e.preventDefault());
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  </React.StrictMode>
 );

@@ -26,7 +26,7 @@ export function SnowEffect() {
   useEffect(() => {
     const now = new Date();
     const isHolidaySeason = now.getMonth() === 11;
-    const userPrefEnabled = preferences ? preferences.enable_snow_effect ?? true : true;
+    const userPrefEnabled = preferences ? (preferences.enable_snow_effect ?? true) : true;
 
     if (!isHolidaySeason || !userPrefEnabled) {
       return;
@@ -35,7 +35,7 @@ export function SnowEffect() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { alpha: true });
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     const updateCanvasSize = () => {
@@ -52,14 +52,14 @@ export function SnowEffect() {
       isVisibleRef.current = !document.hidden;
       if (isVisibleRef.current) {
         snowflakesRef.current = snowflakesRef.current.filter(
-          flake => !flake.isMelting || flake.meltProgress < 1
+          (flake) => !flake.isMelting || flake.meltProgress < 1
         );
         animate();
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const createSnowflake = (): Snowflake => {
       const baseOpacity = Math.random();
@@ -133,7 +133,7 @@ export function SnowEffect() {
         lastSpawnRef.current = currentTime;
       }
 
-      snowflakesRef.current = snowflakesRef.current.filter(flake => {
+      snowflakesRef.current = snowflakesRef.current.filter((flake) => {
         flake.y += flake.speed;
         flake.x += Math.sin(flake.y * 0.008) * flake.drift * 2;
         flake.rotation += flake.rotationSpeed;
@@ -168,15 +168,15 @@ export function SnowEffect() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      window.removeEventListener('resize', handleResize);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       snowflakesRef.current = [];
     };
   }, [preferences]);
 
   const now = new Date();
   const isHolidaySeason = now.getMonth() === 11;
-  const userPrefEnabled = preferences ? preferences.enable_snow_effect ?? true : true;
+  const userPrefEnabled = preferences ? (preferences.enable_snow_effect ?? true) : true;
 
   if (!isHolidaySeason || !userPrefEnabled) return null;
 
@@ -184,7 +184,7 @@ export function SnowEffect() {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-50"
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: "100%", height: "100%" }}
     />
   );
 }

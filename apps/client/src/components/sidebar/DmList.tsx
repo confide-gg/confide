@@ -16,19 +16,30 @@ interface DmListProps {
 
 export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
   const { user } = useAuth();
-  const { dmPreviews, friendsList, activeChat, unreadCounts, openDmFromPreview, openGroupFromPreview, closeDm, setDmContextMenu, setGroupContextMenu } = useChat();
-  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } = usePresence();
+  const {
+    dmPreviews,
+    friendsList,
+    activeChat,
+    unreadCounts,
+    openDmFromPreview,
+    openGroupFromPreview,
+    closeDm,
+    setDmContextMenu,
+    setGroupContextMenu,
+  } = useChat();
+  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } =
+    usePresence();
 
   const { directMessages, groupMessages } = useMemo(() => {
     return {
-      directMessages: dmPreviews.filter(p => !p.isGroup),
-      groupMessages: dmPreviews.filter(p => p.isGroup)
+      directMessages: dmPreviews.filter((p) => !p.isGroup),
+      groupMessages: dmPreviews.filter((p) => p.isGroup),
     };
   }, [dmPreviews]);
 
   useEffect(() => {
     if (dmPreviews.length > 0 && isWsConnected) {
-      const userIds = dmPreviews.filter(p => !p.isGroup).map(p => p.visitorId);
+      const userIds = dmPreviews.filter((p) => !p.isGroup).map((p) => p.visitorId);
       subscribeToUsers(userIds);
     }
   }, [dmPreviews, isWsConnected, subscribeToUsers]);
@@ -84,19 +95,26 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
     const isActive = activeChat?.conversationId === preview.conversationId;
     const presence = preview.isGroup ? null : getUserPresence(preview.visitorId);
     const userIsOnline = preview.isGroup ? false : isOnline(preview.visitorId);
-    const displayStatus = preview.isGroup ? undefined : (userIsOnline ? (presence?.status || "online") : "offline");
-    const displayName = preview.isGroup ? (preview.groupName || "Group") : preview.visitorUsername;
-    const memberCount = preview.isGroup ? (preview.memberUsernames?.length || 0) : 0;
+    const displayStatus = preview.isGroup
+      ? undefined
+      : userIsOnline
+        ? presence?.status || "online"
+        : "offline";
+    const displayName = preview.isGroup ? preview.groupName || "Group" : preview.visitorUsername;
+    const memberCount = preview.isGroup ? preview.memberUsernames?.length || 0 : 0;
     const activity = preview.isGroup ? null : getUserActivity(preview.visitorId);
 
     return (
       <button
         key={preview.conversationId}
-        className={`group relative flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors ${isActive
-          ? "bg-secondary text-foreground"
-          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-          }`}
-        onClick={() => (preview.isGroup ? openGroupFromPreview(preview) : openDmFromPreview(preview))}
+        className={`group relative flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors ${
+          isActive
+            ? "bg-secondary text-foreground"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+        }`}
+        onClick={() =>
+          preview.isGroup ? openGroupFromPreview(preview) : openDmFromPreview(preview)
+        }
         onContextMenu={(e) => handleContextMenu(e, preview)}
       >
         {preview.isGroup ? (
@@ -157,19 +175,12 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
               Direct Messages
             </span>
             {onCreateGroup && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5"
-                onClick={onCreateGroup}
-              >
+              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onCreateGroup}>
                 <Plus className="w-4 h-4" />
               </Button>
             )}
           </div>
-          <div className="space-y-0.5">
-            {directMessages.map(renderConversationItem)}
-          </div>
+          <div className="space-y-0.5">{directMessages.map(renderConversationItem)}</div>
         </div>
       )}
 
@@ -180,9 +191,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
               Groups
             </span>
           </div>
-          <div className="space-y-0.5">
-            {groupMessages.map(renderConversationItem)}
-          </div>
+          <div className="space-y-0.5">{groupMessages.map(renderConversationItem)}</div>
         </div>
       )}
     </div>

@@ -38,7 +38,10 @@ export function useGroups() {
           let groupIcon: string | undefined;
           if (conv.encrypted_metadata && conv.encrypted_metadata.length > 0) {
             try {
-              const plaintext = await cryptoService.decryptWithKey(conversationKey, conv.encrypted_metadata);
+              const plaintext = await cryptoService.decryptWithKey(
+                conversationKey,
+                conv.encrypted_metadata
+              );
               const json = cryptoService.bytesToString(plaintext);
               const parsed = JSON.parse(json);
               if (parsed && typeof parsed.name === "string" && parsed.name.trim()) {
@@ -47,16 +50,14 @@ export function useGroups() {
               if (parsed && typeof parsed.icon === "string" && parsed.icon.trim()) {
                 groupIcon = parsed.icon.trim();
               }
-            } catch {
-            }
+            } catch {}
           }
 
           let memberUsernames: string[] = [];
           try {
             const members = await groupService.getMembers(conv.id);
             memberUsernames = members.map((m) => m.user.username);
-          } catch {
-          }
+          } catch {}
 
           previews.push({
             conversationId: conv.id,
@@ -111,7 +112,6 @@ export function useGroups() {
     [user, keys, createGroupMutation]
   );
 
-
   return {
     groupPreviews,
     setGroupPreviews,
@@ -120,5 +120,3 @@ export function useGroups() {
     createGroup,
   };
 }
-
-

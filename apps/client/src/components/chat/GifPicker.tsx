@@ -30,7 +30,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
     try {
       const favs = await gifFavoritesService.getFavorites();
       setFavorites(favs);
-      setFavoriteUrls(new Set(favs.map(f => f.gif_url)));
+      setFavoriteUrls(new Set(favs.map((f) => f.gif_url)));
     } catch (err) {
       console.error("Failed to load favorites", err);
     }
@@ -119,16 +119,16 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
     try {
       if (favoriteUrls.has(url)) {
         await gifFavoritesService.removeFavorite(url);
-        setFavorites(prev => prev.filter(f => f.gif_url !== url));
-        setFavoriteUrls(prev => {
+        setFavorites((prev) => prev.filter((f) => f.gif_url !== url));
+        setFavoriteUrls((prev) => {
           const next = new Set(prev);
           next.delete(url);
           return next;
         });
       } else {
         const fav = await gifFavoritesService.addFavorite(url, previewUrl);
-        setFavorites(prev => [fav, ...prev]);
-        setFavoriteUrls(prev => new Set(prev).add(url));
+        setFavorites((prev) => [fav, ...prev]);
+        setFavoriteUrls((prev) => new Set(prev).add(url));
       }
     } catch (err) {
       console.error("Failed to toggle favorite", err);
@@ -136,7 +136,12 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
   };
 
   return (
-    <div className={cn("flex flex-col w-[420px] h-[480px] bg-card border border-border rounded-lg shadow-xl overflow-hidden", className)}>
+    <div
+      className={cn(
+        "flex flex-col w-[420px] h-[480px] bg-card border border-border rounded-lg shadow-xl overflow-hidden",
+        className
+      )}
+    >
       <div className="p-3 border-b border-border/50 bg-secondary/20 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           {viewMode === "results" && (
@@ -221,7 +226,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
               </div>
             </button>
 
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <button
                 key={cat.searchterm}
                 onClick={() => handleCategoryClick(cat.searchterm)}
@@ -235,7 +240,9 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                 <div className="absolute inset-0 flex items-end p-3">
-                  <p className="text-white font-semibold text-sm drop-shadow-lg capitalize">{cat.name}</p>
+                  <p className="text-white font-semibold text-sm drop-shadow-lg capitalize">
+                    {cat.name}
+                  </p>
                 </div>
               </button>
             ))}
@@ -243,7 +250,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
         ) : activeTab === "favorites" ? (
           favorites.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
-              {favorites.map(fav => (
+              {favorites.map((fav) => (
                 <div
                   key={fav.id}
                   className="relative aspect-video rounded-lg overflow-hidden cursor-pointer group border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
@@ -271,13 +278,15 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
               </div>
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium">No favorites yet</p>
-                <p className="text-xs text-muted-foreground/70">Click the star on any GIF to save it here</p>
+                <p className="text-xs text-muted-foreground/70">
+                  Click the star on any GIF to save it here
+                </p>
               </div>
             </div>
           )
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {results.map(gif => {
+            {results.map((gif) => {
               const url = gif.media_formats.mediumgif?.url || gif.media_formats.gif?.url;
               const previewUrl = gif.media_formats.tinygif.url;
               const isFav = favoriteUrls.has(url);

@@ -5,16 +5,19 @@ interface AvatarProps {
   isOnline?: boolean;
 }
 
-export function Avatar({ username, size = "medium", showStatus = false, isOnline = false }: AvatarProps) {
+export function Avatar({
+  username,
+  size = "medium",
+  showStatus = false,
+  isOnline = false,
+}: AvatarProps) {
   const initials = username.slice(0, 2).toUpperCase();
   const sizeClass = size === "small" ? "small" : "";
 
   return (
     <div className="avatar-wrapper">
       <div className={`avatar ${sizeClass}`}>{initials}</div>
-      {showStatus && (
-        <span className={`status-dot ${isOnline ? "online" : "offline"}`} />
-      )}
+      {showStatus && <span className={`status-dot ${isOnline ? "online" : "offline"}`} />}
     </div>
   );
 }

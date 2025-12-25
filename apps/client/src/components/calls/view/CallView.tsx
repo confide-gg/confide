@@ -18,13 +18,16 @@ export function CallView({ onMinimize, isMinimized: _isMinimized = false }: Call
     setMuted,
     setDeafened,
     startScreenShare,
-    stopScreenShare
+    stopScreenShare,
   } = useCall();
   const { user, profile } = useAuth();
 
   const isLeft = callState.status === "left";
   const isActive = callState.status === "active";
-  const isConnecting = callState.status === "connecting" || callState.status === "ringing" || callState.status === "initiating";
+  const isConnecting =
+    callState.status === "connecting" ||
+    callState.status === "ringing" ||
+    callState.status === "initiating";
 
   const {
     duration,

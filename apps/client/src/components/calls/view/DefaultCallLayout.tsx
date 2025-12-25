@@ -10,7 +10,7 @@ export function DefaultCallLayout({
   peerIsMuted,
   peerHasLeft,
   isLeft,
-  isConnecting
+  isConnecting,
 }: DefaultCallLayoutProps) {
   return (
     <div className="flex-1 flex items-center justify-center p-4">

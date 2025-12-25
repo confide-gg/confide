@@ -34,7 +34,10 @@ export function Sidebar({ onLeaveGroup }: SidebarProps) {
 
           <div className="mt-2">
             <div className="px-2 mt-1">
-              <DmList onCreateGroup={() => setIsCreateGroupOpen(true)} onLeaveGroup={onLeaveGroup} />
+              <DmList
+                onCreateGroup={() => setIsCreateGroupOpen(true)}
+                onLeaveGroup={onLeaveGroup}
+              />
             </div>
           </div>
         </div>

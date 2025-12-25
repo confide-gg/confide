@@ -13,7 +13,14 @@ interface ServerListProps {
 }
 
 export function ServerList({ onOpenDiscovery }: ServerListProps) {
-  const { servers, federatedServers, activeServer, setActiveServer, joinServerByDomain, registerAndJoinServer } = useServer();
+  const {
+    servers,
+    federatedServers,
+    activeServer,
+    setActiveServer,
+    joinServerByDomain,
+    registerAndJoinServer,
+  } = useServer();
   const { setActiveChat } = useChat();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
@@ -56,9 +63,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
                     loading="lazy"
                   />
                 ) : (
-                  <span className="text-lg">
-                    {server.name.charAt(0).toUpperCase()}
-                  </span>
+                  <span className="text-lg">{server.name.charAt(0).toUpperCase()}</span>
                 )}
               </button>
             </TooltipTrigger>
@@ -91,9 +96,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
                         loading="lazy"
                       />
                     ) : (
-                      <span className="text-lg">
-                        {server.name.charAt(0).toUpperCase()}
-                      </span>
+                      <span className="text-lg">{server.name.charAt(0).toUpperCase()}</span>
                     )}
                     <Globe className="w-3 h-3 absolute bottom-1 right-1 text-primary" />
                   </button>

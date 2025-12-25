@@ -22,15 +22,19 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
       const start = new Date(callState.connected_at!);
       const now = new Date();
       const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000);
-      
+
       const hours = Math.floor(elapsed / 3600);
       const minutes = Math.floor((elapsed % 3600) / 60);
       const seconds = elapsed % 60;
-      
+
       if (hours > 0) {
-        setCallDuration(`${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        setCallDuration(
+          `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+        );
       } else {
-        setCallDuration(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        setCallDuration(
+          `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+        );
       }
     };
 
@@ -53,7 +57,9 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
 
   if (compact) {
     return (
-      <div className={`flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg ${className}`}>
+      <div
+        className={`flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg ${className}`}
+      >
         <div className="relative">
           <Avatar
             src={callState.peer_avatar_url || undefined}
@@ -84,7 +90,7 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Avatar 
+            <Avatar
               src={callState.peer_avatar_url || undefined}
               fallback={callState.peer_display_name || callState.peer_username || "?"}
               size="md"
@@ -142,7 +148,11 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
                 : "bg-secondary text-foreground hover:bg-secondary/80"
             }`}
           >
-            {callState.is_deafened ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+            {callState.is_deafened ? (
+              <VideoOff className="h-4 w-4" />
+            ) : (
+              <Video className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>

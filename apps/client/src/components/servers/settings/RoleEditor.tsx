@@ -34,10 +34,7 @@ export function RoleEditor({
     <div className="fixed inset-0 z-50 bg-background p-3 flex flex-col">
       <Panel className="flex-1 flex flex-col">
         <div className="flex items-center gap-4 p-4">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
-          >
+          <button onClick={onBack} className="p-2 hover:bg-secondary rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3 flex-1">
@@ -56,7 +53,7 @@ export function RoleEditor({
                   }
                 }}
                 className="h-8 px-2 bg-secondary/30 border-0 font-semibold"
-                style={{ color: role.color || 'inherit' }}
+                style={{ color: role.color || "inherit" }}
                 disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground">Edit role permissions</p>

@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -147,7 +141,9 @@ export function AddGroupMembersModal({
                         onClick={() => !disabled && toggle(f.id)}
                         className={cn(
                           "w-full flex items-center gap-3 px-2 py-2 rounded-md text-left transition-colors",
-                          isSelected ? "bg-secondary text-foreground" : "hover:bg-secondary/60 text-muted-foreground",
+                          isSelected
+                            ? "bg-secondary text-foreground"
+                            : "hover:bg-secondary/60 text-muted-foreground",
                           disabled && "opacity-50 cursor-not-allowed"
                         )}
                       >
@@ -186,5 +182,3 @@ export function AddGroupMembersModal({
     </Dialog>
   );
 }
-
-

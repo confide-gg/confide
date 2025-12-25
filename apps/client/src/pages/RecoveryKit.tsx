@@ -139,9 +139,7 @@ Generated: ${new Date().toISOString()}
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">
-            Save Your Recovery Kit
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Save Your Recovery Kit</h1>
           <p className="text-sm text-muted-foreground">
             This is the only way to recover your account if you forget your password
           </p>
@@ -155,9 +153,7 @@ Generated: ${new Date().toISOString()}
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Your Recovery Key
-            </label>
+            <label className="text-sm font-medium text-foreground">Your Recovery Key</label>
             <div className="relative">
               <div className="bg-background border border-border rounded-md p-4 font-mono text-sm break-all select-all">
                 {recoveryKey}
@@ -175,8 +171,6 @@ Generated: ${new Date().toISOString()}
               </button>
             </div>
           </div>
-
-
 
           <button
             onClick={handleDownload}

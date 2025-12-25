@@ -30,7 +30,7 @@ function FriendRow({ friend, onOpenChat, onRemove, getUserPresence, isOnline }: 
   const presence = getUserPresence(friend.id);
   const activity = useUserActivity(friend.id);
   const userIsOnline = isOnline(friend.id);
-  const displayStatus = userIsOnline ? (presence?.status || "online") : "offline";
+  const displayStatus = userIsOnline ? presence?.status || "online" : "offline";
 
   return (
     <div
@@ -52,7 +52,9 @@ function FriendRow({ friend, onOpenChat, onRemove, getUserPresence, isOnline }: 
           {activity ? (
             <ActivityDisplay activity={activity} compact className="mt-1" />
           ) : (
-            <span className={`text-xs font-medium ${userIsOnline ? "text-green-500" : "text-muted-foreground"}`}>
+            <span
+              className={`text-xs font-medium ${userIsOnline ? "text-green-500" : "text-muted-foreground"}`}
+            >
               {STATUS_LABELS[displayStatus] || "Offline"}
             </span>
           )}
@@ -62,7 +64,10 @@ function FriendRow({ friend, onOpenChat, onRemove, getUserPresence, isOnline }: 
         <Button
           size="sm"
           variant="ghost"
-          onClick={(e) => { e.stopPropagation(); onOpenChat(friend); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenChat(friend);
+          }}
           className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
         >
           Message
@@ -70,7 +75,10 @@ function FriendRow({ friend, onOpenChat, onRemove, getUserPresence, isOnline }: 
         <Button
           size="sm"
           variant="ghost"
-          onClick={(e) => { e.stopPropagation(); onRemove(friend); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(friend);
+          }}
           className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
           Remove
@@ -104,7 +112,7 @@ export function FriendsPage() {
 
   useEffect(() => {
     if (friendsList.length > 0 && isWsConnected) {
-      const friendIds = friendsList.map(f => f.id);
+      const friendIds = friendsList.map((f) => f.id);
       subscribeToUsers(friendIds);
     }
   }, [friendsList, isWsConnected, subscribeToUsers]);
@@ -129,12 +137,20 @@ export function FriendsPage() {
     setHasSearched(false);
   };
 
-  const renderRequestRow = (request: typeof friendRequests[0]) => (
-    <div key={request.id} className="group flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border hover:bg-accent/50 transition-all mb-3">
+  const renderRequestRow = (request: (typeof friendRequests)[0]) => (
+    <div
+      key={request.id}
+      className="group flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border hover:bg-accent/50 transition-all mb-3"
+    >
       <div className="flex items-center gap-4">
-        <Avatar fallback={request.from_user.username} className="w-12 h-12 border-2 border-background" />
+        <Avatar
+          fallback={request.from_user.username}
+          className="w-12 h-12 border-2 border-background"
+        />
         <div className="flex flex-col">
-          <span className="font-semibold text-foreground text-base">{request.from_user.username}</span>
+          <span className="font-semibold text-foreground text-base">
+            {request.from_user.username}
+          </span>
           <span className="text-xs text-muted-foreground font-medium">Incoming Friend Request</span>
         </div>
       </div>
@@ -160,9 +176,15 @@ export function FriendsPage() {
   );
 
   // Filter lists based on local search
-  const filteredFriendsList = friendsList.filter(f => f.username.toLowerCase().includes(localSearch.toLowerCase()));
-  const filteredOnlineFriends = onlineFriends.filter(f => f.username.toLowerCase().includes(localSearch.toLowerCase()));
-  const filteredRequests = friendRequests.filter(r => r.from_user.username.toLowerCase().includes(localSearch.toLowerCase()));
+  const filteredFriendsList = friendsList.filter((f) =>
+    f.username.toLowerCase().includes(localSearch.toLowerCase())
+  );
+  const filteredOnlineFriends = onlineFriends.filter((f) =>
+    f.username.toLowerCase().includes(localSearch.toLowerCase())
+  );
+  const filteredRequests = friendRequests.filter((r) =>
+    r.from_user.username.toLowerCase().includes(localSearch.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -193,7 +215,11 @@ export function FriendsPage() {
             className="gap-2"
           >
             Pending
-            {friendRequests.length > 0 && <span className="bg-destructive text-white text-[10px] px-1.5 py-0.5 rounded-full">{friendRequests.length}</span>}
+            {friendRequests.length > 0 && (
+              <span className="bg-destructive text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                {friendRequests.length}
+              </span>
+            )}
           </Button>
           <Button
             variant={activeTab === "add_friend" ? "default" : "secondary"}
@@ -211,9 +237,13 @@ export function FriendsPage() {
         {activeTab === "add_friend" ? (
           <div className="max-w-2xl w-full mx-auto mt-8">
             <h2 className="text-xl font-bold mb-2 text-foreground">Add Friend</h2>
-            <p className="text-sm text-muted-foreground mb-6">You can add friends with their Confide username.</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              You can add friends with their Confide username.
+            </p>
             <form onSubmit={onSearchSubmit} className="relative mb-6">
-              <div className={`flex items-center bg-secondary/50 rounded-xl border-2 transition-colors ${hasSearched && searchResults.length === 0 ? "border-destructive" : hasSearched && successMsg ? "border-green-500" : "border-transparent focus-within:border-primary"}`}>
+              <div
+                className={`flex items-center bg-secondary/50 rounded-xl border-2 transition-colors ${hasSearched && searchResults.length === 0 ? "border-destructive" : hasSearched && successMsg ? "border-green-500" : "border-transparent focus-within:border-primary"}`}
+              >
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -222,7 +252,12 @@ export function FriendsPage() {
                   autoFocus
                 />
                 <div className="pr-3">
-                  <Button size="default" type="button" onClick={onSearchSubmit} disabled={!searchQuery.trim()}>
+                  <Button
+                    size="default"
+                    type="button"
+                    onClick={onSearchSubmit}
+                    disabled={!searchQuery.trim()}
+                  >
                     Send Request
                   </Button>
                 </div>
@@ -232,34 +267,39 @@ export function FriendsPage() {
                   User not found. Please check spelling and capitalization.
                 </p>
               )}
-              {successMsg && (
-                <p className="text-green-500 text-sm mt-3 px-4">{successMsg}</p>
-              )}
+              {successMsg && <p className="text-green-500 text-sm mt-3 px-4">{successMsg}</p>}
             </form>
 
             {hasSearched && searchResults.length > 0 && (
               <div className="mt-8 border rounded-lg p-4 bg-card">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-4 px-2">Result</h3>
-                {searchResults.map(user => {
-                  const isFriend = friendsList.some(f => f.id === user.id);
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-4 px-2">
+                  Result
+                </h3>
+                {searchResults.map((user) => {
+                  const isFriend = friendsList.some((f) => f.id === user.id);
                   const isSent = sentRequests.has(user.id);
 
-                  if (isFriend) return <div key={user.id} className="text-muted-foreground text-sm px-2">You are already friends with <b>{user.username}</b></div>
+                  if (isFriend)
+                    return (
+                      <div key={user.id} className="text-muted-foreground text-sm px-2">
+                        You are already friends with <b>{user.username}</b>
+                      </div>
+                    );
 
                   return (
-                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20">
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20"
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar fallback={user.username} className="w-10 h-10" />
                         <span className="font-semibold text-lg">{user.username}</span>
                       </div>
-                      <Button
-                        disabled={isSent}
-                        onClick={() => onSendRequest(user)}
-                      >
+                      <Button disabled={isSent} onClick={() => onSendRequest(user)}>
                         {isSent ? "Request Sent" : "Send Friend Request"}
                       </Button>
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -278,41 +318,45 @@ export function FriendsPage() {
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-4 px-2 tracking-wider">
-                {activeTab === "online" ? `Online — ${filteredOnlineFriends.length}` :
-                  activeTab === "all" ? `All Friends — ${filteredFriendsList.length}` :
-                    `Pending Requests — ${filteredRequests.length}`}
+                {activeTab === "online"
+                  ? `Online — ${filteredOnlineFriends.length}`
+                  : activeTab === "all"
+                    ? `All Friends — ${filteredFriendsList.length}`
+                    : `Pending Requests — ${filteredRequests.length}`}
               </h3>
 
               <div className="space-y-1">
-                {activeTab === "online" && filteredOnlineFriends.map(f => (
-                  <FriendRow
-                    key={f.id}
-                    friend={f}
-                    onOpenChat={openChat}
-                    onRemove={setConfirmRemove}
-                    getUserPresence={getUserPresence}
-                    isOnline={isOnline}
-                  />
-                ))}
-                {activeTab === "all" && filteredFriendsList.map(f => (
-                  <FriendRow
-                    key={f.id}
-                    friend={f}
-                    onOpenChat={openChat}
-                    onRemove={setConfirmRemove}
-                    getUserPresence={getUserPresence}
-                    isOnline={isOnline}
-                  />
-                ))}
+                {activeTab === "online" &&
+                  filteredOnlineFriends.map((f) => (
+                    <FriendRow
+                      key={f.id}
+                      friend={f}
+                      onOpenChat={openChat}
+                      onRemove={setConfirmRemove}
+                      getUserPresence={getUserPresence}
+                      isOnline={isOnline}
+                    />
+                  ))}
+                {activeTab === "all" &&
+                  filteredFriendsList.map((f) => (
+                    <FriendRow
+                      key={f.id}
+                      friend={f}
+                      onOpenChat={openChat}
+                      onRemove={setConfirmRemove}
+                      getUserPresence={getUserPresence}
+                      isOnline={isOnline}
+                    />
+                  ))}
                 {activeTab === "pending" && filteredRequests.map(renderRequestRow)}
 
                 {((activeTab === "online" && filteredOnlineFriends.length === 0) ||
                   (activeTab === "all" && filteredFriendsList.length === 0) ||
                   (activeTab === "pending" && filteredRequests.length === 0)) && (
-                    <div className="flex flex-col items-center justify-center py-20 opacity-50">
-                      <p className="text-muted-foreground font-medium">Nothing here yet.</p>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center justify-center py-20 opacity-50">
+                    <p className="text-muted-foreground font-medium">Nothing here yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           </>

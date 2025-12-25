@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Mic, MicOff, Shield, Keyboard } from "lucide-react";
 import { Button } from "../ui/button";
-import { checkMicrophonePermission, requestMicrophonePermission } from "tauri-plugin-macos-permissions-api";
+import {
+  checkMicrophonePermission,
+  requestMicrophonePermission,
+} from "tauri-plugin-macos-permissions-api";
 import { platform } from "@tauri-apps/plugin-os";
 
 interface InputLevelDetectorProps {
@@ -12,7 +15,10 @@ interface InputLevelDetectorProps {
   pttKey?: string | null;
 }
 
-function parseKeyCombo(keyCombo: string): { key: string; modifiers: { ctrl: boolean; alt: boolean; shift: boolean; meta: boolean } } {
+function parseKeyCombo(keyCombo: string): {
+  key: string;
+  modifiers: { ctrl: boolean; alt: boolean; shift: boolean; meta: boolean };
+} {
   const parts = keyCombo.split(" + ");
   const modifiers = {
     ctrl: false,
@@ -55,7 +61,13 @@ function eventMatchesKeyCombo(e: KeyboardEvent, keyCombo: string): boolean {
   return keyMatches && ctrlMatches && altMatches && shiftMatches && metaMatches;
 }
 
-export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnabled = false, pttKey }: InputLevelDetectorProps) {
+export function InputLevelDetector({
+  sensitivity,
+  volume,
+  inputDeviceId,
+  pttEnabled = false,
+  pttKey,
+}: InputLevelDetectorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const smoothedLevel = useRef(0);
@@ -89,12 +101,13 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
             const granted = await requestMicrophonePermission();
             if (!granted) {
               setPermissionDenied(true);
-              setError("Microphone permission denied. Please grant access in System Settings > Privacy & Security > Microphone.");
+              setError(
+                "Microphone permission denied. Please grant access in System Settings > Privacy & Security > Microphone."
+              );
               return;
             }
           }
-        } catch (permErr) {
-        }
+        } catch (permErr) {}
       }
 
       let webAudioDeviceId: string | undefined;
@@ -102,21 +115,21 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
       if (inputDeviceId && inputDeviceId !== "default") {
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
-          const audioInputs = devices.filter(d => d.kind === "audioinput");
-          const matchedDevice = audioInputs.find(d =>
-            d.label === inputDeviceId || d.label.includes(inputDeviceId) || inputDeviceId.includes(d.label)
+          const audioInputs = devices.filter((d) => d.kind === "audioinput");
+          const matchedDevice = audioInputs.find(
+            (d) =>
+              d.label === inputDeviceId ||
+              d.label.includes(inputDeviceId) ||
+              inputDeviceId.includes(d.label)
           );
           if (matchedDevice) {
             webAudioDeviceId = matchedDevice.deviceId;
           }
-        } catch {
-        }
+        } catch {}
       }
 
       const constraints: MediaStreamConstraints = {
-        audio: webAudioDeviceId
-          ? { deviceId: { exact: webAudioDeviceId } }
-          : true,
+        audio: webAudioDeviceId ? { deviceId: { exact: webAudioDeviceId } } : true,
         video: false,
       };
 
@@ -129,13 +142,18 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
 
         if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
           setPermissionDenied(true);
-          setError("Microphone access denied. Please grant permission in System Settings > Privacy & Security > Microphone.");
+          setError(
+            "Microphone access denied. Please grant permission in System Settings > Privacy & Security > Microphone."
+          );
           return;
         } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
           setError("No microphone found. Please connect a microphone and try again.");
           return;
         } else if (err.name === "OverconstrainedError") {
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: false,
+          });
           stream = fallbackStream;
         } else {
           setError(`Microphone error: ${err.message || "Unknown error"}`);
@@ -166,7 +184,7 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
 
   const stopMicTest = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     if (sourceRef.current) {
@@ -365,9 +383,13 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
           {isTesting && (
             <div className="flex items-center gap-2">
               {pttEnabled && (
-                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs transition-all ${
-                  isPTTActive ? "bg-primary/20 text-primary" : "bg-secondary/50 text-muted-foreground"
-                }`}>
+                <div
+                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs transition-all ${
+                    isPTTActive
+                      ? "bg-primary/20 text-primary"
+                      : "bg-secondary/50 text-muted-foreground"
+                  }`}
+                >
                   <Keyboard className="w-3 h-3" />
                   <span>{isPTTActive ? "Transmitting" : pttKey || "No key"}</span>
                 </div>
@@ -377,10 +399,18 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
                   isAboveSensitivity ? "bg-green-500 scale-125" : "bg-muted"
                 }`}
               />
-              <span className={`text-xs transition-colors ${isAboveSensitivity ? "text-green-500" : "text-muted-foreground"}`}>
+              <span
+                className={`text-xs transition-colors ${isAboveSensitivity ? "text-green-500" : "text-muted-foreground"}`}
+              >
                 {pttEnabled
-                  ? (isPTTActive ? (isAboveSensitivity ? "Speaking" : "Silent") : "Hold key")
-                  : (isAboveSensitivity ? "Speaking" : "Silent")}
+                  ? isPTTActive
+                    ? isAboveSensitivity
+                      ? "Speaking"
+                      : "Silent"
+                    : "Hold key"
+                  : isAboveSensitivity
+                    ? "Speaking"
+                    : "Silent"}
               </span>
             </div>
           )}
@@ -406,11 +436,13 @@ export function InputLevelDetector({ sensitivity, volume, inputDeviceId, pttEnab
       </div>
 
       {error && (
-        <div className={`text-sm px-4 py-3 rounded-xl flex items-center gap-3 ${
-          permissionDenied
-            ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
-            : "bg-destructive/10 text-destructive"
-        }`}>
+        <div
+          className={`text-sm px-4 py-3 rounded-xl flex items-center gap-3 ${
+            permissionDenied
+              ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
+              : "bg-destructive/10 text-destructive"
+          }`}
+        >
           {permissionDenied && <Shield className="w-5 h-5 flex-shrink-0" />}
           <p>{error}</p>
         </div>

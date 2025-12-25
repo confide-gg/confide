@@ -51,4 +51,3 @@ export function AvatarPile({ users, size = "sm", max = 3, className }: AvatarPil
     </div>
   );
 }
-

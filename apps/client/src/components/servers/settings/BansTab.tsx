@@ -11,9 +11,7 @@ interface BansTabProps {
 export function BansTab({ bans, isLoading, onUnban }: BansTabProps) {
   return (
     <div className="space-y-6 max-w-2xl">
-      <p className="text-muted-foreground">
-        View and manage banned members
-      </p>
+      <p className="text-muted-foreground">View and manage banned members</p>
 
       <div className="space-y-2">
         {isLoading ? (

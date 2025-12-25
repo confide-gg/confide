@@ -1,11 +1,27 @@
 import { httpClient } from "../../core/network/HttpClient";
 import type {
-  Server, Category, TextChannel, ServerMember, ServerInvite, ServerRole, ServerBan, ChannelPermission,
-  CreateServerRequest, UpdateServerRequest, CreateCategoryRequest, UpdateCategoryRequest,
-  CreateChannelRequest, UpdateChannelRequest, CreateInviteRequest, CreateRoleRequest, UpdateRoleRequest,
-  BanMemberRequest, CreateChannelPermissionRequest, UpdateChannelPermissionRequest, FederatedServersResponse
+  Server,
+  Category,
+  TextChannel,
+  ServerMember,
+  ServerInvite,
+  ServerRole,
+  ServerBan,
+  ChannelPermission,
+  CreateServerRequest,
+  UpdateServerRequest,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  CreateChannelRequest,
+  UpdateChannelRequest,
+  CreateInviteRequest,
+  CreateRoleRequest,
+  UpdateRoleRequest,
+  BanMemberRequest,
+  CreateChannelPermissionRequest,
+  UpdateChannelPermissionRequest,
+  FederatedServersResponse,
 } from "./types";
-
 
 class ServerService {
   public async getFederatedServers(): Promise<FederatedServersResponse> {
@@ -108,12 +124,18 @@ class ServerService {
     return httpClient.get<ServerRole[]>(`/servers/${serverId}/roles`);
   }
 
-  public async updateRole(serverId: string, roleId: string, data: UpdateRoleRequest): Promise<ServerRole> {
+  public async updateRole(
+    serverId: string,
+    roleId: string,
+    data: UpdateRoleRequest
+  ): Promise<ServerRole> {
     return httpClient.patch<ServerRole>(`/servers/${serverId}/roles/${roleId}`, data);
   }
 
   public async reorderRoles(serverId: string, roleIds: string[]): Promise<ServerRole[]> {
-    return httpClient.patch<ServerRole[]>(`/servers/${serverId}/roles/reorder`, { role_ids: roleIds });
+    return httpClient.patch<ServerRole[]>(`/servers/${serverId}/roles/reorder`, {
+      role_ids: roleIds,
+    });
   }
 
   public async deleteRole(serverId: string, roleId: string): Promise<void> {
@@ -128,7 +150,11 @@ class ServerService {
     return httpClient.del<void>(`/servers/${serverId}/members/${userId}/roles/${roleId}`);
   }
 
-  public async banMember(serverId: string, userId: string, data: BanMemberRequest): Promise<ServerBan> {
+  public async banMember(
+    serverId: string,
+    userId: string,
+    data: BanMemberRequest
+  ): Promise<ServerBan> {
     return httpClient.post<ServerBan>(`/servers/${serverId}/members/${userId}/ban`, data);
   }
 
@@ -144,19 +170,43 @@ class ServerService {
     return httpClient.get<ServerBan[]>(`/servers/${serverId}/bans`);
   }
 
-  public async createChannelPermission(serverId: string, channelId: string, data: CreateChannelPermissionRequest): Promise<ChannelPermission> {
-    return httpClient.post<ChannelPermission>(`/servers/${serverId}/channels/${channelId}/permissions`, data);
+  public async createChannelPermission(
+    serverId: string,
+    channelId: string,
+    data: CreateChannelPermissionRequest
+  ): Promise<ChannelPermission> {
+    return httpClient.post<ChannelPermission>(
+      `/servers/${serverId}/channels/${channelId}/permissions`,
+      data
+    );
   }
 
-  public async getChannelPermissions(serverId: string, channelId: string): Promise<ChannelPermission[]> {
-    return httpClient.get<ChannelPermission[]>(`/servers/${serverId}/channels/${channelId}/permissions`);
+  public async getChannelPermissions(
+    serverId: string,
+    channelId: string
+  ): Promise<ChannelPermission[]> {
+    return httpClient.get<ChannelPermission[]>(
+      `/servers/${serverId}/channels/${channelId}/permissions`
+    );
   }
 
-  public async updateChannelPermission(serverId: string, channelId: string, permId: string, data: UpdateChannelPermissionRequest): Promise<void> {
-    return httpClient.patch<void>(`/servers/${serverId}/channels/${channelId}/permissions/${permId}`, data);
+  public async updateChannelPermission(
+    serverId: string,
+    channelId: string,
+    permId: string,
+    data: UpdateChannelPermissionRequest
+  ): Promise<void> {
+    return httpClient.patch<void>(
+      `/servers/${serverId}/channels/${channelId}/permissions/${permId}`,
+      data
+    );
   }
 
-  public async deleteChannelPermission(serverId: string, channelId: string, permId: string): Promise<void> {
+  public async deleteChannelPermission(
+    serverId: string,
+    channelId: string,
+    permId: string
+  ): Promise<void> {
     return httpClient.del<void>(`/servers/${serverId}/channels/${channelId}/permissions/${permId}`);
   }
 }

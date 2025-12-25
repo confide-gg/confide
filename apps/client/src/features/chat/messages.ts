@@ -16,10 +16,7 @@ export interface MessageKeyResponse {
 }
 
 class MessageService {
-  public async getMessages(
-    conversationId: string,
-    query?: GetMessagesQuery
-  ): Promise<Message[]> {
+  public async getMessages(conversationId: string, query?: GetMessagesQuery): Promise<Message[]> {
     const params: Record<string, string> = {};
     if (query?.limit !== undefined) {
       params.limit = query.limit.toString();
@@ -37,10 +34,7 @@ class MessageService {
     return httpClient.post<SendMessageResponse>(`/messages/${conversationId}`, data);
   }
 
-  public async deleteMessage(
-    conversationId: string,
-    messageId: string
-  ): Promise<SuccessResponse> {
+  public async deleteMessage(conversationId: string, messageId: string): Promise<SuccessResponse> {
     return httpClient.del<SuccessResponse>(`/messages/${conversationId}/${messageId}`);
   }
 
@@ -57,7 +51,10 @@ class MessageService {
     messageId: string,
     data: AddReactionRequest
   ): Promise<ReactionResponse> {
-    return httpClient.post<ReactionResponse>(`/messages/${conversationId}/${messageId}/reactions`, data);
+    return httpClient.post<ReactionResponse>(
+      `/messages/${conversationId}/${messageId}/reactions`,
+      data
+    );
   }
 
   public async removeReaction(
@@ -65,7 +62,9 @@ class MessageService {
     messageId: string,
     emoji: string
   ): Promise<SuccessResponse> {
-    return httpClient.del<SuccessResponse>(`/messages/${conversationId}/${messageId}/reactions/${encodeURIComponent(emoji)}`);
+    return httpClient.del<SuccessResponse>(
+      `/messages/${conversationId}/${messageId}/reactions/${encodeURIComponent(emoji)}`
+    );
   }
 
   public async getMessageKey(
@@ -75,23 +74,15 @@ class MessageService {
     return httpClient.get<MessageKeyResponse>(`/messages/${conversationId}/${messageId}/key`);
   }
 
-  public async pinMessage(
-    conversationId: string,
-    messageId: string
-  ): Promise<SuccessResponse> {
+  public async pinMessage(conversationId: string, messageId: string): Promise<SuccessResponse> {
     return httpClient.post<SuccessResponse>(`/messages/${conversationId}/${messageId}/pin`, {});
   }
 
-  public async unpinMessage(
-    conversationId: string,
-    messageId: string
-  ): Promise<SuccessResponse> {
+  public async unpinMessage(conversationId: string, messageId: string): Promise<SuccessResponse> {
     return httpClient.post<SuccessResponse>(`/messages/${conversationId}/${messageId}/unpin`, {});
   }
 
-  public async getPinnedMessages(
-    conversationId: string
-  ): Promise<Message[]> {
+  public async getPinnedMessages(conversationId: string): Promise<Message[]> {
     return httpClient.get<Message[]>(`/messages/${conversationId}/pinned`);
   }
 }

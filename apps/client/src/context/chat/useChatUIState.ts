@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import type {
-  SidebarView, ContextMenuData, MessageContextMenuData, DmContextMenuData,
-  GroupContextMenuData, ProfileViewData,
+  SidebarView,
+  ContextMenuData,
+  MessageContextMenuData,
+  DmContextMenuData,
+  GroupContextMenuData,
+  ProfileViewData,
 } from "../../types/index";
 import type { VerifyModalData } from "./types";
 
@@ -18,11 +22,13 @@ export function useChatUIState() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
-  const [typingUsers, setTypingUsers] = useState<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [typingUsers, setTypingUsers] = useState<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
 
   useEffect(() => {
     return () => {
-      typingUsers.forEach(timeout => clearTimeout(timeout));
+      typingUsers.forEach((timeout) => clearTimeout(timeout));
     };
   }, []);
 

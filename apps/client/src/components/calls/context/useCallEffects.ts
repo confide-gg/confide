@@ -54,7 +54,8 @@ export function useCallEffects({
         if (lowerPart === "ctrl" || lowerPart === "control") modifiers.ctrl = true;
         else if (lowerPart === "alt") modifiers.alt = true;
         else if (lowerPart === "shift") modifiers.shift = true;
-        else if (lowerPart === "cmd" || lowerPart === "meta" || lowerPart === "command") modifiers.meta = true;
+        else if (lowerPart === "cmd" || lowerPart === "meta" || lowerPart === "command")
+          modifiers.meta = true;
         else key = part.toLowerCase();
       }
       return { key, modifiers };
@@ -69,8 +70,11 @@ export function useCallEffects({
       if (eventKey === " ") eventKey = "space";
 
       const keyMatches = eventKey === targetKey;
-      const modifiersMatch = e.ctrlKey === modifiers.ctrl && e.altKey === modifiers.alt &&
-        e.shiftKey === modifiers.shift && e.metaKey === modifiers.meta;
+      const modifiersMatch =
+        e.ctrlKey === modifiers.ctrl &&
+        e.altKey === modifiers.alt &&
+        e.shiftKey === modifiers.shift &&
+        e.metaKey === modifiers.meta;
 
       if (keyMatches && modifiersMatch) {
         e.preventDefault();
@@ -148,19 +152,30 @@ export function useCallEffects({
         refs.peerLeftTimeoutRef.current = null;
       }
     };
-  }, [refs, peerHasLeft, callState.status, callState.can_rejoin, callState.rejoin_time_remaining_seconds, endCall]);
+  }, [
+    refs,
+    peerHasLeft,
+    callState.status,
+    callState.can_rejoin,
+    callState.rejoin_time_remaining_seconds,
+    endCall,
+  ]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const currentState = refs.callStateRef.current;
-      if (currentState.status === "active" || currentState.status === "connecting" || currentState.status === "ringing") {
+      if (
+        currentState.status === "active" ||
+        currentState.status === "connecting" ||
+        currentState.status === "ringing"
+      ) {
         if (currentState.call_id) {
           navigator.sendBeacon?.(
             `/api/calls/${currentState.call_id}/leave-sync`,
             JSON.stringify({ reason: "app_closed" })
           );
 
-          callsApi.leaveCall(currentState.call_id).catch(() => { });
+          callsApi.leaveCall(currentState.call_id).catch(() => {});
         }
         e.preventDefault();
         e.returnValue = "";
@@ -234,8 +249,7 @@ export function useCallEffects({
       }
     });
 
-    const unsubscribeDisconnect = centralWebSocketService.onDisconnect(() => {
-    });
+    const unsubscribeDisconnect = centralWebSocketService.onDisconnect(() => {});
 
     return () => {
       unsubscribeConnect();

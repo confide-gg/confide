@@ -33,9 +33,7 @@ export function Login() {
           <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-3xl mb-6 mx-auto">
             C
           </div>
-          <h1 className="text-2xl font-semibold text-foreground mb-2">
-            Welcome back
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Welcome back</h1>
           <p className="text-sm text-muted-foreground">Sign in to continue to Confide</p>
         </div>
 
@@ -86,7 +84,10 @@ export function Login() {
           </form>
 
           <div className="text-center">
-            <Link to="/reset-password" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              to="/reset-password"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Forgot password?
             </Link>
           </div>
@@ -95,7 +96,10 @@ export function Login() {
         <div className="mt-8 pt-6 border-t border-border text-center">
           <p className="text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <Link to="/register" className="text-foreground font-medium hover:text-primary transition-colors">
+            <Link
+              to="/register"
+              className="text-foreground font-medium hover:text-primary transition-colors"
+            >
               Create one
             </Link>
           </p>

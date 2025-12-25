@@ -14,8 +14,10 @@ export const queryKeys = {
     all: ["messages"] as const,
     lists: () => [...queryKeys.messages.all, "list"] as const,
     list: (conversationId: string) => [...queryKeys.messages.lists(), conversationId] as const,
-    infinite: (conversationId: string) => [...queryKeys.messages.lists(), conversationId, "infinite"] as const,
-    pinned: (conversationId: string) => [...queryKeys.messages.list(conversationId), "pinned"] as const,
+    infinite: (conversationId: string) =>
+      [...queryKeys.messages.lists(), conversationId, "infinite"] as const,
+    pinned: (conversationId: string) =>
+      [...queryKeys.messages.list(conversationId), "pinned"] as const,
   },
 
   friends: {

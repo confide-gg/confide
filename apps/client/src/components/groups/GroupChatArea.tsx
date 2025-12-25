@@ -99,11 +99,18 @@ export function GroupChatArea() {
       cancelEdit();
       return;
     }
-    const metadataBytes = cryptoService.stringToBytes(JSON.stringify({ name: nextName, icon: activeChat.groupIcon }));
-    const encrypted_metadata = await cryptoService.encryptWithKey(activeChat.conversationKey, metadataBytes);
+    const metadataBytes = cryptoService.stringToBytes(
+      JSON.stringify({ name: nextName, icon: activeChat.groupIcon })
+    );
+    const encrypted_metadata = await cryptoService.encryptWithKey(
+      activeChat.conversationKey,
+      metadataBytes
+    );
     await groupService.updateMetadata(activeChat.conversationId, { encrypted_metadata });
     setActiveChat((prev) =>
-      prev ? { ...prev, groupName: nextName, visitorUsername: nextName, groupIcon: prev.groupIcon } : prev
+      prev
+        ? { ...prev, groupName: nextName, visitorUsername: nextName, groupIcon: prev.groupIcon }
+        : prev
     );
     setDmPreviews((prev) =>
       prev.map((p) =>
@@ -309,4 +316,3 @@ export function GroupChatArea() {
     </div>
   );
 }
-

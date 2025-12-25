@@ -1,6 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { groupService } from "../../features/groups/groupService";
-import type { CreateGroupRequest, AddGroupMemberRequest, UpdateGroupOwnerRequest, UpdateGroupMetadataRequest } from "../../features/groups/groupService";
+import type {
+  CreateGroupRequest,
+  AddGroupMemberRequest,
+  UpdateGroupOwnerRequest,
+  UpdateGroupMetadataRequest,
+} from "../../features/groups/groupService";
 import { queryKeys } from "./queryKeys";
 
 export function useCreateGroup() {
@@ -20,8 +25,7 @@ export function useAddGroupMember(conversationId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: AddGroupMemberRequest) =>
-      groupService.addMember(conversationId, data),
+    mutationFn: (data: AddGroupMemberRequest) => groupService.addMember(conversationId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.conversations.members(conversationId),
@@ -34,8 +38,7 @@ export function useRemoveGroupMember(conversationId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userId: string) =>
-      groupService.removeMember(conversationId, userId),
+    mutationFn: (userId: string) => groupService.removeMember(conversationId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.conversations.members(conversationId),

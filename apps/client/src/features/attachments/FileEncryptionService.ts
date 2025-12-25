@@ -1,4 +1,4 @@
-import { cryptoService } from '../../core/crypto/crypto';
+import { cryptoService } from "../../core/crypto/crypto";
 
 export interface EncryptedFile {
   encryptedData: Blob;
@@ -15,7 +15,7 @@ class FileEncryptionService {
     const encryptedBytes = await cryptoService.encryptWithKey(fileKey, fileBytes);
 
     const encryptedData = new Blob([new Uint8Array(encryptedBytes)], {
-      type: 'application/octet-stream',
+      type: "application/octet-stream",
     });
 
     return {

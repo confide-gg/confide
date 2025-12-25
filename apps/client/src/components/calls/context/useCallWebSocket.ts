@@ -4,7 +4,18 @@ import { IncomingCallInfo, KeyCompleteResult } from "../types";
 import { centralWebSocketService } from "../../../core/network/CentralWebSocketService";
 import { callService as callsApi } from "../../../features/calls/calls";
 import type { WsMessage } from "../../../core/network/wsTypes";
-import type { WsCallOffer, WsCallAnswer, WsCallKeyComplete, WsCallReject, WsCallCancel, WsCallEnd, WsCallMediaReady, WsCallLeave, WsCallRejoin, WsCallMuteUpdate } from "../../../features/calls/types";
+import type {
+  WsCallOffer,
+  WsCallAnswer,
+  WsCallKeyComplete,
+  WsCallReject,
+  WsCallCancel,
+  WsCallEnd,
+  WsCallMediaReady,
+  WsCallLeave,
+  WsCallRejoin,
+  WsCallMuteUpdate,
+} from "../../../features/calls/types";
 import type { CallRefs, CallProviderProps } from "./types";
 
 interface UseCallWebSocketParams {
@@ -59,19 +70,25 @@ export function useCallWebSocket({
         }
         case "call_answer": {
           const data = (msg as WsCallAnswer).data;
-          if (refs.callStateRef.current.call_id === data.call_id && refs.callStateRef.current.is_caller) {
+          if (
+            refs.callStateRef.current.call_id === data.call_id &&
+            refs.callStateRef.current.is_caller
+          ) {
             (async () => {
               try {
                 if (!refs.peerIdentityKeyRef.current) {
                   console.error("[CallContext] No peer identity key stored for key exchange");
                   return;
                 }
-                const keyComplete = await invoke<KeyCompleteResult>("complete_call_key_exchange_as_caller", {
-                  calleeEphemeralPublic: data.ephemeral_kem_public,
-                  calleeKemCiphertext: data.kem_ciphertext,
-                  calleeSignature: data.signature,
-                  calleeIdentityPublic: refs.peerIdentityKeyRef.current,
-                });
+                const keyComplete = await invoke<KeyCompleteResult>(
+                  "complete_call_key_exchange_as_caller",
+                  {
+                    calleeEphemeralPublic: data.ephemeral_kem_public,
+                    calleeKemCiphertext: data.kem_ciphertext,
+                    calleeSignature: data.signature,
+                    calleeIdentityPublic: refs.peerIdentityKeyRef.current,
+                  }
+                );
 
                 const relayCredentials = await callsApi.completeKeyExchange(data.call_id, {
                   kem_ciphertext: keyComplete.kem_ciphertext,
@@ -93,7 +110,10 @@ export function useCallWebSocket({
         }
         case "call_key_complete": {
           const data = (msg as WsCallKeyComplete).data;
-          if (refs.callStateRef.current.call_id === data.call_id && !refs.callStateRef.current.is_caller) {
+          if (
+            refs.callStateRef.current.call_id === data.call_id &&
+            !refs.callStateRef.current.is_caller
+          ) {
             (async () => {
               try {
                 await invoke("complete_call_key_exchange_as_callee", {
@@ -181,7 +201,10 @@ export function useCallWebSocket({
         }
         case "call_media_ready": {
           const data = (msg as WsCallMediaReady).data;
-          if (refs.callStateRef.current.call_id === data.call_id && !refs.callStateRef.current.is_caller) {
+          if (
+            refs.callStateRef.current.call_id === data.call_id &&
+            !refs.callStateRef.current.is_caller
+          ) {
             (async () => {
               try {
                 if (!refs.calleeKeyExchangeDoneRef.current) {
@@ -208,7 +231,10 @@ export function useCallWebSocket({
         }
         case "call_leave": {
           const data = (msg as WsCallLeave).data;
-          if (refs.callStateRef.current.call_id === data.call_id && data.user_id !== currentUserId) {
+          if (
+            refs.callStateRef.current.call_id === data.call_id &&
+            data.user_id !== currentUserId
+          ) {
             setPeerHasLeft(true);
           }
           break;
@@ -238,15 +264,26 @@ export function useCallWebSocket({
                   });
                 }
               } catch (e) {
-                console.error("[CallContext] Failed to restart media session after peer rejoin:", e);
+                console.error(
+                  "[CallContext] Failed to restart media session after peer rejoin:",
+                  e
+                );
               }
             })();
           }
           break;
         }
         case "screen_share_start": {
-          const data = (msg as { type: "screen_share_start"; data: { call_id: string; user_id: string; width: number; height: number } }).data;
-          if (refs.callStateRef.current.call_id === data.call_id && data.user_id !== currentUserId) {
+          const data = (
+            msg as {
+              type: "screen_share_start";
+              data: { call_id: string; user_id: string; width: number; height: number };
+            }
+          ).data;
+          if (
+            refs.callStateRef.current.call_id === data.call_id &&
+            data.user_id !== currentUserId
+          ) {
             invoke("set_peer_screen_sharing", { isSharing: true })
               .then(() => {
                 refreshState();
@@ -258,15 +295,23 @@ export function useCallWebSocket({
           break;
         }
         case "screen_share_stop": {
-          const data = (msg as { type: "screen_share_stop"; data: { call_id: string; user_id: string } }).data;
-          if (refs.callStateRef.current.call_id === data.call_id && data.user_id !== currentUserId) {
+          const data = (
+            msg as { type: "screen_share_stop"; data: { call_id: string; user_id: string } }
+          ).data;
+          if (
+            refs.callStateRef.current.call_id === data.call_id &&
+            data.user_id !== currentUserId
+          ) {
             invoke("set_peer_screen_sharing", { isSharing: false }).then(() => refreshState());
           }
           break;
         }
         case "call_mute_update": {
           const data = (msg as WsCallMuteUpdate).data;
-          if (refs.callStateRef.current.call_id === data.call_id && data.user_id !== currentUserId) {
+          if (
+            refs.callStateRef.current.call_id === data.call_id &&
+            data.user_id !== currentUserId
+          ) {
             invoke("set_peer_muted", { isMuted: data.is_muted }).then(() => refreshState());
           }
           break;
@@ -278,5 +323,17 @@ export function useCallWebSocket({
     return () => {
       unsubscribe();
     };
-  }, [refs, refreshState, handleIncomingCall, incomingCall, currentUserId, onCallAnswerReceived, onKeyCompleteReceived, onMediaReadyReceived, processNextQueuedCall, setIncomingCall, setPeerHasLeft]);
+  }, [
+    refs,
+    refreshState,
+    handleIncomingCall,
+    incomingCall,
+    currentUserId,
+    onCallAnswerReceived,
+    onKeyCompleteReceived,
+    onMediaReadyReceived,
+    processNextQueuedCall,
+    setIncomingCall,
+    setPeerHasLeft,
+  ]);
 }

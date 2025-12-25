@@ -1,4 +1,13 @@
-import { PhoneOff, Mic, MicOff, Headphones, HeadphoneOff, Monitor, MonitorOff, PhoneIncoming } from "lucide-react";
+import {
+  PhoneOff,
+  Mic,
+  MicOff,
+  Headphones,
+  HeadphoneOff,
+  Monitor,
+  MonitorOff,
+  PhoneIncoming,
+} from "lucide-react";
 import { Button } from "../../ui/button";
 import { ControlButton } from "./ControlButton";
 
@@ -52,14 +61,26 @@ export function CallControls({
               tooltip={isMuted ? "Unmute" : "Mute"}
             />
             <ControlButton
-              icon={isDeafened ? <HeadphoneOff className="w-4 h-4" /> : <Headphones className="w-4 h-4" />}
+              icon={
+                isDeafened ? (
+                  <HeadphoneOff className="w-4 h-4" />
+                ) : (
+                  <Headphones className="w-4 h-4" />
+                )
+              }
               onClick={onToggleDeafen}
               active={isDeafened}
               disabled={!isActive}
               tooltip={isDeafened ? "Undeafen" : "Deafen"}
             />
             <ControlButton
-              icon={isScreenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+              icon={
+                isScreenSharing ? (
+                  <MonitorOff className="w-4 h-4" />
+                ) : (
+                  <Monitor className="w-4 h-4" />
+                )
+              }
               onClick={onScreenShareToggle}
               active={isScreenSharing}
               activeColor="green"

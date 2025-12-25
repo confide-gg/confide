@@ -22,9 +22,7 @@ export function RolesTab({
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
-        <p className="text-muted-foreground">
-          Create and manage roles for your server members
-        </p>
+        <p className="text-muted-foreground">Create and manage roles for your server members</p>
         <Button onClick={onCreateRole} className="gap-2">
           <Plus className="w-4 h-4" />
           Create Role
@@ -75,7 +73,10 @@ export function RolesTab({
                     style={{ backgroundColor: role.color || "#71717a" }}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate" style={{ color: role.color || 'inherit' }}>
+                    <div
+                      className="font-medium truncate"
+                      style={{ color: role.color || "inherit" }}
+                    >
                       {role.name}
                     </div>
                     <div className="text-xs text-muted-foreground">

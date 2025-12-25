@@ -18,15 +18,24 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
     onReorder: settings.handleReorderRoles,
   });
 
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape" && !settings.showCreateRole && !settings.showDeleteConfirm) {
-      if (settings.selectedRole) {
-        settings.setSelectedRole(null);
-      } else {
-        onClose();
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !settings.showCreateRole && !settings.showDeleteConfirm) {
+        if (settings.selectedRole) {
+          settings.setSelectedRole(null);
+        } else {
+          onClose();
+        }
       }
-    }
-  }, [onClose, settings.showCreateRole, settings.showDeleteConfirm, settings.selectedRole, settings.setSelectedRole]);
+    },
+    [
+      onClose,
+      settings.showCreateRole,
+      settings.showDeleteConfirm,
+      settings.selectedRole,
+      settings.setSelectedRole,
+    ]
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handleEscape);
@@ -96,10 +105,11 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
                   <button
                     key={tab.id}
                     onClick={() => settings.setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${settings.activeTab === tab.id
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                      }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      settings.activeTab === tab.id
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    }`}
                   >
                     <tab.icon className="w-4 h-4" />
                     {tab.label}

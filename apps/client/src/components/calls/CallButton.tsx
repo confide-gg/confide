@@ -1,7 +1,10 @@
 import { Phone } from "lucide-react";
 import { Button } from "../ui/button";
 import { useCall } from "./context";
-import { checkMicrophonePermission, requestMicrophonePermission } from "tauri-plugin-macos-permissions-api";
+import {
+  checkMicrophonePermission,
+  requestMicrophonePermission,
+} from "tauri-plugin-macos-permissions-api";
 import { platform } from "@tauri-apps/plugin-os";
 
 interface CallButtonProps {
@@ -12,11 +15,25 @@ interface CallButtonProps {
   peerUsername: string;
   peerDisplayName?: string | null;
   peerAvatarUrl?: string | null;
-  onCallInitiated?: (offer: { call_id: string; ephemeral_kem_public: number[]; signature: number[] }) => void;
+  onCallInitiated?: (offer: {
+    call_id: string;
+    ephemeral_kem_public: number[];
+    signature: number[];
+  }) => void;
   disabled?: boolean;
 }
 
-export function CallButton({ callerId, calleeId, calleeIdentityKey, dsaSecretKey, peerUsername, peerDisplayName, peerAvatarUrl, onCallInitiated, disabled }: CallButtonProps) {
+export function CallButton({
+  callerId,
+  calleeId,
+  calleeIdentityKey,
+  dsaSecretKey,
+  peerUsername,
+  peerDisplayName,
+  peerAvatarUrl,
+  onCallInitiated,
+  disabled,
+}: CallButtonProps) {
   const { callState, initiateCall } = useCall();
 
   const isInCall = callState.status !== "idle";

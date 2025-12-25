@@ -16,7 +16,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { LogOut, Pencil, Check, ChevronDown, Mic, MicOff, Headphones, Settings } from "lucide-react";
+import {
+  LogOut,
+  Pencil,
+  Check,
+  ChevronDown,
+  Mic,
+  MicOff,
+  Headphones,
+  Settings,
+} from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 const STATUS_OPTIONS: { value: UserStatus; label: string; color: string }[] = [
@@ -34,7 +43,6 @@ export function UserProfile() {
   const [status, setStatus] = useState<UserStatus>("online");
   const [profile, setProfile] = useState<UserProfileType | null>(null);
   const activity = user ? getUserActivity(user.id) : null;
-
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -66,8 +74,6 @@ export function UserProfile() {
     }
   };
 
-
-
   const getInitials = (name: string) => {
     return name.slice(0, 2).toUpperCase();
   };
@@ -97,9 +103,7 @@ export function UserProfile() {
                     )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  {callState.is_muted ? "Unmute" : "Mute"}
-                </TooltipContent>
+                <TooltipContent side="top">{callState.is_muted ? "Unmute" : "Mute"}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
@@ -114,7 +118,9 @@ export function UserProfile() {
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    <Headphones className={`h-4 w-4 ${callState.is_deafened ? "line-through" : ""}`} />
+                    <Headphones
+                      className={`h-4 w-4 ${callState.is_deafened ? "line-through" : ""}`}
+                    />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
@@ -134,70 +140,69 @@ export function UserProfile() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm outline-none transition-colors hover:bg-secondary">
-            <div className="relative shrink-0">
-              <AvatarRoot className="h-9 w-9">
-                {profile?.avatar_url ? (
-                  <AvatarImage src={uploadService.getUploadUrl(profile.avatar_url)} />
-                ) : null}
-                <AvatarFallback className="bg-gradient-to-br from-primary to-[#a8d15a] text-primary-foreground text-xs font-medium">
-                  {getInitials(profile?.display_name || user.username)}
-                </AvatarFallback>
-              </AvatarRoot>
-              <span
-                className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-secondary"
-                style={{ background: currentStatus.color }}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="truncate font-medium text-foreground">
-                {profile?.display_name || user.username}
+              <div className="relative shrink-0">
+                <AvatarRoot className="h-9 w-9">
+                  {profile?.avatar_url ? (
+                    <AvatarImage src={uploadService.getUploadUrl(profile.avatar_url)} />
+                  ) : null}
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-[#a8d15a] text-primary-foreground text-xs font-medium">
+                    {getInitials(profile?.display_name || user.username)}
+                  </AvatarFallback>
+                </AvatarRoot>
+                <span
+                  className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-secondary"
+                  style={{ background: currentStatus.color }}
+                />
               </div>
-              <div className="truncate text-xs text-muted-foreground">
-                {profile?.custom_status || currentStatus.label}
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium text-foreground">
+                  {profile?.display_name || user.username}
+                </div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {profile?.custom_status || currentStatus.label}
+                </div>
               </div>
-            </div>
-            <ChevronDown className="shrink-0 w-4 h-4 text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" className="w-56">
-          <DropdownMenuLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Status
-          </DropdownMenuLabel>
-          {STATUS_OPTIONS.map((option) => (
-            <DropdownMenuItem
-              key={option.value}
-              onClick={() => handleStatusChange(option.value)}
-              className={status === option.value ? "bg-primary/10 text-primary" : ""}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full shrink-0"
-                style={{ background: option.color }}
-              />
-              <span className="flex-1">{option.label}</span>
-              {status === option.value && <Check className="w-4 h-4" />}
+              <ChevronDown className="shrink-0 w-4 h-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Status
+            </DropdownMenuLabel>
+            {STATUS_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => handleStatusChange(option.value)}
+                className={status === option.value ? "bg-primary/10 text-primary" : ""}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ background: option.color }}
+                />
+                <span className="flex-1">{option.label}</span>
+                {status === option.value && <Check className="w-4 h-4" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <Pencil className="w-4 h-4" />
+              <span>Edit Profile</span>
             </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => navigate("/settings")}>
-            <Pencil className="w-4 h-4" />
-            <span>Edit Profile</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/settings")}>
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={logout}
-            className="text-destructive focus:text-destructive focus:bg-destructive/10"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Log Out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Log Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
     </>
   );
 }

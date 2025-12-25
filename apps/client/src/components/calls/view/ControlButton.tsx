@@ -3,7 +3,15 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../../
 import { cn } from "@/lib/utils";
 import type { ControlButtonProps } from "./types";
 
-export function ControlButton({ icon, onClick, active, activeColor = "red", disabled, variant, tooltip }: ControlButtonProps) {
+export function ControlButton({
+  icon,
+  onClick,
+  active,
+  activeColor = "red",
+  disabled,
+  variant,
+  tooltip,
+}: ControlButtonProps) {
   const getButtonClass = () => {
     if (variant === "danger") {
       return "bg-red-500 hover:bg-red-600 text-white";

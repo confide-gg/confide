@@ -22,33 +22,42 @@ export function useCallMedia({
   setPttKey,
   refreshState,
 }: UseCallMediaParams) {
-  const setMuted = useCallback(async (muted: boolean) => {
-    await invoke("set_call_muted", { muted });
-    await refreshState();
+  const setMuted = useCallback(
+    async (muted: boolean) => {
+      await invoke("set_call_muted", { muted });
+      await refreshState();
 
-    const currentState = refs.callStateRef.current;
-    if (currentState.call_id && currentState.peer_id && currentUserId) {
-      centralWebSocketService.send({
-        type: "call_mute_update",
-        data: {
-          call_id: currentState.call_id,
-          user_id: currentUserId,
-          is_muted: muted,
-        },
-      });
-    }
-  }, [refs, refreshState, currentUserId]);
+      const currentState = refs.callStateRef.current;
+      if (currentState.call_id && currentState.peer_id && currentUserId) {
+        centralWebSocketService.send({
+          type: "call_mute_update",
+          data: {
+            call_id: currentState.call_id,
+            user_id: currentUserId,
+            is_muted: muted,
+          },
+        });
+      }
+    },
+    [refs, refreshState, currentUserId]
+  );
 
-  const setDeafened = useCallback(async (deafened: boolean) => {
-    await invoke("set_call_deafened", { deafened });
-    await refreshState();
-  }, [refreshState]);
+  const setDeafened = useCallback(
+    async (deafened: boolean) => {
+      await invoke("set_call_deafened", { deafened });
+      await refreshState();
+    },
+    [refreshState]
+  );
 
-  const startMediaSession = useCallback(async (relayEndpoint: string, relayToken: number[]) => {
-    await invoke("start_call_media_session", { relayEndpoint, relayToken });
-    refs.callStartTimeRef.current = Date.now();
-    await refreshState();
-  }, [refs, refreshState]);
+  const startMediaSession = useCallback(
+    async (relayEndpoint: string, relayToken: number[]) => {
+      await invoke("start_call_media_session", { relayEndpoint, relayToken });
+      refs.callStartTimeRef.current = Date.now();
+      await refreshState();
+    },
+    [refs, refreshState]
+  );
 
   const refreshAudioSettings = useCallback(async () => {
     try {
@@ -70,22 +79,25 @@ export function useCallMedia({
     return await invoke<ScreenCaptureSource[]>("get_screen_sources");
   }, []);
 
-  const startScreenShare = useCallback(async (sourceId: string): Promise<void> => {
-    await invoke("start_screen_share", { sourceId });
-    await refreshState();
+  const startScreenShare = useCallback(
+    async (sourceId: string): Promise<void> => {
+      await invoke("start_screen_share", { sourceId });
+      await refreshState();
 
-    if (callState.call_id && callState.peer_id && currentUserId) {
-      centralWebSocketService.send({
-        type: "screen_share_start",
-        data: {
-          call_id: callState.call_id,
-          user_id: currentUserId,
-          width: 1920,
-          height: 1080,
-        },
-      });
-    }
-  }, [refreshState, callState.call_id, callState.peer_id, currentUserId]);
+      if (callState.call_id && callState.peer_id && currentUserId) {
+        centralWebSocketService.send({
+          type: "screen_share_start",
+          data: {
+            call_id: callState.call_id,
+            user_id: currentUserId,
+            width: 1920,
+            height: 1080,
+          },
+        });
+      }
+    },
+    [refreshState, callState.call_id, callState.peer_id, currentUserId]
+  );
 
   const stopScreenShare = useCallback(async (): Promise<void> => {
     await invoke("stop_screen_share");

@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { PhoneOff, Mic, MicOff, Monitor, MonitorOff, Signal, SignalHigh, SignalLow, SignalZero, ArrowUpRight, PhoneIncoming } from "lucide-react";
+import {
+  PhoneOff,
+  Mic,
+  MicOff,
+  Monitor,
+  MonitorOff,
+  Signal,
+  SignalHigh,
+  SignalLow,
+  SignalZero,
+  ArrowUpRight,
+  PhoneIncoming,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
@@ -16,7 +28,16 @@ interface ActiveCallOverlayProps {
 }
 
 export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) {
-  const { callState, peerHasLeft, leaveCall, endCall, rejoinCall, setMuted, startScreenShare, stopScreenShare } = useCall();
+  const {
+    callState,
+    peerHasLeft,
+    leaveCall,
+    endCall,
+    rejoinCall,
+    setMuted,
+    startScreenShare,
+    stopScreenShare,
+  } = useCall();
   const { activeChat, openChat, friendsList, setSidebarView } = useChat();
   const [duration, setDuration] = useState(0);
   const [quality, setQuality] = useState<CallQuality>("good");
@@ -74,18 +95,21 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
     return () => clearInterval(interval);
   }, [callState.status]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return;
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).closest("button")) return;
 
-    e.preventDefault();
-    setIsDragging(true);
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      posX: position.x,
-      posY: position.y,
-    };
-  }, [position]);
+      e.preventDefault();
+      setIsDragging(true);
+      dragStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        posX: position.x,
+        posY: position.y,
+      };
+    },
+    [position]
+  );
 
   useEffect(() => {
     if (!isDragging) return;
@@ -96,8 +120,14 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
       const deltaX = dragStartRef.current.x - e.clientX;
       const deltaY = dragStartRef.current.y - e.clientY;
 
-      const newX = Math.max(8, Math.min(window.innerWidth - 280, dragStartRef.current.posX + deltaX));
-      const newY = Math.max(8, Math.min(window.innerHeight - 140, dragStartRef.current.posY + deltaY));
+      const newX = Math.max(
+        8,
+        Math.min(window.innerWidth - 280, dragStartRef.current.posX + deltaX)
+      );
+      const newY = Math.max(
+        8,
+        Math.min(window.innerHeight - 140, dragStartRef.current.posY + deltaY)
+      );
 
       setPosition({ x: newX, y: newY });
     };
@@ -178,7 +208,7 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
 
   const handleNavigateToCall = () => {
     if (callState.peer_id) {
-      const friend = friendsList.find(f => f.id === callState.peer_id);
+      const friend = friendsList.find((f) => f.id === callState.peer_id);
       if (friend) {
         openChat(friend);
         setSidebarView("dms");
@@ -228,10 +258,7 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
     <>
       <div
         ref={containerRef}
-        className={cn(
-          "fixed z-50 select-none",
-          isDragging ? "cursor-grabbing" : "cursor-grab"
-        )}
+        className={cn("fixed z-50 select-none", isDragging ? "cursor-grabbing" : "cursor-grab")}
         style={{
           right: position.x,
           bottom: position.y,
@@ -247,12 +274,18 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                 size="md"
                 className={cn(peerHasLeft && "opacity-50")}
               />
-              <div className={cn(
-                "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-                peerHasLeft ? "bg-red-500" :
-                  isLeft ? "bg-yellow-500" :
-                    isActive ? "bg-green-500" : "bg-yellow-500"
-              )} />
+              <div
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
+                  peerHasLeft
+                    ? "bg-red-500"
+                    : isLeft
+                      ? "bg-yellow-500"
+                      : isActive
+                        ? "bg-green-500"
+                        : "bg-yellow-500"
+                )}
+              />
             </div>
 
             <div className="flex-1 min-w-0">
@@ -261,9 +294,7 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
               </h3>
               <div className="flex items-center gap-1.5 text-xs">
                 {isActive && !peerHasLeft && getQualityIcon()}
-                <span className={getStatusColor()}>
-                  {getStatusText()}
-                </span>
+                <span className={getStatusColor()}>{getStatusText()}</span>
                 {callState.is_screen_sharing && (
                   <span className="text-green-400 flex items-center gap-0.5 ml-1">
                     <Monitor className="w-3 h-3" />
@@ -324,7 +355,11 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                         }}
                         disabled={!isActive}
                       >
-                        {callState.is_muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                        {callState.is_muted ? (
+                          <MicOff className="h-4 w-4" />
+                        ) : (
+                          <Mic className="h-4 w-4" />
+                        )}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs bg-popover border-border">
@@ -351,7 +386,11 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                         }}
                         disabled={!isActive}
                       >
-                        {callState.is_screen_sharing ? <MonitorOff className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+                        {callState.is_screen_sharing ? (
+                          <MonitorOff className="h-4 w-4" />
+                        ) : (
+                          <Monitor className="h-4 w-4" />
+                        )}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs bg-popover border-border">

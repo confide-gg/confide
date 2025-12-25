@@ -11,8 +11,18 @@ import { cn } from "../../lib/utils";
 const STATUS_OPTIONS: { value: UserStatus; label: string; color: string; description: string }[] = [
   { value: "online", label: "Online", color: "#22c55e", description: "You're available to chat" },
   { value: "away", label: "Away", color: "#f59e0b", description: "You might not respond quickly" },
-  { value: "dnd", label: "Do Not Disturb", color: "#ef4444", description: "Mute all notifications" },
-  { value: "invisible", label: "Invisible", color: "#6b7280", description: "Appear offline to others" },
+  {
+    value: "dnd",
+    label: "Do Not Disturb",
+    color: "#ef4444",
+    description: "Mute all notifications",
+  },
+  {
+    value: "invisible",
+    label: "Invisible",
+    color: "#6b7280",
+    description: "Appear offline to others",
+  },
 ];
 
 export function ProfileSettings() {
@@ -44,14 +54,17 @@ export function ProfileSettings() {
     accentColor: string;
   } | null>(null);
 
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      if (cropImage) {
-        setCropImage(null);
-        setCropType(null);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (cropImage) {
+          setCropImage(null);
+          setCropType(null);
+        }
       }
-    }
-  }, [cropImage]);
+    },
+    [cropImage]
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handleEscape);
@@ -237,7 +250,14 @@ export function ProfileSettings() {
                   {isUploadingBanner ? (
                     <Loader2 className="w-4 h-4 text-white animate-spin" />
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="2"
+                    >
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
@@ -259,7 +279,11 @@ export function ProfileSettings() {
               <div className="relative inline-block">
                 <div className="w-28 h-28 rounded-full bg-card border-4 border-bg-elevated overflow-hidden flex items-center justify-center text-3xl font-bold">
                   {avatarUrl ? (
-                    <img src={getImageUrl(avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
+                    <img
+                      src={getImageUrl(avatarUrl)}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <span className="bg-gradient-to-br from-primary to-[#a8d15a] bg-clip-text text-transparent">
                       {user?.username?.[0]?.toUpperCase() || "?"}
@@ -281,7 +305,14 @@ export function ProfileSettings() {
                   {isUploadingAvatar ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
@@ -352,22 +383,25 @@ export function ProfileSettings() {
                       : "bg-secondary/30 border-transparent hover:bg-secondary/50"
                   )}
                 >
-                  <div className={cn(
-                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                    status === opt.value ? "border-primary" : "border-muted-foreground"
-                  )}>
+                  <div
+                    className={cn(
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                      status === opt.value ? "border-primary" : "border-muted-foreground"
+                    )}
+                  >
                     {status === opt.value && (
                       <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                     )}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: opt.color }} />
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ background: opt.color }}
+                      />
                       <span className="font-medium">{opt.label}</span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {opt.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{opt.description}</p>
                   </div>
                 </button>
               ))}
@@ -398,9 +432,7 @@ export function ProfileSettings() {
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 About Me
               </Label>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {bio.length}/500
-              </span>
+              <span className="text-xs text-muted-foreground tabular-nums">{bio.length}/500</span>
             </div>
             <textarea
               value={bio}
@@ -424,11 +456,7 @@ export function ProfileSettings() {
                 : "bg-secondary/50 text-muted-foreground cursor-not-allowed"
             )}
           >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {isSaving ? "Saving..." : isDirty ? "Save Changes" : "No Changes"}
           </button>
         </div>

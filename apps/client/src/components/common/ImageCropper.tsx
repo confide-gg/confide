@@ -50,7 +50,10 @@ export function ImageCropper({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onCancel}>
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onCancel}
+    >
       <div
         className="relative w-full max-w-lg bg-card rounded-xl border border-border shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -58,7 +61,14 @@ export function ImageCropper({
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="font-semibold text-lg">Crop Image</h3>
           <button className="text-muted-foreground hover:text-foreground p-1" onClick={onCancel}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -81,7 +91,15 @@ export function ImageCropper({
 
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-4">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-muted-foreground"
+            >
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
               <line x1="8" y1="11" x2="14" y2="11" />
@@ -95,7 +113,15 @@ export function ImageCropper({
               onChange={(e) => setZoom(Number(e.target.value))}
               className="flex-1 h-1 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
             />
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-muted-foreground"
+            >
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
               <line x1="11" y1="8" x2="11" y2="14" />
@@ -107,10 +133,7 @@ export function ImageCropper({
             <Button variant="ghost" onClick={onCancel}>
               Cancel
             </Button>
-            <Button
-              onClick={handleApply}
-              disabled={isProcessing}
-            >
+            <Button onClick={handleApply} disabled={isProcessing}>
               {isProcessing ? "Processing..." : "Apply"}
             </Button>
           </div>
@@ -119,7 +142,6 @@ export function ImageCropper({
     </div>
   );
 }
-
 
 async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
   const image = await createImage(imageSrc);

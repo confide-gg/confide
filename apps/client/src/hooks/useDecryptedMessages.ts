@@ -40,12 +40,23 @@ async function decryptMessages(
     const isSystemMessage = msg.message_type && msg.message_type !== "text";
 
     if (isSystemMessage) {
-      return { id: msg.id, content: "", senderName: "System", isSystem: true, messageType: msg.message_type };
+      return {
+        id: msg.id,
+        content: "",
+        senderName: "System",
+        isSystem: true,
+        messageType: msg.message_type,
+      };
     }
 
     const cached = decryptionCache.get(msg.id);
     if (cached) {
-      return { id: msg.id, content: cached.content, senderName: cached.senderName, isSystem: false };
+      return {
+        id: msg.id,
+        content: cached.content,
+        senderName: cached.senderName,
+        isSystem: false,
+      };
     }
 
     try {
@@ -98,13 +109,13 @@ async function decryptMessages(
         id: msg.id,
         content: "[Unable to decrypt]",
         senderName: "Unknown",
-        isSystem: false
+        isSystem: false,
       };
     }
   });
 
   const decryptedResults = await Promise.all(decryptPromises);
-  const msgMap = new Map(decryptedResults.map(r => [r.id, r]));
+  const msgMap = new Map(decryptedResults.map((r) => [r.id, r]));
 
   for (const msg of messages) {
     const decrypted = msgMap.get(msg.id)!;
@@ -113,17 +124,25 @@ async function decryptMessages(
       let systemContent = "";
 
       if (context.isGroup && groupMemberNames) {
-        const actorName = msg.sender_id === context.userId ? "You" : (groupMemberNames.get(msg.sender_id) || "Someone");
+        const actorName =
+          msg.sender_id === context.userId
+            ? "You"
+            : groupMemberNames.get(msg.sender_id) || "Someone";
         try {
           const payload = JSON.parse(cryptoService.bytesToString(msg.encrypted_content));
           if (msg.message_type === "group_member_added" && Array.isArray(payload.added_user_ids)) {
-            const names = payload.added_user_ids.map((id: string) => groupMemberNames!.get(id) || "Someone");
+            const names = payload.added_user_ids.map(
+              (id: string) => groupMemberNames!.get(id) || "Someone"
+            );
             systemContent = `${actorName} added ${names.join(", ")}`;
           } else if (msg.message_type === "group_member_removed" && payload.removed_user_id) {
             const name = groupMemberNames.get(payload.removed_user_id) || "Someone";
             systemContent = `${actorName} removed ${name}`;
           } else if (msg.message_type === "group_member_left" && payload.user_id) {
-            const name = payload.user_id === context.userId ? "You" : (groupMemberNames.get(payload.user_id) || "Someone");
+            const name =
+              payload.user_id === context.userId
+                ? "You"
+                : groupMemberNames.get(payload.user_id) || "Someone";
             systemContent = `${name} left the group`;
           } else if (msg.message_type === "group_owner_changed" && payload.new_owner_id) {
             const name = groupMemberNames.get(payload.new_owner_id) || "Someone";
@@ -198,7 +217,12 @@ export function useDecryptedMessages(
   context: DecryptionContext | null
 ) {
   return useQuery({
-    queryKey: [...queryKeys.messages.list(conversationId || ""), "decrypted", context?.userId, context?.isGroup],
+    queryKey: [
+      ...queryKeys.messages.list(conversationId || ""),
+      "decrypted",
+      context?.userId,
+      context?.isGroup,
+    ],
     queryFn: async () => {
       if (!conversationId || !context) {
         return [];

@@ -25,7 +25,9 @@ export function saveLastChannelForServer(serverId: string, channelId: string): v
   }
 }
 
-export async function loadFederatedServersFromDB(kemSecretKey: number[]): Promise<FederatedServer[]> {
+export async function loadFederatedServersFromDB(
+  kemSecretKey: number[]
+): Promise<FederatedServer[]> {
   try {
     const response = await serverService.getFederatedServers();
     if (!response.encrypted_servers || response.encrypted_servers.length === 0) {
@@ -43,7 +45,10 @@ export async function loadFederatedServersFromDB(kemSecretKey: number[]): Promis
   }
 }
 
-export async function saveFederatedServersToDB(servers: FederatedServer[], kemSecretKey: number[]): Promise<void> {
+export async function saveFederatedServersToDB(
+  servers: FederatedServer[],
+  kemSecretKey: number[]
+): Promise<void> {
   try {
     const jsonBytes = cryptoService.stringToBytes(JSON.stringify(servers));
     const encrypted = await cryptoService.encryptData(kemSecretKey, jsonBytes);

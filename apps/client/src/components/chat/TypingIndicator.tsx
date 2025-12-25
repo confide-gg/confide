@@ -11,7 +11,7 @@ export function TypingIndicator() {
     if (userId === activeChat.visitorId) {
       return activeChat.visitorUsername;
     }
-    const friend = friendsList.find(f => f.id === userId);
+    const friend = friendsList.find((f) => f.id === userId);
     return friend?.username || "Someone";
   };
 

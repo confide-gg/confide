@@ -1,4 +1,12 @@
-import { Signal, SignalHigh, SignalLow, SignalZero, Maximize2, Minimize2, ChevronUp } from "lucide-react";
+import {
+  Signal,
+  SignalHigh,
+  SignalLow,
+  SignalZero,
+  Maximize2,
+  Minimize2,
+  ChevronUp,
+} from "lucide-react";
 import { Button } from "../../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../../ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -48,10 +56,14 @@ export function CallHeader({
 
   const getQualityLabel = () => {
     switch (quality) {
-      case "excellent": return "Excellent";
-      case "good": return "Good";
-      case "fair": return "Fair";
-      case "poor": return "Poor";
+      case "excellent":
+        return "Excellent";
+      case "good":
+        return "Good";
+      case "fair":
+        return "Fair";
+      case "poor":
+        return "Poor";
     }
   };
 
@@ -88,11 +100,16 @@ export function CallHeader({
                 <div className="space-y-1.5 min-w-[140px]">
                   <div className="flex justify-between">
                     <span className="text-white/60">Connection</span>
-                    <span className={cn(
-                      "font-medium",
-                      quality === "excellent" || quality === "good" ? "text-green-400" :
-                        quality === "fair" ? "text-yellow-400" : "text-red-400"
-                    )}>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        quality === "excellent" || quality === "good"
+                          ? "text-green-400"
+                          : quality === "fair"
+                            ? "text-yellow-400"
+                            : "text-red-400"
+                      )}
+                    >
                       {getQualityLabel()}
                     </span>
                   </div>
@@ -111,15 +128,14 @@ export function CallHeader({
                         <span className="text-white">
                           {stats.packets_sent > 0
                             ? ((stats.packets_lost / stats.packets_sent) * 100).toFixed(1)
-                            : "0.0"}%
+                            : "0.0"}
+                          %
                         </span>
                       </div>
                     </>
                   )}
                   {!stats && (
-                    <div className="text-white/40 text-center py-1">
-                      Gathering stats...
-                    </div>
+                    <div className="text-white/40 text-center py-1">Gathering stats...</div>
                   )}
                 </div>
               </TooltipContent>
@@ -143,7 +159,11 @@ export function CallHeader({
                 className="h-7 w-7 p-0 text-white/60 hover:text-white hover:bg-white/10"
                 onClick={onToggleFullscreen}
               >
-                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                {isFullscreen ? (
+                  <Minimize2 className="w-3.5 h-3.5" />
+                ) : (
+                  <Maximize2 className="w-3.5 h-3.5" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs bg-card border-border">

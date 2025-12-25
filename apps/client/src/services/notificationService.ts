@@ -17,7 +17,7 @@ export interface NotificationOptions {
 
 export enum NotificationPriority {
   Low = "Low",
-  Normal = "Normal", 
+  Normal = "Normal",
   High = "High",
   Critical = "Critical",
 }
@@ -79,7 +79,7 @@ class NotificationServiceClass {
       this.loadPreferences();
 
       this.initializeSounds();
-      
+
       this.initialized = true;
     } catch (error) {
       console.error("Failed to initialize notification service:", error);
@@ -93,15 +93,13 @@ class NotificationServiceClass {
       if (savedPrefs) {
         this.preferences = { ...this.preferences, ...JSON.parse(savedPrefs) };
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   private savePreferences(): void {
     try {
       localStorage.setItem("notification-preferences", JSON.stringify(this.preferences));
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   private initializeSounds(): void {
@@ -191,8 +189,8 @@ class NotificationServiceClass {
     if (!this.preferences.quietHoursEnabled) return false;
 
     const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+    const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+
     const start = this.preferences.quietHoursStart;
     const end = this.preferences.quietHoursEnd;
 
@@ -208,8 +206,7 @@ class NotificationServiceClass {
     if (sound) {
       sound.currentTime = 0;
       sound.volume = this.preferences.soundVolume;
-      sound.play().catch(() => {
-      });
+      sound.play().catch(() => {});
     }
   }
 
@@ -238,7 +235,7 @@ class NotificationServiceClass {
     const notificationOptions: NotificationOptions = {
       title: "Friend Request",
       body: `${senderName} sent you a friend request`,
-      icon: "/icons/128x128.png", 
+      icon: "/icons/128x128.png",
       sound: "friendRequest",
       priority: NotificationPriority.High,
       group: "friend-requests",
@@ -260,7 +257,7 @@ class NotificationServiceClass {
       title: "Incoming Call",
       body: `${callerName} is calling you`,
       icon: "/icons/128x128.png",
-      sound: "call", 
+      sound: "call",
       priority: NotificationPriority.Critical,
       persistent: true,
       actions: [
@@ -335,7 +332,7 @@ class NotificationServiceClass {
     this.savePreferences();
 
     if (updates.soundVolume !== undefined) {
-      Object.values(this.sounds).forEach(sound => {
+      Object.values(this.sounds).forEach((sound) => {
         sound.volume = updates.soundVolume!;
       });
     }

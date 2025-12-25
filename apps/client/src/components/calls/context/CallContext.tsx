@@ -9,7 +9,13 @@ import { useCallEffects } from "./useCallEffects";
 
 const CallContext = createContext<CallContextValue | null>(null);
 
-export function CallProvider({ children, currentUserId, onCallAnswerReceived, onKeyCompleteReceived, onMediaReadyReceived }: CallProviderProps) {
+export function CallProvider({
+  children,
+  currentUserId,
+  onCallAnswerReceived,
+  onKeyCompleteReceived,
+  onMediaReadyReceived,
+}: CallProviderProps) {
   const [callState, setCallState] = useState<CallState>(defaultCallState);
   const [incomingCall, setIncomingCall] = useState<IncomingCallInfo | null>(null);
   const [incomingCallQueue, setIncomingCallQueue] = useState<IncomingCallInfo[]>([]);
@@ -19,7 +25,9 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
   const [pttKey, setPttKey] = useState<string | null>(null);
 
   const peerIdentityKeyRef = useRef<number[] | null>(null);
-  const pendingMediaReadyRef = useRef<{ relay_endpoint: string; relay_token: number[] } | null>(null);
+  const pendingMediaReadyRef = useRef<{ relay_endpoint: string; relay_token: number[] } | null>(
+    null
+  );
   const calleeKeyExchangeDoneRef = useRef<boolean>(false);
   const peerLeftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callStartTimeRef = useRef<number | null>(null);
@@ -87,10 +95,9 @@ export function CallProvider({ children, currentUserId, onCallAnswerReceived, on
     refreshState,
   });
 
-  const {
-    completeKeyExchangeAsCaller,
-    completeKeyExchangeAsCallee,
-  } = useCallKeyExchange({ refreshState });
+  const { completeKeyExchangeAsCaller, completeKeyExchangeAsCallee } = useCallKeyExchange({
+    refreshState,
+  });
 
   useCallWebSocket({
     refs,

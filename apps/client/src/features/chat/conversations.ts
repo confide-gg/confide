@@ -14,16 +14,11 @@ class ConversationService {
     return httpClient.get<ConversationWithRouting[]>("/conversations");
   }
 
-  public async createConversation(
-    data: CreateConversationRequest
-  ): Promise<ConversationResponse> {
+  public async createConversation(data: CreateConversationRequest): Promise<ConversationResponse> {
     return httpClient.post<ConversationResponse>("/conversations", data);
   }
 
-  public async getOrCreateDm(
-    userId: string,
-    data: CreateDmRequest
-  ): Promise<ConversationResponse> {
+  public async getOrCreateDm(userId: string, data: CreateDmRequest): Promise<ConversationResponse> {
     return httpClient.post<ConversationResponse>(`/conversations/dm/${userId}`, data);
   }
 
@@ -31,10 +26,7 @@ class ConversationService {
     return httpClient.get<MemberResponse[]>(`/conversations/${conversationId}/members`);
   }
 
-  public async addMember(
-    conversationId: string,
-    data: AddMemberRequest
-  ): Promise<SuccessResponse> {
+  public async addMember(conversationId: string, data: AddMemberRequest): Promise<SuccessResponse> {
     return httpClient.post<SuccessResponse>(`/conversations/${conversationId}/members`, data);
   }
 

@@ -18,7 +18,13 @@ type MemberWithRoles = Member & {
 export function MemberList() {
   const { activeServer, federatedClient, federatedWs } = useServer();
   const { user } = useAuth();
-  const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline: isUserOnline } = usePresence();
+  const {
+    getUserPresence,
+    getUserActivity,
+    subscribeToUsers,
+    isWsConnected,
+    isOnline: isUserOnline,
+  } = usePresence();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +33,9 @@ export function MemberList() {
   const [memberRoles, setMemberRoles] = useState<Map<string, string[]>>(new Map());
   const [availableRoles, setAvailableRoles] = useState<ServerRole[]>([]);
   const [userPermissions, setUserPermissions] = useState<number>(0);
-  const [contextMenu, setContextMenu] = useState<{ memberId: string; x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ memberId: string; x: number; y: number } | null>(
+    null
+  );
 
   const loadMembers = useCallback(async () => {
     if (!federatedClient) return;
@@ -99,14 +107,18 @@ export function MemberList() {
           next.set(message.member_id, message.role_ids);
           return next;
         });
-      } else if (message.type === "role_created" || message.type === "role_updated" || message.type === "role_deleted") {
+      } else if (
+        message.type === "role_created" ||
+        message.type === "role_updated" ||
+        message.type === "role_deleted"
+      ) {
         loadRoles();
       } else if (message.type === "member_joined") {
         loadMembers();
         loadMemberRoles();
       } else if (message.type === "member_left") {
-        setMembers(prev => prev.filter(m => m.id !== message.member_id));
-        setMemberRoles(prev => {
+        setMembers((prev) => prev.filter((m) => m.id !== message.member_id));
+        setMemberRoles((prev) => {
           const next = new Map(prev);
           next.delete(message.member_id);
           return next;
@@ -119,22 +131,22 @@ export function MemberList() {
 
   useEffect(() => {
     if (members.length > 0 && isWsConnected) {
-      const centralUserIds = members.map(m => m.central_user_id).filter(Boolean);
+      const centralUserIds = members.map((m) => m.central_user_id).filter(Boolean);
       subscribeToUsers(centralUserIds);
     }
   }, [members, isWsConnected, subscribeToUsers]);
 
   const getHighestRole = (member: Member): ServerRole | undefined => {
     const roleIds = memberRoles.get(member.id) || [];
-    const memberRoleObjects = availableRoles.filter(r => roleIds.includes(r.id));
+    const memberRoleObjects = availableRoles.filter((r) => roleIds.includes(r.id));
     if (memberRoleObjects.length === 0) return undefined;
-    return memberRoleObjects.reduce((highest, role) => 
+    return memberRoleObjects.reduce((highest, role) =>
       role.position > highest.position ? role : highest
     );
   };
 
   const getMembersWithRoles = (): MemberWithRoles[] => {
-    return members.map(member => ({
+    return members.map((member) => ({
       ...member,
       roleIds: memberRoles.get(member.id) || [],
       highestRole: getHighestRole(member),
@@ -144,9 +156,10 @@ export function MemberList() {
   const groupOnlineMembersByRole = (membersList: MemberWithRoles[]) => {
     const onlineByRole = new Map<string, MemberWithRoles[]>();
 
-    membersList.forEach(member => {
+    membersList.forEach((member) => {
       const presence = getUserPresence(member.central_user_id);
-      const memberIsOnline = isUserOnline(member.central_user_id) && presence?.status !== "invisible";
+      const memberIsOnline =
+        isUserOnline(member.central_user_id) && presence?.status !== "invisible";
       if (!memberIsOnline) return;
 
       if (!member.highestRole) {
@@ -167,12 +180,12 @@ export function MemberList() {
     const sortedGroups: Array<{ role: ServerRole; members: MemberWithRoles[] }> = [];
 
     const roles = Array.from(onlineByRole.keys())
-      .filter(roleId => roleId !== "__no_role__")
-      .map(roleId => availableRoles.find(r => r.id === roleId))
+      .filter((roleId) => roleId !== "__no_role__")
+      .map((roleId) => availableRoles.find((r) => r.id === roleId))
       .filter((r): r is ServerRole => r !== undefined)
       .sort((a, b) => b.position - a.position);
 
-    roles.forEach(role => {
+    roles.forEach((role) => {
       const roleMembers = onlineByRole.get(role.id) || [];
       roleMembers.sort((a, b) => {
         const nameA = a.display_name || a.username;
@@ -193,9 +206,10 @@ export function MemberList() {
   };
 
   const getOfflineMembers = (membersList: MemberWithRoles[]) => {
-    const offline = membersList.filter(member => {
+    const offline = membersList.filter((member) => {
       const presence = getUserPresence(member.central_user_id);
-      const memberIsOnline = isUserOnline(member.central_user_id) && presence?.status !== "invisible";
+      const memberIsOnline =
+        isUserOnline(member.central_user_id) && presence?.status !== "invisible";
       return !memberIsOnline;
     });
 
@@ -235,7 +249,7 @@ export function MemberList() {
     const isCurrentUser = member.central_user_id === user?.id;
     const presence = getUserPresence(member.central_user_id);
     const memberIsOnline = isUserOnline(member.central_user_id);
-    const status = memberIsOnline ? (presence?.status || "online") : "offline";
+    const status = memberIsOnline ? presence?.status || "online" : "offline";
     const displayColor = member.highestRole?.color;
     const activity = getUserActivity(member.central_user_id);
 
@@ -247,13 +261,7 @@ export function MemberList() {
         onContextMenu={(e) => handleMemberRightClick(member.id, e)}
       >
         <div className="relative">
-          <UserAvatar
-            user={member}
-            size="sm"
-            showStatus
-            status={status}
-            className="w-8 h-8"
-          />
+          <UserAvatar user={member} size="sm" showStatus status={status} className="w-8 h-8" />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -266,9 +274,7 @@ export function MemberList() {
             </p>
           </div>
           {member.display_name && (
-            <p className="text-xs text-muted-foreground truncate">
-              @{member.username}
-            </p>
+            <p className="text-xs text-muted-foreground truncate">@{member.username}</p>
           )}
           {activity && <ActivityDisplay activity={activity} compact className="mt-0.5" />}
         </div>
@@ -276,7 +282,13 @@ export function MemberList() {
     );
   };
 
-  const RoleGroup = ({ role, members: groupMembers }: { role: ServerRole; members: MemberWithRoles[] }) => {
+  const RoleGroup = ({
+    role,
+    members: groupMembers,
+  }: {
+    role: ServerRole;
+    members: MemberWithRoles[];
+  }) => {
     if (groupMembers.length === 0) return null;
 
     return (
@@ -298,9 +310,11 @@ export function MemberList() {
     );
   };
 
-  const selectedMember = members.find(m => m.id === selectedMemberId);
-  const contextMenuMember = contextMenu ? members.find(m => m.id === contextMenu.memberId) : null;
-  const contextMenuMemberRoles = contextMenuMember ? memberRoles.get(contextMenuMember.id) || [] : [];
+  const selectedMember = members.find((m) => m.id === selectedMemberId);
+  const contextMenuMember = contextMenu ? members.find((m) => m.id === contextMenu.memberId) : null;
+  const contextMenuMemberRoles = contextMenuMember
+    ? memberRoles.get(contextMenuMember.id) || []
+    : [];
   const isOwner = activeServer ? (activeServer as any).is_owner || false : false;
 
   useEffect(() => {
@@ -328,7 +342,9 @@ export function MemberList() {
           userId={selectedMember.central_user_id}
           username={selectedMember.username}
           status={getUserPresence(selectedMember.central_user_id)?.status || "offline"}
-          roles={availableRoles.filter(r => (memberRoles.get(selectedMember.id) || []).includes(r.id))}
+          roles={availableRoles.filter((r) =>
+            (memberRoles.get(selectedMember.id) || []).includes(r.id)
+          )}
           position={profilePosition}
           onClose={() => setSelectedMemberId(null)}
         />

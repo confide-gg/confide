@@ -1,8 +1,19 @@
 import type { Dispatch, SetStateAction } from "react";
 import type {
-  Friend, FriendRequestResponse, ActiveChat, DecryptedMessage, SidebarView,
-  ContextMenuData, MessageContextMenuData, DmContextMenuData, GroupContextMenuData, ReplyTo,
-  TimedMessageDuration, ProfileViewData, DmPreview, SystemMessageType,
+  Friend,
+  FriendRequestResponse,
+  ActiveChat,
+  DecryptedMessage,
+  SidebarView,
+  ContextMenuData,
+  MessageContextMenuData,
+  DmContextMenuData,
+  GroupContextMenuData,
+  ReplyTo,
+  TimedMessageDuration,
+  ProfileViewData,
+  DmPreview,
+  SystemMessageType,
 } from "../../types/index";
 
 export interface VerifyModalData {
@@ -72,7 +83,15 @@ export interface ChatContextType {
   openChat: (friend: Friend) => Promise<void>;
   createGroup: (data: { name: string; icon?: string; memberIds: string[] }) => Promise<void>;
   removeFriend: (friend: Friend) => Promise<void>;
-  sendMessage: (content?: string, attachmentMeta?: { s3_key: string; file_size: number; encrypted_size: number; mime_type: string }) => Promise<void>;
+  sendMessage: (
+    content?: string,
+    attachmentMeta?: {
+      s3_key: string;
+      file_size: number;
+      encrypted_size: number;
+      mime_type: string;
+    }
+  ) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => Promise<void>;
   deleteMessage: (messageId: string) => void;
   pinMessage: (messageId: string) => Promise<void>;
@@ -89,5 +108,9 @@ export interface ChatContextType {
   closeDm: (conversationId: string) => Promise<void>;
   favoriteGifUrls: Set<string>;
   toggleFavoriteGif: (gifUrl: string, previewUrl?: string) => Promise<void>;
-  addSystemMessage: (conversationId: string, content: string, systemType: SystemMessageType) => void;
+  addSystemMessage: (
+    conversationId: string,
+    content: string,
+    systemType: SystemMessageType
+  ) => void;
 }

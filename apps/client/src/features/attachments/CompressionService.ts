@@ -1,7 +1,7 @@
-import imageCompression from 'browser-image-compression';
-import pako from 'pako';
+import imageCompression from "browser-image-compression";
+import pako from "pako";
 
-export type CompressionType = 'webp' | 'h265' | 'brotli' | 'none';
+export type CompressionType = "webp" | "h265" | "brotli" | "none";
 
 export interface CompressionResult {
   compressedData: Blob;
@@ -15,7 +15,7 @@ class CompressionService {
     const mimeType = file.type;
     const originalSize = file.size;
 
-    if (mimeType.startsWith('image/')) {
+    if (mimeType.startsWith("image/")) {
       return this.compressImage(file);
     }
 
@@ -27,27 +27,27 @@ class CompressionService {
       compressedData: file,
       originalSize,
       compressedSize: file.size,
-      compressionType: 'none',
+      compressionType: "none",
     };
   }
 
   private async compressImage(file: File): Promise<CompressionResult> {
     const originalSize = file.size;
 
-    if (file.type === 'image/webp' && file.size < 500000) {
+    if (file.type === "image/webp" && file.size < 500000) {
       return {
         compressedData: file,
         originalSize,
         compressedSize: file.size,
-        compressionType: 'none',
+        compressionType: "none",
       };
     }
 
     const options = {
       maxSizeMB: 5,
       useWebWorker: true,
-      fileType: 'image/webp' as const,
-      initialQuality: file.type === 'image/png' ? 1.0 : 0.9,
+      fileType: "image/webp" as const,
+      initialQuality: file.type === "image/png" ? 1.0 : 0.9,
     };
 
     try {
@@ -56,15 +56,15 @@ class CompressionService {
         compressedData: compressedFile,
         originalSize,
         compressedSize: compressedFile.size,
-        compressionType: 'webp',
+        compressionType: "webp",
       };
     } catch (error) {
-      console.warn('Image compression failed, using original:', error);
+      console.warn("Image compression failed, using original:", error);
       return {
         compressedData: file,
         originalSize,
         compressedSize: file.size,
-        compressionType: 'none',
+        compressionType: "none",
       };
     }
   }
@@ -77,21 +77,21 @@ class CompressionService {
         compressedData: file,
         originalSize,
         compressedSize: file.size,
-        compressionType: 'none',
+        compressionType: "none",
       };
     }
 
     try {
       const arrayBuffer = await file.arrayBuffer();
       const compressed = pako.gzip(new Uint8Array(arrayBuffer), { level: 6 });
-      const blob = new Blob([compressed], { type: 'application/gzip' });
+      const blob = new Blob([compressed], { type: "application/gzip" });
 
       if (blob.size < file.size * 0.9) {
         return {
           compressedData: blob,
           originalSize,
           compressedSize: blob.size,
-          compressionType: 'brotli',
+          compressionType: "brotli",
         };
       }
 
@@ -99,15 +99,15 @@ class CompressionService {
         compressedData: file,
         originalSize,
         compressedSize: file.size,
-        compressionType: 'none',
+        compressionType: "none",
       };
     } catch (error) {
-      console.warn('Document compression failed, using original:', error);
+      console.warn("Document compression failed, using original:", error);
       return {
         compressedData: file,
         originalSize,
         compressedSize: file.size,
-        compressionType: 'none',
+        compressionType: "none",
       };
     }
   }
@@ -117,11 +117,11 @@ class CompressionService {
     compressionType: CompressionType,
     originalMimeType: string
   ): Promise<Blob> {
-    if (compressionType === 'none' || compressionType === 'webp') {
+    if (compressionType === "none" || compressionType === "webp") {
       return compressedData;
     }
 
-    if (compressionType === 'brotli') {
+    if (compressionType === "brotli") {
       const arrayBuffer = await compressedData.arrayBuffer();
       const decompressed = pako.ungzip(new Uint8Array(arrayBuffer));
       return new Blob([decompressed], { type: originalMimeType });
@@ -132,10 +132,10 @@ class CompressionService {
 
   private isDocument(mimeType: string): boolean {
     return [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
     ].includes(mimeType);
   }
 }

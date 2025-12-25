@@ -32,7 +32,7 @@ export function ChatHeader() {
 
   const presence = getUserPresence(activeChat.visitorId);
   const userIsOnline = isOnline(activeChat.visitorId);
-  const displayStatus = userIsOnline ? (presence?.status || "online") : "offline";
+  const displayStatus = userIsOnline ? presence?.status || "online" : "offline";
 
   const canVerify = activeChat.theirIdentityKey && activeChat.theirIdentityKey.length > 0 && keys;
   const isDm = !activeChat.isGroup;
@@ -42,9 +42,15 @@ export function ChatHeader() {
   const handleCall = async () => {
     if (!canCall || !keys || !user || !activeChat.theirDsaKey) return;
     try {
-      await initiateCall(user.id, activeChat.visitorId, activeChat.theirDsaKey, keys.dsa_secret_key, {
-        username: activeChat.visitorUsername,
-      });
+      await initiateCall(
+        user.id,
+        activeChat.visitorId,
+        activeChat.theirDsaKey,
+        keys.dsa_secret_key,
+        {
+          username: activeChat.visitorUsername,
+        }
+      );
     } catch (e) {
       console.error("Failed to initiate call:", e);
     }
@@ -63,12 +69,12 @@ export function ChatHeader() {
   const handleJump = (messageId: string) => {
     const element = document.getElementById(messageId);
     if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-        element.style.transition = "background-color 0.5s ease";
-        element.style.backgroundColor = "#1a1a1a";
-        setTimeout(() => {
-            element.style.backgroundColor = "";
-        }, 2000);
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.style.transition = "background-color 0.5s ease";
+      element.style.backgroundColor = "#1a1a1a";
+      setTimeout(() => {
+        element.style.backgroundColor = "";
+      }, 2000);
     }
     setShowPinned(false);
   };
@@ -85,9 +91,13 @@ export function ChatHeader() {
           />
           <div className="flex flex-col justify-center min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-base text-foreground truncate">@{activeChat.visitorUsername}</span>
+              <span className="font-semibold text-base text-foreground truncate">
+                @{activeChat.visitorUsername}
+              </span>
             </div>
-            <span className={`text-xs font-medium ${userIsOnline ? "text-online" : "text-muted-foreground"}`}>
+            <span
+              className={`text-xs font-medium ${userIsOnline ? "text-online" : "text-muted-foreground"}`}
+            >
               {STATUS_LABELS[displayStatus] || "Offline"}
             </span>
           </div>
@@ -124,7 +134,16 @@ export function ChatHeader() {
               className="p-2 rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
               title="View safety number"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </button>
@@ -138,7 +157,14 @@ export function ChatHeader() {
             }`}
             title={showProfilePanel ? "Hide profile" : "Show profile"}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
@@ -156,4 +182,3 @@ export function ChatHeader() {
     </div>
   );
 }
-

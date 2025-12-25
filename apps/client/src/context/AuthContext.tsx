@@ -87,7 +87,11 @@ async function loadAuthFromStorage(): Promise<{ user: PublicUser; keys: Decrypte
   }
 }
 
-async function savePrekeySecrets(userKeys: DecryptedKeys, signedPrekey: SignedPrekey, oneTimePrekeys: OneTimePrekey[]) {
+async function savePrekeySecrets(
+  userKeys: DecryptedKeys,
+  signedPrekey: SignedPrekey,
+  oneTimePrekeys: OneTimePrekey[]
+) {
   const data: StoredPrekeys = {
     signedPrekey,
     oneTimePrekeys: {},
@@ -192,7 +196,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         await clearAuthStorage();
         httpClient.setAuthToken(null);
-        setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
+        setState({
+          user: null,
+          keys: null,
+          profile: null,
+          preferences: null,
+          isLoading: false,
+          isAuthenticated: false,
+          needsRecoverySetup: false,
+        });
       }
     };
     loadAuth();
@@ -231,7 +243,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedPrekeys = await loadPrekeySecrets(decryptedKeys);
 
       if (count < 20 || !storedPrekeys) {
-        const signedPrekey = storedPrekeys?.signedPrekey || await cryptoService.generateSignedPrekey(decryptedKeys.dsa_secret_key);
+        const signedPrekey =
+          storedPrekeys?.signedPrekey ||
+          (await cryptoService.generateSignedPrekey(decryptedKeys.dsa_secret_key));
         const needed = Math.max(0, 100 - count);
         const newPrekeys = needed > 0 ? await cryptoService.generateOneTimePrekeys(needed) : [];
 
@@ -291,8 +305,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const testData = cryptoService.stringToBytes("test");
-      const testEncrypted = await cryptoService.encryptForRecipient(decryptedKeys.kem_public_key, testData);
-      const testDecrypted = await cryptoService.decryptFromSender(decryptedKeys.kem_secret_key, testEncrypted);
+      const testEncrypted = await cryptoService.encryptForRecipient(
+        decryptedKeys.kem_public_key,
+        testData
+      );
+      const testDecrypted = await cryptoService.decryptFromSender(
+        decryptedKeys.kem_secret_key,
+        testEncrypted
+      );
       const testResult = cryptoService.bytesToString(testDecrypted);
       if (testResult !== "test") {
         throw new Error("Key pair validation failed: roundtrip test mismatch");
@@ -346,7 +366,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     await clearAuthStorage();
     httpClient.setAuthToken(null);
-    setState({ user: null, keys: null, profile: null, preferences: null, isLoading: false, isAuthenticated: false, needsRecoverySetup: false });
+    setState({
+      user: null,
+      keys: null,
+      profile: null,
+      preferences: null,
+      isLoading: false,
+      isAuthenticated: false,
+      needsRecoverySetup: false,
+    });
   }, []);
 
   useEffect(() => {
@@ -383,7 +411,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, refreshProfile, refreshPreferences, checkRecoveryStatus, completeRecoverySetup }}>
+    <AuthContext.Provider
+      value={{
+        ...state,
+        login,
+        register,
+        logout,
+        refreshProfile,
+        refreshPreferences,
+        checkRecoveryStatus,
+        completeRecoverySetup,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
