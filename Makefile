@@ -1,4 +1,4 @@
-.PHONY: help build test clean fmt clippy check docker-up docker-down
+.PHONY: help build test clean fmt fmt-rs fmt-ts lint-ts clippy check docker-up docker-down
 
 help:
 	@echo "Confide Monorepo - Available Commands"
@@ -22,9 +22,12 @@ help:
 	@echo "  make test-server      - Test Server"
 	@echo ""
 	@echo "Quality:"
-	@echo "  make fmt              - Format Rust code"
-	@echo "  make clippy           - Run clippy"
-	@echo "  make check            - Run fmt + clippy + test"
+	@echo "  make fmt              - Format all code (Rust + TypeScript)"
+	@echo "  make fmt-rs           - Format Rust code"
+	@echo "  make fmt-ts           - Format TypeScript code"
+	@echo "  make clippy           - Run Rust clippy"
+	@echo "  make lint-ts          - Run TypeScript linter (Biome)"
+	@echo "  make check            - Run fmt + clippy + lint-ts + test"
 	@echo ""
 	@echo "Docker:"
 	@echo "  make docker-build     - Build Docker images"
@@ -71,13 +74,21 @@ test-central:
 test-server:
 	cargo test --package confide-server
 
-fmt:
+fmt: fmt-rs fmt-ts
+
+fmt-rs:
 	cargo fmt --all
+
+fmt-ts:
+	bunx biome format --write .
+
+lint-ts:
+	bunx biome lint .
 
 clippy:
 	cargo clippy --all-targets --all-features -- -D warnings
 
-check: fmt clippy test
+check: fmt clippy lint-ts test
 	@echo "All checks passed!"
 
 docker-build:
