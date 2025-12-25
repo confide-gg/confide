@@ -86,16 +86,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid)
         let _ = sender.send(Message::Text(json.into())).await;
     }
 
-    if let Ok(members) = state.db.get_all_members().await {
-        for member in members {
-            if let Ok(role_ids) = state.db.get_member_role_ids(member.id).await {
-                let role_sync = ServerMessage::MemberRolesUpdated {
-                    member_id: member.id,
-                    role_ids,
-                };
-                if let Ok(json) = serde_json::to_string(&role_sync) {
-                    let _ = sender.send(Message::Text(json.into())).await;
-                }
+    if let Ok(all_member_roles) = state.db.get_all_member_roles().await {
+        for (mid, role_ids) in all_member_roles {
+            let role_sync = ServerMessage::MemberRolesUpdated {
+                member_id: mid,
+                role_ids,
+            };
+            if let Ok(json) = serde_json::to_string(&role_sync) {
+                let _ = sender.send(Message::Text(json.into())).await;
             }
         }
     }

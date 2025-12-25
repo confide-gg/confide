@@ -133,6 +133,19 @@ impl Database {
         Ok(roles.into_iter().map(|r| r.0).collect())
     }
 
+    pub async fn get_all_member_roles(&self) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>> {
+        let rows: Vec<(Uuid, Uuid)> =
+            sqlx::query_as("SELECT member_id, role_id FROM member_roles ORDER BY member_id")
+                .fetch_all(&self.pool)
+                .await?;
+
+        let mut map: std::collections::HashMap<Uuid, Vec<Uuid>> = std::collections::HashMap::new();
+        for (member_id, role_id) in rows {
+            map.entry(member_id).or_default().push(role_id);
+        }
+        Ok(map)
+    }
+
     pub async fn ban_user(
         &self,
         central_user_id: Uuid,

@@ -157,12 +157,17 @@ pub async fn set_password(
         ));
     }
 
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-    let password_hash = argon2
-        .hash_password(req.password.as_bytes(), &salt)
-        .map_err(|e| AppError::Internal(format!("Failed to hash password: {}", e)))?
-        .to_string();
+    let password = req.password.clone();
+    let password_hash = tokio::task::spawn_blocking(move || {
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        argon2
+            .hash_password(password.as_bytes(), &salt)
+            .map(|h| h.to_string())
+    })
+    .await
+    .map_err(|e| AppError::Internal(format!("Task join error: {}", e)))?
+    .map_err(|e| AppError::Internal(format!("Failed to hash password: {}", e)))?;
 
     state.db.set_server_password(Some(password_hash)).await?;
 
@@ -180,15 +185,22 @@ pub async fn remove_password(
     Ok(Json(serde_json::json!({ "success": true })))
 }
 
-pub fn verify_password(password: &str, hash: &str) -> bool {
-    let parsed_hash = match PasswordHash::new(hash) {
-        Ok(h) => h,
-        Err(_) => return false,
-    };
+pub async fn verify_password(password: &str, hash: &str) -> bool {
+    let password = password.to_string();
+    let hash = hash.to_string();
 
-    Argon2::default()
-        .verify_password(password.as_bytes(), &parsed_hash)
-        .is_ok()
+    tokio::task::spawn_blocking(move || {
+        let parsed_hash = match PasswordHash::new(&hash) {
+            Ok(h) => h,
+            Err(_) => return false,
+        };
+
+        Argon2::default()
+            .verify_password(password.as_bytes(), &parsed_hash)
+            .is_ok()
+    })
+    .await
+    .unwrap_or(false)
 }
 
 pub async fn delete_server(

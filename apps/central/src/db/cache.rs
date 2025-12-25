@@ -91,16 +91,34 @@ pub async fn invalidate_cache(redis: &Client, pattern: &str) -> Result<()> {
 pub async fn invalidate_cache_pattern(redis: &Client, pattern: &str) -> Result<()> {
     let mut conn = redis.get_multiplexed_async_connection().await?;
 
-    let keys: Vec<String> = redis::cmd("KEYS")
-        .arg(pattern)
-        .query_async(&mut conn)
-        .await?;
+    let mut cursor = 0u64;
+    let mut total_deleted = 0usize;
 
-    if !keys.is_empty() {
-        let _: () = redis::cmd("DEL").arg(&keys).query_async(&mut conn).await?;
+    loop {
+        let (next_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg(pattern)
+            .arg("COUNT")
+            .arg(100)
+            .query_async(&mut conn)
+            .await?;
+
+        if !keys.is_empty() {
+            let _: () = redis::cmd("DEL").arg(&keys).query_async(&mut conn).await?;
+            total_deleted += keys.len();
+        }
+
+        cursor = next_cursor;
+        if cursor == 0 {
+            break;
+        }
+    }
+
+    if total_deleted > 0 {
         tracing::debug!(
             "invalidated {} keys matching pattern: {}",
-            keys.len(),
+            total_deleted,
             pattern
         );
     }

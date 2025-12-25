@@ -12,3 +12,15 @@ ON sessions(token_hash, expires_at);
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at
 ON sessions(expires_at);
+
+CREATE INDEX IF NOT EXISTS idx_members_central_user_id
+ON members(central_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_bans_central_user_id
+ON bans(central_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_invites_code
+ON invites(code);
+
+CREATE INDEX IF NOT EXISTS idx_invites_channel_id
+ON invites(channel_id);

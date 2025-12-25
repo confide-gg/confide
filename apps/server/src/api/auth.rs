@@ -69,7 +69,7 @@ pub async fn federated_login(
             if let Some(password_hash) = &identity.password_hash {
                 match &req.password {
                     Some(password) => {
-                        if !verify_password(password, password_hash) {
+                        if !verify_password(password, password_hash).await {
                             return Err(AppError::BadRequest("Invalid server password".into()));
                         }
                     }
