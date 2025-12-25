@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
 import { Phone, Pin } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
-import { useAuth } from "../../context/AuthContext";
 import { useCall } from "../calls/context";
+import { MessageSearch } from "../search";
 import { Avatar } from "../ui/avatar";
-import { PinnedMessages } from "./PinnedMessages";
 import { ConnectionStatus } from "../ui/ConnectionStatus";
+import { PinnedMessages } from "./PinnedMessages";
 
 const STATUS_LABELS: Record<string, string> = {
   online: "Online",
@@ -104,6 +105,11 @@ export function ChatHeader() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <MessageSearch
+            conversationName={
+              activeChat.isGroup ? activeChat.groupName : activeChat.visitorUsername
+            }
+          />
           <ConnectionStatus />
           {isDm && (
             <button

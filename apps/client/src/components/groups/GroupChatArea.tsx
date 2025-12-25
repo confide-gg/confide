@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState } from "react";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { Pin, UserPlus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/chat";
-import { ChatMessages } from "../chat/ChatMessages";
+import { cryptoService } from "../../core/crypto/crypto";
+import { groupService } from "../../features/groups/groupService";
 import { ChatInput } from "../chat/ChatInput";
-import { TypingIndicator } from "../chat/TypingIndicator";
+import { ChatMessages } from "../chat/ChatMessages";
 import { MessageContextMenu } from "../chat/MessageContextMenu";
 import { PinnedMessages } from "../chat/PinnedMessages";
-import { GroupMemberList } from "./GroupMemberList";
-import { useAuth } from "../../context/AuthContext";
+import { TypingIndicator } from "../chat/TypingIndicator";
+import { MessageSearch } from "../search";
 import { Input } from "../ui/input";
-import { groupService } from "../../features/groups/groupService";
-import { cryptoService } from "../../core/crypto/crypto";
 import { AddGroupMembersModal } from "./AddGroupMembersModal";
+import { GroupMemberList } from "./GroupMemberList";
 
 export function GroupChatArea() {
   const {
@@ -224,6 +225,7 @@ export function GroupChatArea() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <MessageSearch conversationName={groupName} />
               {isOwner && (
                 <button
                   onClick={() => setShowAddMembers(true)}
