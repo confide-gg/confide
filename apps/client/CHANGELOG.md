@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.26.0](https://github.com/confide-gg/confide/compare/confide-client-v0.25.1...confide-client-v0.26.0) (2025-12-25)
+
+
+### Features
+
+* emoji picker redesign with shortcode autocomplete ([6ccd867](https://github.com/confide-gg/confide/commit/6ccd867695ba7aae1cbfb68f91a071ea7850829b))
+
+
+### Bug Fixes
+
+* remove profile panel slide animation ([03334ee](https://github.com/confide-gg/confide/commit/03334ee219c22e9c0a4251792218384cb0dfba27))
+
 ## [0.25.1](https://github.com/confide-gg/confide/compare/confide-client-v0.25.0...confide-client-v0.25.1) (2025-12-25)
 
 
