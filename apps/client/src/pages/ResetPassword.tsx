@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { cryptoService } from "../core/crypto/crypto";
 import { recoveryService } from "../core/auth/RecoveryService";
 import { httpClient } from "../core/network/HttpClient";
+import { secureKeyStore } from "../core/crypto/SecureKeyStore";
 
 export function ResetPassword() {
   const [step, setStep] = useState<"username" | "recovery" | "newPassword">("username");
@@ -144,7 +145,7 @@ export function ResetPassword() {
         recovery_key_salt: newRecoveryData.recovery_key_salt,
       });
 
-      localStorage.setItem("auth_token", response.token);
+      await secureKeyStore.saveAuthToken(response.token);
       httpClient.setAuthToken(response.token);
 
       navigate("/login", {

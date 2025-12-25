@@ -38,7 +38,6 @@ interface AuthContextType extends AuthState {
 }
 
 const AUTH_STORAGE_KEY = "confide_auth_state";
-const PREKEY_STORAGE_KEY = "confide_prekey_secrets";
 
 interface StoredPrekeys {
   signedPrekey: SignedPrekey;
@@ -87,11 +86,7 @@ async function loadAuthFromStorage(): Promise<{ user: PublicUser; keys: Decrypte
   }
 }
 
-async function savePrekeySecrets(
-  userKeys: DecryptedKeys,
-  signedPrekey: SignedPrekey,
-  oneTimePrekeys: OneTimePrekey[]
-) {
+async function savePrekeySecrets(signedPrekey: SignedPrekey, oneTimePrekeys: OneTimePrekey[]) {
   const data: StoredPrekeys = {
     signedPrekey,
     oneTimePrekeys: {},
@@ -99,39 +94,25 @@ async function savePrekeySecrets(
   for (const otpk of oneTimePrekeys) {
     data.oneTimePrekeys[otpk.prekey_id] = otpk.secret_key;
   }
-  const jsonBytes = cryptoService.stringToBytes(JSON.stringify(data));
-  const encrypted = await cryptoService.encryptData(userKeys.kem_secret_key, jsonBytes);
-  localStorage.setItem(PREKEY_STORAGE_KEY, JSON.stringify(encrypted));
+  await secureKeyStore.savePrekeySecrets(data);
 }
 
-async function loadPrekeySecrets(userKeys: DecryptedKeys): Promise<StoredPrekeys | null> {
-  const stored = localStorage.getItem(PREKEY_STORAGE_KEY);
-  if (!stored) return null;
-  try {
-    const encrypted = JSON.parse(stored) as number[];
-    const decrypted = await cryptoService.decryptData(userKeys.kem_secret_key, encrypted);
-    return JSON.parse(cryptoService.bytesToString(decrypted));
-  } catch {
-    return null;
-  }
+async function loadPrekeySecrets(): Promise<StoredPrekeys | null> {
+  return secureKeyStore.loadPrekeySecrets<StoredPrekeys>();
 }
 
-async function addOneTimePrekeySecrets(userKeys: DecryptedKeys, newPrekeys: OneTimePrekey[]) {
-  const existing = await loadPrekeySecrets(userKeys);
+async function addOneTimePrekeySecrets(newPrekeys: OneTimePrekey[]) {
+  const existing = await loadPrekeySecrets();
   if (!existing) return;
   for (const otpk of newPrekeys) {
     existing.oneTimePrekeys[otpk.prekey_id] = otpk.secret_key;
   }
-  const jsonBytes = cryptoService.stringToBytes(JSON.stringify(existing));
-  const encrypted = await cryptoService.encryptData(userKeys.kem_secret_key, jsonBytes);
-  localStorage.setItem(PREKEY_STORAGE_KEY, JSON.stringify(encrypted));
+  await secureKeyStore.savePrekeySecrets(existing);
 }
 
 export async function getPrekeySecrets(): Promise<StoredPrekeys | null> {
-  const auth = await loadAuthFromStorage();
-  if (!auth) return null;
   try {
-    return loadPrekeySecrets(auth.keys);
+    return loadPrekeySecrets();
   } catch {
     return null;
   }
@@ -139,9 +120,7 @@ export async function getPrekeySecrets(): Promise<StoredPrekeys | null> {
 
 async function clearAuthStorage() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
-  localStorage.removeItem("auth_token");
-  localStorage.removeItem(PREKEY_STORAGE_KEY);
-  await secureKeyStore.clearKeys();
+  await secureKeyStore.clearAll();
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -177,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const loadAuth = async () => {
-      const token = localStorage.getItem("auth_token");
+      const token = await secureKeyStore.loadAuthToken();
       const savedAuth = await loadAuthFromStorage();
 
       if (token && savedAuth) {
@@ -212,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     const response = await authService.login({ username, password });
-    localStorage.setItem("auth_token", response.token);
+    await secureKeyStore.saveAuthToken(response.token);
     httpClient.setAuthToken(response.token);
 
     const decryptedKeys = await cryptoService.decryptKeys(
@@ -240,7 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { count } = await keyService.getPrekeyCount();
-      const storedPrekeys = await loadPrekeySecrets(decryptedKeys);
+      const storedPrekeys = await loadPrekeySecrets();
 
       if (count < 20 || !storedPrekeys) {
         const signedPrekey =
@@ -250,9 +229,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const newPrekeys = needed > 0 ? await cryptoService.generateOneTimePrekeys(needed) : [];
 
         if (!storedPrekeys) {
-          await savePrekeySecrets(decryptedKeys, signedPrekey, newPrekeys);
+          await savePrekeySecrets(signedPrekey, newPrekeys);
         } else if (newPrekeys.length > 0) {
-          await addOneTimePrekeySecrets(decryptedKeys, newPrekeys);
+          await addOneTimePrekeySecrets(newPrekeys);
         }
 
         if (newPrekeys.length > 0) {
@@ -287,7 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       key_salt: encryptedKeys.key_salt,
     });
 
-    localStorage.setItem("auth_token", response.token);
+    await secureKeyStore.saveAuthToken(response.token);
     httpClient.setAuthToken(response.token);
 
     const decryptedKeys = await cryptoService.decryptKeys(
@@ -326,7 +305,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signedPrekey = await cryptoService.generateSignedPrekey(decryptedKeys.dsa_secret_key);
     const oneTimePrekeys = await cryptoService.generateOneTimePrekeys(100);
 
-    await savePrekeySecrets(decryptedKeys, signedPrekey, oneTimePrekeys);
+    await savePrekeySecrets(signedPrekey, oneTimePrekeys);
 
     await keyService.uploadPrekeys({
       signed_prekey_public: signedPrekey.public_key,

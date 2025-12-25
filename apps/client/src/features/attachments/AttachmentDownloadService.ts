@@ -1,18 +1,23 @@
 import { compressionService, CompressionType } from "./CompressionService";
 import { fileEncryptionService } from "./FileEncryptionService";
 import { FileMetadata } from "./AttachmentUploadService";
+import { httpClient } from "../../core/network/HttpClient";
 
 class AttachmentDownloadService {
   async downloadAndDecryptFile(metadata: FileMetadata): Promise<Blob> {
     const { url, fileKey, compressionType, mimeType } = metadata.file;
 
     const s3Key = url.replace("s3://", "");
+    const token = httpClient.getAuthToken();
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
 
     const response = await fetch(
       `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/attachments/download/${encodeURIComponent(s3Key)}`,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     );

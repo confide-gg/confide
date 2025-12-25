@@ -76,23 +76,38 @@ export type OutgoingMessage =
   | OutgoingCallMuteUpdate
   | OutgoingPing;
 
-class CentralWebSocketService extends BaseWebSocket<WsMessage, OutgoingMessage> {
+interface OutgoingAuth {
+  type: "auth";
+  data: {
+    token: string;
+  };
+}
+
+type InternalOutgoingMessage = OutgoingMessage | OutgoingAuth;
+
+class CentralWebSocketService extends BaseWebSocket<WsMessage, InternalOutgoingMessage> {
   constructor() {
     super();
     this.shouldPing = true;
     this.pingIntervalMs = 25000;
   }
 
-  protected getPingMessage(): OutgoingMessage {
+  protected getPingMessage(): InternalOutgoingMessage {
     return { type: "ping" };
   }
 
   protected getUrl(): string {
+    return `${WS_BASE_URL}/ws`;
+  }
+
+  protected onConnected(): void {
     const token = httpClient.getAuthToken();
     if (!token) {
-      throw new Error("No auth token available for WebSocket connection");
+      console.error("[WS] No auth token available");
+      this.disconnect();
+      return;
     }
-    return `${WS_BASE_URL}/ws?token=${token}`;
+    this.send({ type: "auth", data: { token } });
   }
 
   sendTyping(conversationId: string, isTyping: boolean): void {

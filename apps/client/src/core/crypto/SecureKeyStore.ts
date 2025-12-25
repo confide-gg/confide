@@ -33,6 +33,55 @@ class SecureKeyStore {
     const store = await this.getStore();
     return await store.has("user_keys");
   }
+
+  async saveAuthToken(token: string): Promise<void> {
+    const store = await this.getStore();
+    await store.set("auth_token", token);
+    await store.save();
+  }
+
+  async loadAuthToken(): Promise<string | null> {
+    const store = await this.getStore();
+    const token = await store.get<string>("auth_token");
+    return token || null;
+  }
+
+  async clearAuthToken(): Promise<void> {
+    const store = await this.getStore();
+    await store.delete("auth_token");
+    await store.save();
+  }
+
+  async hasAuthToken(): Promise<boolean> {
+    const store = await this.getStore();
+    return await store.has("auth_token");
+  }
+
+  async savePrekeySecrets(data: unknown): Promise<void> {
+    const store = await this.getStore();
+    await store.set("prekey_secrets", data);
+    await store.save();
+  }
+
+  async loadPrekeySecrets<T>(): Promise<T | null> {
+    const store = await this.getStore();
+    const data = await store.get<T>("prekey_secrets");
+    return data || null;
+  }
+
+  async clearPrekeySecrets(): Promise<void> {
+    const store = await this.getStore();
+    await store.delete("prekey_secrets");
+    await store.save();
+  }
+
+  async clearAll(): Promise<void> {
+    const store = await this.getStore();
+    await store.delete("user_keys");
+    await store.delete("auth_token");
+    await store.delete("prekey_secrets");
+    await store.save();
+  }
 }
 
 export const secureKeyStore = new SecureKeyStore();

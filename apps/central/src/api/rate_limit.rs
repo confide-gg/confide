@@ -11,6 +11,7 @@ use crate::{error::AppError, AppState};
 
 pub enum RateLimitTier {
     Auth,
+    Recovery,
     WebSocketConnect,
     Read,
     Write,
@@ -21,6 +22,7 @@ impl RateLimitTier {
     pub fn limits(&self) -> (u32, u64, &'static str) {
         match self {
             RateLimitTier::Auth => (5, 60, "auth"),
+            RateLimitTier::Recovery => (3, 60, "recovery"),
             RateLimitTier::WebSocketConnect => (10, 60, "ws"),
             RateLimitTier::Read => (300, 60, "read"),
             RateLimitTier::Write => (60, 60, "write"),
@@ -31,6 +33,8 @@ impl RateLimitTier {
     pub fn from_request(path: &str, method: &Method) -> Self {
         if path.starts_with("/api/auth") {
             RateLimitTier::Auth
+        } else if path.starts_with("/api/recovery") {
+            RateLimitTier::Recovery
         } else if path.starts_with("/ws") {
             RateLimitTier::WebSocketConnect
         } else if path.starts_with("/api/uploads") {

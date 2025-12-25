@@ -15,14 +15,16 @@ pub use handler::{
 };
 
 use axum::{
-    extract::{Query, State, WebSocketUpgrade},
+    extract::{ws::Message, State, WebSocketUpgrade},
     response::Response,
     routing::get,
     Router,
 };
+use futures::StreamExt;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
+use tokio::time::{timeout, Duration};
 
 use crate::error::AppError;
 use crate::AppState;
@@ -32,25 +34,65 @@ pub fn routes() -> Router<Arc<AppState>> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct WsQuery {
+struct AuthMessage {
+    #[serde(rename = "type")]
+    msg_type: String,
+    data: AuthData,
+}
+
+#[derive(Debug, Deserialize)]
+struct AuthData {
     token: String,
 }
 
 async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
-    Query(query): Query<WsQuery>,
 ) -> Result<Response, AppError> {
-    let token_bytes = hex::decode(&query.token).map_err(|_| AppError::Unauthorized)?;
-    let token_hash = Sha256::digest(&token_bytes).to_vec();
+    Ok(ws.on_upgrade(move |socket| async move {
+        let (sender, mut receiver) = socket.split();
 
-    let session = state
-        .db
-        .get_session_by_token_hash(&token_hash)
-        .await?
-        .ok_or(AppError::Unauthorized)?;
+        let auth_result = timeout(Duration::from_secs(10), async {
+            while let Some(Ok(msg)) = receiver.next().await {
+                if let Message::Text(text) = msg {
+                    if let Ok(auth_msg) = serde_json::from_str::<AuthMessage>(&text) {
+                        if auth_msg.msg_type == "auth" {
+                            return Some(auth_msg.data.token);
+                        }
+                    }
+                }
+            }
+            None
+        })
+        .await;
 
-    let user_id = session.user_id;
+        let token = match auth_result {
+            Ok(Some(t)) => t,
+            _ => {
+                tracing::warn!("WebSocket auth timeout or missing auth message");
+                return;
+            }
+        };
 
-    Ok(ws.on_upgrade(move |socket| handler::handle_socket(socket, state, user_id)))
+        let token_bytes = match hex::decode(&token) {
+            Ok(b) => b,
+            Err(_) => {
+                tracing::warn!("WebSocket invalid token format");
+                return;
+            }
+        };
+
+        let token_hash = Sha256::digest(&token_bytes).to_vec();
+        let session = match state.db.get_session_by_token_hash(&token_hash).await {
+            Ok(Some(s)) => s,
+            _ => {
+                tracing::warn!("WebSocket invalid session");
+                return;
+            }
+        };
+
+        let user_id = session.user_id;
+        let socket = sender.reunite(receiver).expect("reunite failed");
+        handler::handle_socket(socket, state, user_id).await;
+    }))
 }

@@ -1,6 +1,7 @@
 import { compressionService } from "./CompressionService";
 import { fileEncryptionService } from "./FileEncryptionService";
 import { validateFile, sanitizeFilename } from "../../utils/fileValidation";
+import { httpClient } from "../../core/network/HttpClient";
 
 export interface FileMetadata {
   type: "file";
@@ -100,11 +101,17 @@ class AttachmentUploadService {
       xhr.addEventListener("error", () => reject(new Error("Upload failed")));
       xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
 
+      const token = httpClient.getAuthToken();
+      if (!token) {
+        reject(new Error("Not authenticated"));
+        return;
+      }
+
       xhr.open(
         "POST",
         `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/attachments/upload`
       );
-      xhr.setRequestHeader("Authorization", `Bearer ${localStorage.getItem("auth_token")}`);
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
       xhr.setRequestHeader("Content-Type", "application/octet-stream");
       xhr.setRequestHeader("x-conversation-id", conversationId);
       xhr.setRequestHeader("x-filename", filename);
