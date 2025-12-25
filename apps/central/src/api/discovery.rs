@@ -75,7 +75,7 @@ pub async fn search_servers(
         .db
         .search_discoverable_servers(&query.q, limit, offset)
         .await?;
-    let total = servers.len() as i64;
+    let total = state.db.count_search_discoverable_servers(&query.q).await?;
 
     Ok(Json(ListServersResponse {
         servers,

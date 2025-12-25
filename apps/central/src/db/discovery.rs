@@ -13,6 +13,7 @@ impl Database {
             r#"
             SELECT * FROM registered_servers
             WHERE is_discoverable = true
+            AND last_heartbeat > NOW() - INTERVAL '24 hours'
             ORDER BY member_count DESC, last_heartbeat DESC
             LIMIT $1 OFFSET $2
             "#,
@@ -35,6 +36,7 @@ impl Database {
             r#"
             SELECT * FROM registered_servers
             WHERE is_discoverable = true
+            AND last_heartbeat > NOW() - INTERVAL '24 hours'
             AND (display_name ILIKE $1 OR description ILIKE $1)
             ORDER BY member_count DESC, last_heartbeat DESC
             LIMIT $2 OFFSET $3
@@ -49,10 +51,31 @@ impl Database {
     }
 
     pub async fn count_discoverable_servers(&self) -> Result<i64> {
-        let count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM registered_servers WHERE is_discoverable = true")
-                .fetch_one(&self.pool)
-                .await?;
+        let count: (i64,) = sqlx::query_as(
+            r#"
+            SELECT COUNT(*) FROM registered_servers
+            WHERE is_discoverable = true
+            AND last_heartbeat > NOW() - INTERVAL '24 hours'
+            "#,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(count.0)
+    }
+
+    pub async fn count_search_discoverable_servers(&self, query: &str) -> Result<i64> {
+        let search_pattern = format!("%{}%", query);
+        let count: (i64,) = sqlx::query_as(
+            r#"
+            SELECT COUNT(*) FROM registered_servers
+            WHERE is_discoverable = true
+            AND last_heartbeat > NOW() - INTERVAL '24 hours'
+            AND (display_name ILIKE $1 OR description ILIKE $1)
+            "#,
+        )
+        .bind(search_pattern)
+        .fetch_one(&self.pool)
+        .await?;
         Ok(count.0)
     }
 

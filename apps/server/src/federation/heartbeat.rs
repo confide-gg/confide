@@ -16,6 +16,10 @@ struct HeartbeatRequest {
     timestamp: i64,
     nonce: Uuid,
     signature: Vec<u8>,
+    display_name: String,
+    description: Option<String>,
+    is_discoverable: bool,
+    icon_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -95,6 +99,10 @@ impl HeartbeatService {
             timestamp,
             nonce,
             signature,
+            display_name: identity.server_name,
+            description: identity.description,
+            is_discoverable: identity.is_discoverable,
+            icon_url: identity.icon_url,
         };
 
         let response = self

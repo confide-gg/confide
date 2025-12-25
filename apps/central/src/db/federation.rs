@@ -66,12 +66,33 @@ impl Database {
         Ok(server)
     }
 
-    pub async fn update_server_heartbeat(&self, server_id: Uuid, member_count: i32) -> Result<()> {
+    pub async fn update_server_heartbeat(
+        &self,
+        server_id: Uuid,
+        member_count: i32,
+        display_name: Option<String>,
+        description: Option<String>,
+        is_discoverable: Option<bool>,
+        icon_url: Option<String>,
+    ) -> Result<()> {
         sqlx::query(
-            "UPDATE registered_servers SET last_heartbeat = NOW(), member_count = $2 WHERE id = $1",
+            r#"
+            UPDATE registered_servers SET
+                last_heartbeat = NOW(),
+                member_count = $2,
+                display_name = COALESCE($3, display_name),
+                description = COALESCE($4, description),
+                is_discoverable = COALESCE($5, is_discoverable),
+                icon_url = COALESCE($6, icon_url)
+            WHERE id = $1
+            "#,
         )
         .bind(server_id)
         .bind(member_count)
+        .bind(display_name)
+        .bind(description)
+        .bind(is_discoverable)
+        .bind(icon_url)
         .execute(&self.pool)
         .await?;
         Ok(())

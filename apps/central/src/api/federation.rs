@@ -214,6 +214,10 @@ pub struct HeartbeatRequest {
     pub timestamp: i64,
     pub nonce: Uuid,
     pub signature: Vec<u8>,
+    pub display_name: Option<String>,
+    pub description: Option<String>,
+    pub is_discoverable: Option<bool>,
+    pub icon_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -272,7 +276,14 @@ pub async fn heartbeat(
 
     state
         .db
-        .update_server_heartbeat(server.id, req.member_count)
+        .update_server_heartbeat(
+            server.id,
+            req.member_count,
+            req.display_name,
+            req.description,
+            req.is_discoverable,
+            req.icon_url,
+        )
         .await?;
 
     Ok(Json(HeartbeatResponse { acknowledged: true }))
