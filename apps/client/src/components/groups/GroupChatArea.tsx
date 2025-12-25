@@ -13,7 +13,6 @@ import { TypingIndicator } from "../chat/TypingIndicator";
 import { MessageSearch } from "../search";
 import { Input } from "../ui/input";
 import { AddGroupMembersModal } from "./AddGroupMembersModal";
-import { GroupMemberList } from "./GroupMemberList";
 
 export function GroupChatArea() {
   const {
@@ -190,83 +189,73 @@ export function GroupChatArea() {
   };
 
   return (
-    <div className="flex h-full">
-      <div className="flex flex-col flex-1 min-w-0">
-        <div className="shrink-0 z-10 border-b border-border relative">
-          <div className="flex items-center justify-between px-6 h-14">
-            <div className="flex items-center gap-2 min-w-0">
-              {isEditingName ? (
-                <Input
-                  value={pendingName}
-                  onChange={(e) => setPendingName(e.target.value)}
-                  className="h-8 bg-secondary/50"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      saveName();
-                    }
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      cancelEdit();
-                    }
-                  }}
-                  onBlur={() => cancelEdit()}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={beginEdit}
-                  className={`font-semibold text-base text-foreground truncate ${canEditName ? "hover:underline" : ""}`}
-                >
-                  {groupName}
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <MessageSearch conversationName={groupName} />
-              {isOwner && (
-                <button
-                  onClick={() => setShowAddMembers(true)}
-                  className="p-2 rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
-                  title="Add members"
-                >
-                  <UserPlus className="w-5 h-5" />
-                </button>
-              )}
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 z-10 border-b border-border relative">
+        <div className="flex items-center justify-between px-6 h-14">
+          <div className="flex items-center gap-2 min-w-0">
+            {isEditingName ? (
+              <Input
+                value={pendingName}
+                onChange={(e) => setPendingName(e.target.value)}
+                className="h-8 bg-secondary/50"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    saveName();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelEdit();
+                  }
+                }}
+                onBlur={() => cancelEdit()}
+              />
+            ) : (
               <button
-                onClick={() => setShowPinned(!showPinned)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showPinned
-                    ? "bg-primary/10 text-primary"
-                    : "hover:bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-                title="Pinned Messages"
+                type="button"
+                onClick={beginEdit}
+                className={`font-semibold text-base text-foreground truncate ${canEditName ? "hover:underline" : ""}`}
               >
-                <Pin className="w-5 h-5" />
+                {groupName}
               </button>
-            </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <MessageSearch conversationName={groupName} />
+            {isOwner && (
+              <button
+                onClick={() => setShowAddMembers(true)}
+                className="p-2 rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
+                title="Add members"
+              >
+                <UserPlus className="w-5 h-5" />
+              </button>
+            )}
+            <button
+              onClick={() => setShowPinned(!showPinned)}
+              className={`p-2 rounded-lg transition-colors ${
+                showPinned
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+              title="Pinned Messages"
+            >
+              <Pin className="w-5 h-5" />
+            </button>
           </div>
         </div>
-        {showPinned && (
-          <PinnedMessages
-            conversationId={activeChat.conversationId}
-            onClose={() => setShowPinned(false)}
-            onJump={handleJump}
-          />
-        )}
-        <ChatMessages />
-        <TypingIndicator />
-        <ChatInput />
       </div>
-
-      <GroupMemberList
-        conversationId={activeChat.conversationId}
-        ownerId={activeChat.groupOwnerId || undefined}
-        onOwnerIdChange={(newOwnerId) => {
-          setActiveChat((prev) => (prev ? { ...prev, groupOwnerId: newOwnerId } : prev));
-        }}
-      />
+      {showPinned && (
+        <PinnedMessages
+          conversationId={activeChat.conversationId}
+          onClose={() => setShowPinned(false)}
+          onJump={handleJump}
+        />
+      )}
+      <ChatMessages />
+      <TypingIndicator />
+      <ChatInput />
 
       <AddGroupMembersModal
         isOpen={showAddMembers}

@@ -6,7 +6,6 @@ import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 import { TypingIndicator } from "./TypingIndicator";
 import { MessageContextMenu } from "./MessageContextMenu";
-import { ProfileSidePanel } from "../profile/ProfileSidePanel";
 import { CallHeader } from "../calls/CallHeader";
 import { useMessages } from "../../hooks/queries";
 import { EmojiPicker } from "./EmojiPicker";
@@ -22,8 +21,6 @@ export function ChatArea() {
     unpinMessage,
     setReplyTo,
     chatMessages,
-    showProfilePanel,
-    setShowProfilePanel,
     setEditingMessageId,
   } = useChat();
   const { callState } = useCall();
@@ -131,21 +128,12 @@ export function ChatArea() {
   };
 
   return (
-    <div className="flex h-full relative">
-      <div className="flex flex-col flex-1 min-w-0">
-        {isInCallWithActiveChat && <CallHeader />}
-        <ChatHeader />
-        <ChatMessages />
-        <TypingIndicator />
-        <ChatInput />
-      </div>
-      {showProfilePanel && activeChat && (
-        <ProfileSidePanel
-          userId={activeChat.visitorId}
-          username={activeChat.visitorUsername}
-          onClose={() => setShowProfilePanel(false)}
-        />
-      )}
+    <div className="flex flex-col h-full">
+      {isInCallWithActiveChat && <CallHeader />}
+      <ChatHeader />
+      <ChatMessages />
+      <TypingIndicator />
+      <ChatInput />
       {messageContextMenu && (
         <div ref={contextMenuRef}>
           <MessageContextMenu

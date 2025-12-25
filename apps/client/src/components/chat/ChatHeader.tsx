@@ -9,14 +9,6 @@ import { Avatar } from "../ui/avatar";
 import { ConnectionStatus } from "../ui/ConnectionStatus";
 import { PinnedMessages } from "./PinnedMessages";
 
-const STATUS_LABELS: Record<string, string> = {
-  online: "Online",
-  away: "Away",
-  dnd: "Do Not Disturb",
-  invisible: "Invisible",
-  offline: "Offline",
-};
-
 export function ChatHeader() {
   const { activeChat, showProfilePanel, setShowProfilePanel, setVerifyModal } = useChat();
   const { getUserPresence, subscribeToUsers, isWsConnected, isOnline } = usePresence();
@@ -92,15 +84,8 @@ export function ChatHeader() {
             size="md"
           />
           <div className="flex flex-col justify-center min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-base text-foreground truncate">
-                @{activeChat.visitorUsername}
-              </span>
-            </div>
-            <span
-              className={`text-xs font-medium ${userIsOnline ? "text-online" : "text-muted-foreground"}`}
-            >
-              {STATUS_LABELS[displayStatus] || "Offline"}
+            <span className="font-semibold text-base text-foreground truncate">
+              @{activeChat.visitorUsername}
             </span>
           </div>
         </div>

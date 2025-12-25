@@ -13,6 +13,7 @@ import { ContextMenu } from "../common/ContextMenu";
 import { DmContextMenu } from "../sidebar/DmContextMenu";
 import { GroupContextMenu } from "../groups/GroupContextMenu";
 import { ProfileModal } from "../profile/ProfileModal";
+import { ProfileSidePanel } from "../profile/ProfileSidePanel";
 import { VerifyModal } from "../common/VerifyModal";
 import { toast } from "sonner";
 import { useDropzone } from "../../hooks/useDropzone";
@@ -21,6 +22,7 @@ import { ServerList } from "../sidebar/ServerList";
 import { ChannelList } from "../servers/ChannelList";
 import { ChannelChat } from "../servers/ChannelChat";
 import { MemberList } from "../servers/MemberList";
+import { GroupMemberList } from "../groups/GroupMemberList";
 import { ServerOfflineOverlay } from "../common/ServerOfflineOverlay";
 import { Avatar } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
@@ -47,6 +49,7 @@ export function MainLayout() {
   } | null>(null);
   const {
     activeChat,
+    setActiveChat,
     sidebarView,
     setSidebarView,
     contextMenu,
@@ -74,6 +77,8 @@ export function MainLayout() {
     unreadCounts,
     dmPreviews,
     openDmFromPreview,
+    showProfilePanel,
+    setShowProfilePanel,
   } = useChat();
   const { isDragging } = useDropzone();
   const { showShortcutsModal, setShowShortcutsModal } = useKeyboardShortcuts();
@@ -242,8 +247,38 @@ export function MainLayout() {
         />
       )}
 
-      {!activeServer && (
+      {!activeServer && !activeChat && (
         <Panel className="flex-1 flex flex-col min-w-0 relative">{renderMainContent()}</Panel>
+      )}
+
+      {!activeServer && activeChat && !activeChat.isGroup && (
+        <main className="flex-1 flex min-w-0 relative overflow-hidden gap-3">
+          <Panel className="flex-1 flex flex-col min-w-0">
+            <ChatArea />
+          </Panel>
+          {showProfilePanel && (
+            <ProfileSidePanel
+              userId={activeChat.visitorId}
+              username={activeChat.visitorUsername}
+              onClose={() => setShowProfilePanel(false)}
+            />
+          )}
+        </main>
+      )}
+
+      {!activeServer && activeChat && activeChat.isGroup && (
+        <main className="flex-1 flex min-w-0 relative overflow-hidden gap-3">
+          <Panel className="flex-1 flex flex-col min-w-0">
+            <GroupChatArea />
+          </Panel>
+          <GroupMemberList
+            conversationId={activeChat.conversationId}
+            ownerId={activeChat.groupOwnerId || undefined}
+            onOwnerIdChange={(newOwnerId) => {
+              setActiveChat((prev) => (prev ? { ...prev, groupOwnerId: newOwnerId } : prev));
+            }}
+          />
+        </main>
       )}
 
       {activeServer && activeChannel && (
