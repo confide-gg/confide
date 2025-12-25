@@ -254,7 +254,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (username: string, password: string): Promise<RegisterResult> => {
+    const yieldToMain = () => new Promise((r) => setTimeout(r, 0));
+
     const encryptedKeys = await cryptoService.generateKeys(password);
+    await yieldToMain();
 
     const response = await authService.register({
       username,
@@ -268,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     await secureKeyStore.saveAuthToken(response.token);
     httpClient.setAuthToken(response.token);
+    await yieldToMain();
 
     const decryptedKeys = await cryptoService.decryptKeys(
       password,
@@ -277,33 +281,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       encryptedKeys.dsa_encrypted_private,
       encryptedKeys.key_salt
     );
+    await yieldToMain();
 
     if (!decryptedKeys.kem_secret_key || decryptedKeys.kem_secret_key.length === 0) {
       throw new Error(`Invalid KEM secret key generated: empty or missing`);
     }
 
-    try {
-      const testData = cryptoService.stringToBytes("test");
-      const testEncrypted = await cryptoService.encryptForRecipient(
-        decryptedKeys.kem_public_key,
-        testData
-      );
-      const testDecrypted = await cryptoService.decryptFromSender(
-        decryptedKeys.kem_secret_key,
-        testEncrypted
-      );
-      const testResult = cryptoService.bytesToString(testDecrypted);
-      if (testResult !== "test") {
-        throw new Error("Key pair validation failed: roundtrip test mismatch");
-      }
-      console.error("[Auth] Key pair validation passed");
-    } catch (err) {
-      console.error("[Auth] Key pair validation FAILED:", err);
-      throw new Error(`Key pair validation failed: ${err}`);
-    }
-
     const signedPrekey = await cryptoService.generateSignedPrekey(decryptedKeys.dsa_secret_key);
+    await yieldToMain();
+
     const oneTimePrekeys = await cryptoService.generateOneTimePrekeys(100);
+    await yieldToMain();
 
     await savePrekeySecrets(signedPrekey, oneTimePrekeys);
 
