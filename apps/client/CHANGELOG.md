@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.27.1](https://github.com/confide-gg/confide/compare/confide-client-v0.27.0...confide-client-v0.27.1) (2025-12-25)
+
+
+### Bug Fixes
+
+* prevent animation freeze during registration ([dedef80](https://github.com/confide-gg/confide/commit/dedef80a7e3b5e922655471e41e05f44db7ff17e))
+* prevent timed messages from being cached ([912bc61](https://github.com/confide-gg/confide/commit/912bc61ebf9ae5604f92900e287323f2bb8a020b))
+* security hardening ([c6afcf0](https://github.com/confide-gg/confide/commit/c6afcf06b4eddcec83835ed679d31bafeb6b08a7))
+* sync idle detection with actual user status ([43bc68e](https://github.com/confide-gg/confide/commit/43bc68e1cae77b3663abf8e1130b8c4d32f8e9f6))
+
 ## [0.27.0](https://github.com/confide-gg/confide/compare/confide-client-v0.26.0...confide-client-v0.27.0) (2025-12-25)
 
 
