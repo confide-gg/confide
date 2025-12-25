@@ -193,37 +193,37 @@ export function FriendsPage() {
         <div className="flex items-center gap-2 mr-6 text-foreground">
           <span className="font-bold text-lg">Friends</span>
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium overflow-x-auto hide-scrollbar">
+        <div className="flex items-center gap-2 text-base font-medium overflow-x-auto hide-scrollbar">
           <Button
             variant={activeTab === "online" ? "secondary" : "ghost"}
-            size="sm"
+            size="default"
             onClick={() => setActiveTab("online")}
           >
             Online
           </Button>
           <Button
             variant={activeTab === "all" ? "secondary" : "ghost"}
-            size="sm"
+            size="default"
             onClick={() => setActiveTab("all")}
           >
             All
           </Button>
           <Button
             variant={activeTab === "pending" ? "secondary" : "ghost"}
-            size="sm"
+            size="default"
             onClick={() => setActiveTab("pending")}
             className="gap-2"
           >
             Pending
             {friendRequests.length > 0 && (
-              <span className="bg-destructive text-white text-[10px] px-1.5 py-0.5 rounded-full">
+              <span className="bg-destructive text-white text-xs px-1.5 py-0.5 rounded-full">
                 {friendRequests.length}
               </span>
             )}
           </Button>
           <Button
             variant={activeTab === "add_friend" ? "default" : "secondary"}
-            size="sm"
+            size="default"
             onClick={() => setActiveTab("add_friend")}
             className={activeTab === "add_friend" ? "" : "text-primary"}
           >
