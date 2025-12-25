@@ -453,7 +453,10 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                       idx === selectedSuggestion ? "bg-secondary/60" : "hover:bg-secondary/40"
                     )}
                   >
-                    <FontAwesomeIcon icon={iconName} className="w-4 h-4 text-muted-foreground" />
+                    <FontAwesomeIcon
+                      icon={iconName as any}
+                      className="w-4 h-4 text-muted-foreground"
+                    />
                     <span className="text-sm text-foreground">{suggestion.label}</span>
                   </button>
                 );
@@ -473,7 +476,7 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                   className="flex items-center gap-3 w-full px-2 py-2.5 rounded-md hover:bg-secondary/50 transition-colors text-left group"
                 >
                   <FontAwesomeIcon
-                    icon={option.icon}
+                    icon={option.icon as any}
                     className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"
                   />
                   <div className="flex-1 min-w-0">

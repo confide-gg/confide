@@ -82,10 +82,10 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
     );
   }
 
-  const tabs: { id: Tab; label: string; icon: typeof Settings }[] = [
-    { id: "overview", label: "Overview", icon: Settings },
-    { id: "roles", label: "Roles", icon: Shield },
-    { id: "bans", label: "Bans", icon: Ban },
+  const tabs: { id: Tab; label: string; icon: string }[] = [
+    { id: "overview", label: "Overview", icon: "gear" },
+    { id: "roles", label: "Roles", icon: "shield" },
+    { id: "bans", label: "Bans", icon: "ban" },
   ];
 
   return (
@@ -111,7 +111,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                     }`}
                   >
-                    <tab.icon className="w-4 h-4" />
+                    <FontAwesomeIcon icon={tab.icon as any} className="w-4 h-4" />
                     {tab.label}
                   </button>
                 ))}
