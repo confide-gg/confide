@@ -33,56 +33,45 @@ function FriendRow({ friend, onOpenChat, onRemove, getUserPresence, isOnline }: 
   const displayStatus = userIsOnline ? presence?.status || "online" : "offline";
 
   return (
-    <div
-      onClick={() => onOpenChat(friend)}
-      className="group flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border hover:bg-accent/50 cursor-pointer transition-all mb-3 relative overflow-hidden"
-    >
-      <div className="flex items-center gap-4 relative flex-1 min-w-0">
-        <div className="relative shrink-0">
-          <Avatar
-            fallback={friend.username}
-            status={displayStatus as "online" | "away" | "dnd" | "invisible" | "offline"}
-            className="w-12 h-12 border-2 border-background"
-          />
-        </div>
+    <div className="group flex items-center justify-between px-3 py-2.5 border-t border-border/30 hover:bg-accent/40 transition-colors">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar
+          fallback={friend.username}
+          status={displayStatus as "online" | "away" | "dnd" | "invisible" | "offline"}
+          className="w-10 h-10"
+        />
         <div className="flex flex-col flex-1 min-w-0">
-          <span className="font-semibold text-foreground text-base tracking-tight">
-            {friend.username}
-          </span>
+          <span className="font-semibold text-foreground text-sm">{friend.username}</span>
           {activity ? (
-            <ActivityDisplay activity={activity} compact className="mt-1" />
+            <ActivityDisplay activity={activity} compact className="mt-0.5" />
           ) : (
-            <span
-              className={`text-xs font-medium ${userIsOnline ? "text-green-500" : "text-muted-foreground"}`}
-            >
+            <span className="text-xs text-muted-foreground">
               {STATUS_LABELS[displayStatus] || "Offline"}
             </span>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 relative">
-        <Button
-          size="sm"
-          variant="ghost"
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
           onClick={(e) => {
             e.stopPropagation();
             onOpenChat(friend);
           }}
-          className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-background transition-colors"
+          title="Message"
         >
-          Message
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
+          <FontAwesomeIcon icon="comment" className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <button
           onClick={(e) => {
             e.stopPropagation();
             onRemove(friend);
           }}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-background transition-colors"
+          title="Remove Friend"
         >
-          Remove
-        </Button>
+          <FontAwesomeIcon icon="xmark" className="w-4 h-4 text-muted-foreground" />
+        </button>
       </div>
     </div>
   );
@@ -140,37 +129,32 @@ export function FriendsPage() {
   const renderRequestRow = (request: (typeof friendRequests)[0]) => (
     <div
       key={request.id}
-      className="group flex items-center justify-between p-4 rounded-xl bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border hover:bg-accent/50 transition-all mb-3"
+      className="group flex items-center justify-between px-3 py-2.5 border-t border-border/30 hover:bg-accent/40 transition-colors"
     >
-      <div className="flex items-center gap-4">
-        <Avatar
-          fallback={request.from_user.username}
-          className="w-12 h-12 border-2 border-background"
-        />
-        <div className="flex flex-col">
-          <span className="font-semibold text-foreground text-base">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar fallback={request.from_user.username} className="w-10 h-10" />
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="font-semibold text-foreground text-sm">
             {request.from_user.username}
           </span>
-          <span className="text-xs text-muted-foreground font-medium">Incoming Friend Request</span>
+          <span className="text-xs text-muted-foreground">Incoming Friend Request</span>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="ghost"
+      <div className="flex items-center gap-1">
+        <button
           onClick={() => handleAcceptRequest(request)}
-          className="text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-green-500/10 transition-colors"
+          title="Accept"
         >
-          Accept
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
+          <FontAwesomeIcon icon="check" className="w-4 h-4 text-green-500" />
+        </button>
+        <button
           onClick={() => handleRejectRequest(request.id)}
-          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-destructive/10 transition-colors"
+          title="Decline"
         >
-          Decline
-        </Button>
+          <FontAwesomeIcon icon="xmark" className="w-4 h-4 text-destructive" />
+        </button>
       </div>
     </div>
   );
@@ -328,7 +312,7 @@ export function FriendsPage() {
                     : `Pending Requests — ${filteredRequests.length}`}
               </h3>
 
-              <div className="space-y-1">
+              <div>
                 {activeTab === "online" &&
                   filteredOnlineFriends.map((f) => (
                     <FriendRow
