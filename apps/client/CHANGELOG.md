@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.25.0](https://github.com/confide-gg/confide/compare/confide-client-v0.24.0...confide-client-v0.25.0) (2025-12-25)
+
+
+### Features
+
+* add message search with filters and autocomplete ([e059e1c](https://github.com/confide-gg/confide/commit/e059e1c73edb567a31c5799180515323d44b9be8))
+* improve chat UX with keyboard shortcuts, prefetching, and visual feedback ([c41e930](https://github.com/confide-gg/confide/commit/c41e9308d7580241eeffbfc5ec6684a94d610572))
+* improve unread message indicators with sidebar avatars ([c400dc5](https://github.com/confide-gg/confide/commit/c400dc50e185222a5f18f04028e7b7aa97f01ac1))
+
 ## [0.24.0](https://github.com/confide-gg/confide/compare/confide-client-v0.23.1...confide-client-v0.24.0) (2025-12-21)
 
 
