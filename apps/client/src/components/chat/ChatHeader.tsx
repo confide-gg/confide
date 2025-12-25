@@ -1,4 +1,4 @@
-import { Phone, Pin } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/chat";
@@ -107,7 +107,7 @@ export function ChatHeader() {
               }`}
               title={canCall ? "Start voice call" : "Call in progress"}
             >
-              <Phone className="w-5 h-5" />
+              <FontAwesomeIcon icon="phone" className="w-5 h-5" />
             </button>
           )}
           <button
@@ -119,7 +119,7 @@ export function ChatHeader() {
             }`}
             title="Pinned Messages"
           >
-            <Pin className="w-5 h-5" />
+            <FontAwesomeIcon icon="thumbtack" className="w-5 h-5" />
           </button>
           {canVerify && (
             <button
@@ -127,18 +127,7 @@ export function ChatHeader() {
               className="p-2 rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
               title="View safety number"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+              <FontAwesomeIcon icon="shield" className="w-5 h-5" />
             </button>
           )}
           <button
@@ -150,17 +139,7 @@ export function ChatHeader() {
             }`}
             title={showProfilePanel ? "Hide profile" : "Show profile"}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+            <FontAwesomeIcon icon="user" className="w-5 h-5" />
           </button>
         </div>
       </div>

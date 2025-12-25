@@ -1,3 +1,4 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ContextMenuData } from "../../types";
 
 interface ContextMenuProps {
@@ -18,17 +19,7 @@ export function ContextMenu({ data, onMessage, onRemove, onVerify }: ContextMenu
         onClick={onMessage}
         className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-secondary transition-colors text-foreground"
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="opacity-70"
-        >
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
+        <FontAwesomeIcon icon="comment" className="w-4 h-4 opacity-70" />
         Message
       </button>
       {onVerify && (
@@ -36,18 +27,7 @@ export function ContextMenu({ data, onMessage, onRemove, onVerify }: ContextMenu
           onClick={onVerify}
           className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-secondary transition-colors text-foreground"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="opacity-70"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
+          <FontAwesomeIcon icon="shield" className="w-4 h-4 opacity-70" />
           Verify Identity
         </button>
       )}
@@ -56,19 +36,7 @@ export function ContextMenu({ data, onMessage, onRemove, onVerify }: ContextMenu
         className="w-full px-3 py-2 text-sm text-left flex items-center gap-2 hover:bg-destructive/10 text-destructive transition-colors"
         onClick={onRemove}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="8.5" cy="7" r="4" />
-          <line x1="18" y1="8" x2="23" y2="13" />
-          <line x1="23" y1="8" x2="18" y2="13" />
-        </svg>
+        <FontAwesomeIcon icon="user-minus" className="w-4 h-4" />
         Remove Friend
       </button>
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useServer } from "../../context/server";
 import { useAuth } from "../../context/AuthContext";
 import { usePresence } from "../../context/PresenceContext";
-import { AlertTriangle, Smile, Hash } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cryptoService } from "../../core/crypto/crypto";
 import type { FederatedMember as Member } from "../../features/servers/federatedClient";
 import type { WsMessage as ServerMessage } from "../../core/network/wsTypes";
@@ -381,7 +381,7 @@ export function ChannelChat() {
     return (
       <div className="flex flex-col h-full items-center justify-center p-8 text-center">
         <div className="text-destructive mb-4">
-          <AlertTriangle className="w-12 h-12" />
+          <FontAwesomeIcon icon="triangle-exclamation" className="w-12 h-12" />
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-2">Channel Error</h3>
         <p className="text-sm text-muted-foreground max-w-md">{error}</p>
@@ -403,7 +403,7 @@ export function ChannelChat() {
             {categories.find((c) => c.id === activeChannel.category_id)?.name || "Text Channels"}
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <Hash className="w-4 h-4 text-muted-foreground shrink-0" />
+            <FontAwesomeIcon icon="hashtag" className="w-4 h-4 text-muted-foreground shrink-0" />
             <div className="text-sm font-semibold text-foreground truncate">
               {activeChannel.name}
             </div>
@@ -440,7 +440,7 @@ export function ChannelChat() {
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center text-muted-foreground p-8">
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <Hash className="w-10 h-10 text-primary" />
+              <FontAwesomeIcon icon="hashtag" className="w-10 h-10 text-primary" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">
               Welcome to #{activeChannel.name}
@@ -488,7 +488,10 @@ export function ChannelChat() {
                         </span>
                         {msg.decryptionFailed && (
                           <span title="Decryption failed">
-                            <AlertTriangle className="w-3 h-3 text-destructive" />
+                            <FontAwesomeIcon
+                              icon="triangle-exclamation"
+                              className="w-3 h-3 text-destructive"
+                            />
                           </span>
                         )}
                       </div>
@@ -583,7 +586,7 @@ export function ChannelChat() {
                   className="p-1.5 rounded-full transition-colors text-muted-foreground hover:text-foreground hover:bg-white/10"
                   title="Add emoji"
                 >
-                  <Smile className="w-5 h-5" />
+                  <FontAwesomeIcon icon="face-smile" className="w-5 h-5" />
                 </button>
               </PopoverTrigger>
               <PopoverContent

@@ -1,4 +1,4 @@
-import { Monitor } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { UserTile } from "./UserTile";
 import { ScreenShareCanvas } from "./ScreenShareCanvas";
 import type { ScreenShareLayoutProps } from "./types";
@@ -23,7 +23,7 @@ export function ScreenShareLayout({
             <ScreenShareCanvas peerName={peerName} />
           ) : isSharing ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70">
-              <Monitor className="w-12 h-12 mb-3 text-green-400" />
+              <FontAwesomeIcon icon="desktop" className="w-12 h-12 mb-3 text-green-400" />
               <p className="text-base font-medium text-green-400">You are sharing your screen</p>
               <p className="text-xs text-white/50 mt-1">Others can see your screen</p>
             </div>

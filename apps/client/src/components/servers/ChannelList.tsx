@@ -1,13 +1,5 @@
 import { useServer } from "../../context/server";
-import {
-  Hash,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Settings,
-  Loader2,
-  GripVertical,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -324,7 +316,7 @@ export function ChannelList() {
               onClick={() => setShowSettings(true)}
               className="p-1.5 hover:bg-secondary/50 rounded-md transition-colors"
             >
-              <Settings className="w-4 h-4 text-muted-foreground" />
+              <FontAwesomeIcon icon="gear" className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
         </div>
@@ -398,7 +390,7 @@ export function ChannelList() {
                         className="p-1 -ml-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
                         aria-label="Drag category"
                       >
-                        <GripVertical className="w-3.5 h-3.5" />
+                        <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
@@ -406,9 +398,9 @@ export function ChannelList() {
                         className="flex items-center gap-1.5 flex-1 overflow-hidden text-left"
                       >
                         {expandedCategories.has(category.id) ? (
-                          <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                          <FontAwesomeIcon icon="chevron-down" className="w-3 h-3 flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                          <FontAwesomeIcon icon="chevron-right" className="w-3 h-3 flex-shrink-0" />
                         )}
                         <span className="text-[11px] font-semibold uppercase tracking-wide truncate select-none">
                           {category.name}
@@ -426,7 +418,7 @@ export function ChannelList() {
                         className="p-1 hover:text-primary transition-colors"
                         title="Create Channel"
                       >
-                        <Plus className="w-3 h-3" />
+                        <FontAwesomeIcon icon="plus" className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -471,7 +463,7 @@ export function ChannelList() {
                               className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
                               aria-label="Drag channel"
                             >
-                              <GripVertical className="w-3.5 h-3.5" />
+                              <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setActiveChannel(channel)}
@@ -481,7 +473,10 @@ export function ChannelList() {
                                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                               }`}
                             >
-                              <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
+                              <FontAwesomeIcon
+                                icon="hashtag"
+                                className="w-4 h-4 flex-shrink-0 opacity-70"
+                              />
                               <span className="truncate text-sm">{channel.name}</span>
                             </button>
                           </div>
@@ -544,7 +539,7 @@ export function ChannelList() {
                           className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
                           aria-label="Drag channel"
                         >
-                          <GripVertical className="w-3.5 h-3.5" />
+                          <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setActiveChannel(channel)}
@@ -554,7 +549,10 @@ export function ChannelList() {
                               : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                           }`}
                         >
-                          <Hash className="w-4 h-4 flex-shrink-0 opacity-70" />
+                          <FontAwesomeIcon
+                            icon="hashtag"
+                            className="w-4 h-4 flex-shrink-0 opacity-70"
+                          />
                           <span className="truncate text-sm">{channel.name}</span>
                         </button>
                       </div>
@@ -623,7 +621,9 @@ export function ChannelList() {
                 Cancel
               </Button>
               <Button onClick={handleCreateChannel} disabled={!newChannelName.trim() || isCreating}>
-                {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {isCreating ? (
+                  <FontAwesomeIcon icon="spinner" className="w-4 h-4 mr-2" spin />
+                ) : null}
                 Create Channel
               </Button>
             </DialogFooter>
@@ -658,7 +658,9 @@ export function ChannelList() {
                 onClick={handleCreateCategory}
                 disabled={!newCategoryName.trim() || isCreating}
               >
-                {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {isCreating ? (
+                  <FontAwesomeIcon icon="spinner" className="w-4 h-4 mr-2" spin />
+                ) : null}
                 Create Category
               </Button>
             </DialogFooter>

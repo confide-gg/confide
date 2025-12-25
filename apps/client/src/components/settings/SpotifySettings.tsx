@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
-import { Music, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { spotifyService } from "../../features/profiles/spotify";
 import { useSpotifyActivity } from "../../features/profiles/useSpotifyActivity";
 import type { SpotifyStatus } from "../../features/profiles/types";
@@ -97,14 +97,14 @@ export function SpotifySettings() {
           <div className="space-y-4">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 bg-[#1DB954] rounded-lg flex items-center justify-center shrink-0">
-                <Music className="w-6 h-6 text-white" />
+                <FontAwesomeIcon icon="music" className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-foreground">Spotify</span>
                   {status?.connected && (
                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-500/10 text-green-500 text-xs font-medium">
-                      <CheckCircle2 className="w-3 h-3" />
+                      <FontAwesomeIcon icon="circle-check" className="w-3 h-3" />
                       Connected
                     </div>
                   )}
@@ -126,12 +126,12 @@ export function SpotifySettings() {
                 >
                   {connecting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <FontAwesomeIcon icon="spinner" className="w-4 h-4 mr-2" spin />
                       Waiting for authorization...
                     </>
                   ) : (
                     <>
-                      <Music className="w-4 h-4 mr-2" />
+                      <FontAwesomeIcon icon="music" className="w-4 h-4 mr-2" />
                       Connect Spotify
                     </>
                   )}
@@ -148,7 +148,7 @@ export function SpotifySettings() {
                 variant="outline"
                 className="h-10 text-destructive border-destructive/30 hover:bg-destructive/10"
               >
-                <XCircle className="w-4 h-4 mr-2" />
+                <FontAwesomeIcon icon="circle-xmark" className="w-4 h-4 mr-2" />
                 Disconnect
               </Button>
             )}

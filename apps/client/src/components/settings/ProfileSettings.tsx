@@ -4,7 +4,7 @@ import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import { ImageCropper } from "../common/ImageCropper";
 import { Label } from "../ui/label";
-import { Loader2, X, Save } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { UserStatus } from "../../types";
 import { cn } from "../../lib/utils";
 
@@ -216,7 +216,7 @@ export function ProfileSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <FontAwesomeIcon icon="spinner" className="w-8 h-8 text-primary" spin />
       </div>
     );
   }
@@ -248,20 +248,9 @@ export function ProfileSettings() {
                   className="w-8 h-8 flex items-center justify-center bg-black/50 hover:bg-black/70 rounded-lg cursor-pointer transition-colors"
                 >
                   {isUploadingBanner ? (
-                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                    <FontAwesomeIcon icon="spinner" className="w-4 h-4 text-white" spin />
                   ) : (
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
+                    <FontAwesomeIcon icon="upload" className="w-4 h-4 text-white" />
                   )}
                 </label>
                 {bannerUrl && (
@@ -269,7 +258,7 @@ export function ProfileSettings() {
                     onClick={handleRemoveBanner}
                     className="w-8 h-8 flex items-center justify-center bg-black/50 hover:bg-black/70 rounded-lg transition-colors"
                   >
-                    <X className="w-4 h-4 text-white" />
+                    <FontAwesomeIcon icon="xmark" className="w-4 h-4 text-white" />
                   </button>
                 )}
               </div>
@@ -303,20 +292,9 @@ export function ProfileSettings() {
                   className="absolute bottom-1 right-1 w-8 h-8 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded-full cursor-pointer transition-colors"
                 >
                   {isUploadingAvatar ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />
                   ) : (
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
+                    <FontAwesomeIcon icon="upload" className="w-3.5 h-3.5" />
                   )}
                 </label>
                 {avatarUrl && (
@@ -324,7 +302,7 @@ export function ProfileSettings() {
                     onClick={handleRemoveAvatar}
                     className="absolute bottom-1 right-10 w-8 h-8 flex items-center justify-center bg-destructive hover:bg-destructive/80 text-white rounded-full transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <FontAwesomeIcon icon="xmark" className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -456,7 +434,11 @@ export function ProfileSettings() {
                 : "bg-secondary/50 text-muted-foreground cursor-not-allowed"
             )}
           >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? (
+              <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />
+            ) : (
+              <FontAwesomeIcon icon="floppy-disk" className="w-4 h-4" />
+            )}
             {isSaving ? "Saving..." : isDirty ? "Save Changes" : "No Changes"}
           </button>
         </div>

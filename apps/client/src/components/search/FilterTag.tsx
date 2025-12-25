@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SearchFilter } from "./types";
 
 interface FilterTagProps {
@@ -20,7 +20,10 @@ export function FilterTag({ filter, onRemove }: FilterTagProps) {
         className="p-0.5 hover:bg-primary/20 rounded transition-colors ml-0.5"
         title="Remove filter"
       >
-        <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+        <FontAwesomeIcon
+          icon="xmark"
+          className="w-3 h-3 text-muted-foreground hover:text-foreground"
+        />
       </button>
     </span>
   );

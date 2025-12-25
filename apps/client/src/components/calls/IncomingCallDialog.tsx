@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from "react";
-import { Phone, PhoneOff, Loader2 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent } from "../ui/dialog";
 import { Avatar } from "../ui/avatar";
@@ -113,7 +113,7 @@ export function IncomingCallDialog({ dsaSecretKey }: IncomingCallDialogProps) {
                 onClick={handleReject}
                 disabled={isAccepting}
               >
-                <PhoneOff className="h-6 w-6" />
+                <FontAwesomeIcon icon="phone-slash" className="h-6 w-6" />
               </Button>
               <span className="text-xs text-white/50">Decline</span>
             </div>
@@ -126,9 +126,9 @@ export function IncomingCallDialog({ dsaSecretKey }: IncomingCallDialogProps) {
                 disabled={isAccepting}
               >
                 {isAccepting ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <FontAwesomeIcon icon="spinner" className="h-6 w-6" spin />
                 ) : (
-                  <Phone className="h-6 w-6" />
+                  <FontAwesomeIcon icon="phone" className="h-6 w-6" />
                 )}
               </Button>
               <span className="text-xs text-white/50">Accept</span>

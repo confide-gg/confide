@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Globe, HardDrive, Compass } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useServer } from "../../context/server";
 import { useChat } from "../../context/chat";
 import { JoinServerModal } from "./JoinServerModal";
@@ -98,7 +98,10 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
                     ) : (
                       <span className="text-lg">{server.name.charAt(0).toUpperCase()}</span>
                     )}
-                    <Globe className="w-3 h-3 absolute bottom-1 right-1 text-primary" />
+                    <FontAwesomeIcon
+                      icon="globe"
+                      className="w-3 h-3 absolute bottom-1 right-1 text-primary"
+                    />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -116,7 +119,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
               onClick={() => setShowJoinModal(true)}
               className="w-12 h-12 rounded-xl flex items-center justify-center bg-secondary hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all duration-200"
             >
-              <Plus className="w-5 h-5" />
+              <FontAwesomeIcon icon="plus" className="w-5 h-5" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">
@@ -130,7 +133,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
               onClick={onOpenDiscovery}
               className="w-12 h-12 rounded-xl flex items-center justify-center bg-secondary hover:bg-blue-500/20 text-muted-foreground hover:text-blue-500 transition-all duration-200"
             >
-              <Compass className="w-5 h-5" />
+              <FontAwesomeIcon icon="compass" className="w-5 h-5" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">
@@ -144,7 +147,7 @@ export function ServerList({ onOpenDiscovery }: ServerListProps) {
               onClick={() => setShowRegisterModal(true)}
               className="mt-auto w-12 h-12 rounded-xl flex items-center justify-center bg-secondary hover:bg-green-500/20 text-muted-foreground hover:text-green-500 transition-all duration-200"
             >
-              <HardDrive className="w-5 h-5" />
+              <FontAwesomeIcon icon="server" className="w-5 h-5" />
             </button>
           </TooltipTrigger>
           <TooltipContent side="right">

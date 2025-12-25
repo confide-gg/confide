@@ -1,14 +1,4 @@
-import {
-  ArrowUpDown,
-  AtSign,
-  Calendar,
-  FileIcon,
-  ImageIcon,
-  Link2,
-  Search,
-  User,
-  X,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../../context/AuthContext";
@@ -30,24 +20,24 @@ interface MessageSearchProps {
 interface AutocompleteSuggestion {
   value: string;
   label: string;
-  icon?: typeof User;
+  icon?: string;
 }
 
 const FILTER_OPTIONS: {
   type: SearchFilter["type"];
-  icon: typeof User;
+  icon: string;
   label: string;
   hint: string;
 }[] = [
-  { type: "from", icon: User, label: "From a specific user", hint: "from: username" },
-  { type: "has", icon: Link2, label: "Contains content", hint: "has: link, file, image" },
-  { type: "mentions", icon: AtSign, label: "Mentions a user", hint: "mentions: username" },
+  { type: "from", icon: "user", label: "From a specific user", hint: "from: username" },
+  { type: "has", icon: "link", label: "Contains content", hint: "has: link, file, image" },
+  { type: "mentions", icon: "at", label: "Mentions a user", hint: "mentions: username" },
 ];
 
 const CONTENT_SUGGESTIONS: AutocompleteSuggestion[] = [
-  { value: "link", label: "Links", icon: Link2 },
-  { value: "file", label: "Files", icon: FileIcon },
-  { value: "image", label: "Images", icon: ImageIcon },
+  { value: "link", label: "Links", icon: "link" },
+  { value: "file", label: "Files", icon: "file" },
+  { value: "image", label: "Images", icon: "image" },
 ];
 
 export function MessageSearch({ conversationName }: MessageSearchProps) {
@@ -106,7 +96,7 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
       suggestions = uniqueSenders
         .filter((name) => name.toLowerCase().includes(lowerPartial))
         .slice(0, 6)
-        .map((name) => ({ value: name, label: name, icon: User }));
+        .map((name) => ({ value: name, label: name, icon: "user" }));
 
       if (user && user.username.toLowerCase().includes(lowerPartial)) {
         const alreadyIncluded = suggestions.some(
@@ -116,7 +106,7 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
           suggestions.unshift({
             value: user.username,
             label: `${user.username} (you)`,
-            icon: User,
+            icon: "user",
           });
         }
       }
@@ -404,14 +394,17 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
           "min-w-[160px] max-w-[200px] border border-transparent hover:border-border/50"
         )}
       >
-        <Search className="w-4 h-4 shrink-0 opacity-60" />
+        <FontAwesomeIcon icon="magnifying-glass" className="w-4 h-4 shrink-0 opacity-60" />
         <span className="truncate text-xs">Search</span>
       </button>
 
       {isOpen && (
         <div className="absolute top-0 right-0 z-50 w-[400px] bg-popover border border-border rounded-lg shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
           <div className="flex items-center gap-2 p-3 border-b border-border/50 bg-secondary/20">
-            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <FontAwesomeIcon
+              icon="magnifying-glass"
+              className="w-4 h-4 text-muted-foreground shrink-0"
+            />
             <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
               {filters.map((filter, index) => (
                 <FilterTag
@@ -436,7 +429,10 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                 className="p-1.5 hover:bg-secondary/50 rounded-md transition-colors"
                 title="Clear search"
               >
-                <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                <FontAwesomeIcon
+                  icon="xmark"
+                  className="w-4 h-4 text-muted-foreground hover:text-foreground"
+                />
               </button>
             )}
           </div>
@@ -447,7 +443,7 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                 Suggestions
               </div>
               {autocomplete.map((suggestion, idx) => {
-                const Icon = suggestion.icon || User;
+                const iconName = suggestion.icon || "user";
                 return (
                   <button
                     key={suggestion.value}
@@ -457,7 +453,7 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                       idx === selectedSuggestion ? "bg-secondary/60" : "hover:bg-secondary/40"
                     )}
                   >
-                    <Icon className="w-4 h-4 text-muted-foreground" />
+                    <FontAwesomeIcon icon={iconName} className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm text-foreground">{suggestion.label}</span>
                   </button>
                 );
@@ -476,7 +472,10 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                   onClick={() => handleFilterSelect(option.type)}
                   className="flex items-center gap-3 w-full px-2 py-2.5 rounded-md hover:bg-secondary/50 transition-colors text-left group"
                 >
-                  <option.icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <FontAwesomeIcon
+                    icon={option.icon}
+                    className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-foreground">{option.label}</div>
                     <div className="text-xs text-muted-foreground/70">{option.hint}</div>
@@ -488,7 +487,10 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                   onClick={() => handleFilterSelect("before")}
                   className="flex items-center gap-3 w-full px-2 py-2.5 rounded-md hover:bg-secondary/50 transition-colors text-left group"
                 >
-                  <Calendar className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <FontAwesomeIcon
+                    icon="calendar"
+                    className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-foreground">Date range</div>
                     <div className="text-xs text-muted-foreground/70">before: or after: date</div>
@@ -511,7 +513,7 @@ export function MessageSearch({ conversationName }: MessageSearchProps) {
                     onClick={() => setShowSortMenu(!showSortMenu)}
                     className="flex items-center gap-1.5 px-2 py-1 text-xs rounded-md hover:bg-secondary/50 transition-colors text-muted-foreground hover:text-foreground"
                   >
-                    <ArrowUpDown className="w-3 h-3" />
+                    <FontAwesomeIcon icon="sort" className="w-3 h-3" />
                     {sortBy === "newest" ? "Newest" : "Oldest"}
                   </button>
                   {showSortMenu && (

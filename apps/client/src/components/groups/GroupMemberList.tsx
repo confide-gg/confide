@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Crown } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Panel } from "../layout/Panel";
 import { Avatar } from "../ui/avatar";
 import { useAuth } from "../../context/AuthContext";
@@ -185,7 +185,10 @@ export function GroupMemberList({
                             {m.user.username}
                           </div>
                           {memberIsOwner && (
-                            <Crown className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                            <FontAwesomeIcon
+                              icon="crown"
+                              className="w-3.5 h-3.5 text-yellow-400 shrink-0"
+                            />
                           )}
                         </div>
                         {activity && (

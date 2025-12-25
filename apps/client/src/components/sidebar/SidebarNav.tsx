@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useChat } from "../../context/chat";
 
 export function SidebarNav() {
@@ -21,7 +21,7 @@ export function SidebarNav() {
           : "text-muted-foreground hover:bg-secondary hover:text-foreground"
       }`}
     >
-      <Users className="w-5 h-5 shrink-0" />
+      <FontAwesomeIcon icon="users" className="w-5 h-5 shrink-0" />
       <span className="flex-1 truncate text-left text-sm font-medium">Friends</span>
       {hasPendingRequests && (
         <span

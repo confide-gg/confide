@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Maximize2, Minimize2, Monitor } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 
 interface DecodedFrame {
@@ -250,7 +250,7 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
 
       {dimensions.width === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70">
-          <Monitor className="h-12 w-12 mb-2 animate-pulse" />
+          <FontAwesomeIcon icon="desktop" className="h-12 w-12 mb-2 animate-pulse" />
           <p className="text-sm">
             {peerUsername
               ? `Waiting for ${peerUsername}'s screen...`
@@ -273,9 +273,9 @@ export function ScreenShareViewer({ isActive, peerUsername }: ScreenShareViewerP
           onClick={toggleFullscreen}
         >
           {isFullscreen ? (
-            <Minimize2 className="h-4 w-4 text-white" />
+            <FontAwesomeIcon icon="minimize" className="h-4 w-4 text-white" />
           ) : (
-            <Maximize2 className="h-4 w-4 text-white" />
+            <FontAwesomeIcon icon="maximize" className="h-4 w-4 text-white" />
           )}
         </Button>
       </div>

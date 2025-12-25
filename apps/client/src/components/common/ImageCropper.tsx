@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import { Button } from "../ui/button";
@@ -61,17 +62,7 @@ export function ImageCropper({
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="font-semibold text-lg">Crop Image</h3>
           <button className="text-muted-foreground hover:text-foreground p-1" onClick={onCancel}>
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <FontAwesomeIcon icon="xmark" className="w-5 h-5" />
           </button>
         </div>
 
@@ -91,19 +82,10 @@ export function ImageCropper({
 
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-4">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-muted-foreground"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              <line x1="8" y1="11" x2="14" y2="11" />
-            </svg>
+            <FontAwesomeIcon
+              icon="magnifying-glass-minus"
+              className="w-4 h-4 text-muted-foreground"
+            />
             <input
               type="range"
               min={1}
@@ -113,20 +95,10 @@ export function ImageCropper({
               onChange={(e) => setZoom(Number(e.target.value))}
               className="flex-1 h-1 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
             />
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-muted-foreground"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              <line x1="11" y1="8" x2="11" y2="14" />
-              <line x1="8" y1="11" x2="14" y2="11" />
-            </svg>
+            <FontAwesomeIcon
+              icon="magnifying-glass-plus"
+              className="w-4 h-4 text-muted-foreground"
+            />
           </div>
 
           <div className="flex items-center justify-end gap-3">

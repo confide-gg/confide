@@ -1,3 +1,4 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useChat } from "../../context/chat";
 
 interface GifModalProps {
@@ -33,32 +34,13 @@ export function GifModal({ gifUrl, onClose }: GifModalProps) {
             onClick={handleFavorite}
             title={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill={isFavorite ? "currentColor" : "none"}
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
+            <FontAwesomeIcon icon="star" className="w-5 h-5" />
           </button>
           <button
             className="w-10 h-10 flex items-center justify-center rounded-lg bg-black/50 text-white border border-white/20 backdrop-blur-md hover:bg-black/70 transition-colors"
             onClick={onClose}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <FontAwesomeIcon icon="xmark" className="w-5 h-5" />
           </button>
         </div>
         <img

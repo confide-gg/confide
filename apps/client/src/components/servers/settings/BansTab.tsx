@@ -1,5 +1,5 @@
 import { Button } from "../../ui/button";
-import { Ban } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ServerBan } from "../../../features/servers/types";
 
 interface BansTabProps {
@@ -21,7 +21,7 @@ export function BansTab({ bans, isLoading, onUnban }: BansTabProps) {
         ) : bans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
-              <Ban className="w-8 h-8 text-muted-foreground" />
+              <FontAwesomeIcon icon="ban" className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="font-semibold mb-1">No Banned Members</h3>
             <p className="text-sm text-muted-foreground">
@@ -36,7 +36,7 @@ export function BansTab({ bans, isLoading, onUnban }: BansTabProps) {
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                  <Ban className="w-5 h-5 text-muted-foreground" />
+                  <FontAwesomeIcon icon="ban" className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
                   <div className="font-medium">User {ban.user_id.slice(0, 8)}...</div>

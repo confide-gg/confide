@@ -4,7 +4,7 @@ import { discoveryService } from "../../features/discovery/DiscoveryService";
 import type { DiscoverableServer } from "../../features/discovery/DiscoveryService";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Compass, Search, Users, Globe, Loader2, ServerCrash, ArrowRight } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 interface DiscoveryPageProps {
   onClose?: () => void;
@@ -100,7 +100,7 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
     <div className="flex flex-col h-full bg-transparent">
       <div className="flex items-center px-6 py-4 border-b border-border shadow-sm min-h-[60px]">
         <div className="flex items-center gap-2 mr-6 text-foreground">
-          <Compass className="w-5 h-5" />
+          <FontAwesomeIcon icon="compass" className="w-5 h-5" />
           <span className="font-bold text-lg">Discover Servers</span>
         </div>
         <div className="flex-1" />
@@ -123,7 +123,10 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
           <form onSubmit={handleSearch} className="mb-8">
             <div className="flex gap-3">
               <div className="flex-1 relative">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <FontAwesomeIcon
+                  icon="magnifying-glass"
+                  className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -132,7 +135,11 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
                 />
               </div>
               <Button type="submit" disabled={isSearching} className="h-12 px-6">
-                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+                {isSearching ? (
+                  <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />
+                ) : (
+                  "Search"
+                )}
               </Button>
               {searchQuery && (
                 <Button
@@ -149,7 +156,7 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
 
           {error && (
             <div className="mb-6 p-4 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
-              <ServerCrash className="w-4 h-4" />
+              <FontAwesomeIcon icon="server" className="w-4 h-4" />
               {error}
             </div>
           )}
@@ -157,13 +164,13 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                <FontAwesomeIcon icon="spinner" className="w-8 h-8 text-primary mb-4" spin />
                 <p className="text-muted-foreground">Loading servers...</p>
               </div>
             ) : servers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 opacity-50">
                 <div className="w-24 h-24 bg-secondary/50 rounded-full mb-6 flex items-center justify-center">
-                  <Globe className="w-10 h-10 text-muted-foreground" />
+                  <FontAwesomeIcon icon="globe" className="w-10 h-10 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground font-medium">
                   {searchQuery
@@ -206,7 +213,7 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
                               {server.display_name}
                             </h3>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                              <Users className="w-3 h-3" />
+                              <FontAwesomeIcon icon="users" className="w-3 h-3" />
                               <span>{formatMemberCount(server.member_count)} members</span>
                             </div>
                           </div>
@@ -231,13 +238,16 @@ export function DiscoveryPage({ onClose }: DiscoveryPageProps) {
                             >
                               {isJoining ? (
                                 <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  <FontAwesomeIcon icon="spinner" className="w-4 h-4 mr-2" spin />
                                   Joining...
                                 </>
                               ) : (
                                 <>
                                   Join Server
-                                  <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                                  <FontAwesomeIcon
+                                    icon="arrow-right"
+                                    className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform"
+                                  />
                                 </>
                               )}
                             </Button>

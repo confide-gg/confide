@@ -1,15 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  PhoneOff,
-  PhoneIncoming,
-  Mic,
-  MicOff,
-  Headphones,
-  HeadphoneOff,
-  Monitor,
-  MonitorOff,
-  ChevronDown,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 import { Avatar } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
@@ -209,13 +199,13 @@ export function CallHeader() {
               </span>
               {callState.is_screen_sharing && (
                 <span className="text-xs text-green-400 flex items-center gap-1">
-                  <Monitor className="w-3 h-3" />
+                  <FontAwesomeIcon icon="desktop" className="w-3 h-3" />
                   Sharing
                 </span>
               )}
               {callState.peer_is_screen_sharing && (
                 <span className="text-xs text-blue-400 flex items-center gap-1">
-                  <Monitor className="w-3 h-3" />
+                  <FontAwesomeIcon icon="desktop" className="w-3 h-3" />
                   Viewing
                 </span>
               )}
@@ -233,7 +223,7 @@ export function CallHeader() {
                   onClick={handleRejoin}
                   disabled={isRejoining}
                 >
-                  <PhoneIncoming className="w-3.5 h-3.5 mr-1.5" />
+                  <FontAwesomeIcon icon="phone-flip" className="w-3.5 h-3.5 mr-1.5" />
                   {isRejoining ? "..." : "Rejoin"}
                 </Button>
               ) : null}
@@ -245,7 +235,7 @@ export function CallHeader() {
                       className="h-8 w-8 p-0 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30"
                       onClick={handleEndCall}
                     >
-                      <PhoneOff className="w-4 h-4" />
+                      <FontAwesomeIcon icon="phone-slash" className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs bg-card border-border">
@@ -270,9 +260,9 @@ export function CallHeader() {
                       onClick={handleToggleMute}
                     >
                       {callState.is_muted ? (
-                        <MicOff className="w-4 h-4" />
+                        <FontAwesomeIcon icon="microphone-slash" className="w-4 h-4" />
                       ) : (
-                        <Mic className="w-4 h-4" />
+                        <FontAwesomeIcon icon="microphone" className="w-4 h-4" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -296,9 +286,9 @@ export function CallHeader() {
                       onClick={handleToggleDeafen}
                     >
                       {callState.is_deafened ? (
-                        <HeadphoneOff className="w-4 h-4" />
+                        <FontAwesomeIcon icon="headphones" className="w-4 h-4" />
                       ) : (
-                        <Headphones className="w-4 h-4" />
+                        <FontAwesomeIcon icon="headphones" className="w-4 h-4" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -322,9 +312,9 @@ export function CallHeader() {
                       onClick={handleScreenShareToggle}
                     >
                       {callState.is_screen_sharing ? (
-                        <MonitorOff className="w-4 h-4" />
+                        <FontAwesomeIcon icon="desktop" className="w-4 h-4" />
                       ) : (
-                        <Monitor className="w-4 h-4" />
+                        <FontAwesomeIcon icon="desktop" className="w-4 h-4" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -342,7 +332,7 @@ export function CallHeader() {
                       className="h-8 w-8 p-0 rounded-full bg-white/10 text-white/80 hover:bg-white/20"
                       onClick={() => setIsMinimized(false)}
                     >
-                      <ChevronDown className="w-4 h-4" />
+                      <FontAwesomeIcon icon="chevron-down" className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs bg-card border-border">
@@ -359,7 +349,7 @@ export function CallHeader() {
                       className="h-8 w-8 p-0 rounded-full bg-red-500 hover:bg-red-600 text-white"
                       onClick={handleLeave}
                     >
-                      <PhoneOff className="w-4 h-4" />
+                      <FontAwesomeIcon icon="phone-slash" className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs bg-card border-border">
@@ -381,7 +371,7 @@ export function CallHeader() {
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
               <div className="flex items-center gap-2 text-white text-sm">
-                <ChevronDown className="w-5 h-5" />
+                <FontAwesomeIcon icon="chevron-down" className="w-5 h-5" />
                 Click to expand
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Search } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import data from "@emoji-mart/data";
 import type { EmojiMartData, Emoji } from "@emoji-mart/data";
 import { cn } from "../../lib/utils";
@@ -196,7 +196,10 @@ export function EmojiPicker({
       <div className="px-3 py-2">
         <div className="relative flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <FontAwesomeIcon
+              icon="magnifying-glass"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+            />
             <input
               type="text"
               value={query}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { cryptoService } from "../core/crypto/crypto";
 import { recoveryService } from "../core/auth/RecoveryService";
 import { httpClient } from "../core/network/HttpClient";
@@ -203,7 +203,7 @@ export function ResetPassword() {
             disabled={isLoading || !username}
             className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
-            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isLoading && <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />}
             {isLoading ? "Checking..." : "Continue"}
           </button>
         </form>
@@ -247,7 +247,7 @@ export function ResetPassword() {
               disabled={isLoading || !recoveryKeyInput}
               className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
             >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isLoading && <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />}
               {isLoading ? "Verifying..." : "Verify Key"}
             </button>
           </div>
@@ -311,7 +311,7 @@ export function ResetPassword() {
               disabled={isLoading || !newPassword || !confirmPassword}
               className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
             >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isLoading && <FontAwesomeIcon icon="spinner" className="w-4 h-4" spin />}
               {isLoading ? "Resetting..." : "Reset Password"}
             </button>
           </div>

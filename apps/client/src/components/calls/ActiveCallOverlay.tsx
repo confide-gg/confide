@@ -1,18 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  PhoneOff,
-  Mic,
-  MicOff,
-  Monitor,
-  MonitorOff,
-  Signal,
-  SignalHigh,
-  SignalLow,
-  SignalZero,
-  ArrowUpRight,
-  PhoneIncoming,
-} from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 import { Avatar } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
@@ -221,13 +209,13 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
     const iconClass = "h-3.5 w-3.5";
     switch (quality) {
       case "excellent":
-        return <Signal className={cn(iconClass, "text-green-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-green-400")} />;
       case "good":
-        return <SignalHigh className={cn(iconClass, "text-green-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-green-400")} />;
       case "fair":
-        return <SignalLow className={cn(iconClass, "text-yellow-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-yellow-400")} />;
       case "poor":
-        return <SignalZero className={cn(iconClass, "text-red-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-red-400")} />;
     }
   };
 
@@ -297,12 +285,12 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                 <span className={getStatusColor()}>{getStatusText()}</span>
                 {callState.is_screen_sharing && (
                   <span className="text-green-400 flex items-center gap-0.5 ml-1">
-                    <Monitor className="w-3 h-3" />
+                    <FontAwesomeIcon icon="desktop" className="w-3 h-3" />
                   </span>
                 )}
                 {callState.peer_is_screen_sharing && !callState.is_screen_sharing && (
                   <span className="text-blue-400 flex items-center gap-0.5 ml-1">
-                    <Monitor className="w-3 h-3" />
+                    <FontAwesomeIcon icon="desktop" className="w-3 h-3" />
                   </span>
                 )}
               </div>
@@ -317,7 +305,7 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                 handleNavigateToCall();
               }}
             >
-              <ArrowUpRight className="w-4 h-4" />
+              <FontAwesomeIcon icon="arrow-up-right-from-square" className="w-4 h-4" />
             </Button>
           </div>
 
@@ -332,7 +320,7 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                 }}
                 disabled={isRejoining}
               >
-                <PhoneIncoming className="w-3.5 h-3.5 mr-1.5" />
+                <FontAwesomeIcon icon="phone-flip" className="w-3.5 h-3.5 mr-1.5" />
                 {isRejoining ? "..." : "Rejoin"}
               </Button>
             ) : (
@@ -356,9 +344,9 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                         disabled={!isActive}
                       >
                         {callState.is_muted ? (
-                          <MicOff className="h-4 w-4" />
+                          <FontAwesomeIcon icon="microphone-slash" className="h-4 w-4" />
                         ) : (
-                          <Mic className="h-4 w-4" />
+                          <FontAwesomeIcon icon="microphone" className="h-4 w-4" />
                         )}
                       </Button>
                     </TooltipTrigger>
@@ -387,9 +375,9 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                         disabled={!isActive}
                       >
                         {callState.is_screen_sharing ? (
-                          <MonitorOff className="h-4 w-4" />
+                          <FontAwesomeIcon icon="desktop" className="h-4 w-4" />
                         ) : (
-                          <Monitor className="h-4 w-4" />
+                          <FontAwesomeIcon icon="desktop" className="h-4 w-4" />
                         )}
                       </Button>
                     </TooltipTrigger>
@@ -411,7 +399,7 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                           handleLeave();
                         }}
                       >
-                        <PhoneOff className="h-4 w-4" />
+                        <FontAwesomeIcon icon="phone-slash" className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs bg-popover border-border">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
@@ -141,7 +141,7 @@ export function ProfileSidePanel({ userId, username, onClose }: ProfileSidePanel
             onClick={onClose}
             className="p-1.5 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
           >
-            <X className="w-4 h-4" />
+            <FontAwesomeIcon icon="xmark" className="w-4 h-4" />
           </button>
         </div>
 

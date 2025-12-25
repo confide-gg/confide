@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Monitor, AppWindow, Loader2, AlertCircle } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -97,9 +97,9 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               {source.source_type === "screen" ? (
-                <Monitor className="h-8 w-8 text-muted-foreground" />
+                <FontAwesomeIcon icon="desktop" className="h-8 w-8 text-muted-foreground" />
               ) : (
-                <AppWindow className="h-8 w-8 text-muted-foreground" />
+                <FontAwesomeIcon icon="window-maximize" className="h-8 w-8 text-muted-foreground" />
               )}
             </div>
           )}
@@ -123,11 +123,11 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <FontAwesomeIcon icon="spinner" className="h-8 w-8 text-muted-foreground" spin />
           </div>
         ) : permissionDenied ? (
           <div className="flex flex-col items-center gap-4 py-8">
-            <AlertCircle className="h-12 w-12 text-destructive" />
+            <FontAwesomeIcon icon="circle-exclamation" className="h-12 w-12 text-destructive" />
             <div className="text-center">
               <h3 className="font-semibold">Screen Recording Permission Required</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -143,11 +143,11 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
           <Tabs defaultValue="screens" className="w-full">
             <TabsList className="w-full">
               <TabsTrigger value="screens" className="flex-1">
-                <Monitor className="h-4 w-4 mr-2" />
+                <FontAwesomeIcon icon="desktop" className="h-4 w-4 mr-2" />
                 Screens ({screens.length})
               </TabsTrigger>
               <TabsTrigger value="windows" className="flex-1">
-                <AppWindow className="h-4 w-4 mr-2" />
+                <FontAwesomeIcon icon="window-maximize" className="h-4 w-4 mr-2" />
                 Windows ({windows.length})
               </TabsTrigger>
             </TabsList>
@@ -179,7 +179,7 @@ export function ScreenSharePicker({ open, onClose, onSelect }: ScreenSharePicker
           <Button onClick={handleSelect} disabled={!selectedId || starting}>
             {starting ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <FontAwesomeIcon icon="spinner" className="h-4 w-4 mr-2" spin />
                 Starting...
               </>
             ) : (

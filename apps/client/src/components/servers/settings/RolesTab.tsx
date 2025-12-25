@@ -1,5 +1,5 @@
 import { Button } from "../../ui/button";
-import { Plus, Shield, GripVertical, ArrowLeft } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ServerRole } from "../../../features/servers/types";
 
 interface RolesTabProps {
@@ -24,7 +24,7 @@ export function RolesTab({
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground">Create and manage roles for your server members</p>
         <Button onClick={onCreateRole} className="gap-2">
-          <Plus className="w-4 h-4" />
+          <FontAwesomeIcon icon="plus" className="w-4 h-4" />
           Create Role
         </Button>
       </div>
@@ -37,14 +37,14 @@ export function RolesTab({
         ) : roles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
-              <Shield className="w-8 h-8 text-muted-foreground" />
+              <FontAwesomeIcon icon="shield" className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="font-semibold mb-1">No Roles</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Create roles to organize your server members
             </p>
             <Button onClick={onCreateRole} variant="outline" className="gap-2">
-              <Plus className="w-4 h-4" />
+              <FontAwesomeIcon icon="plus" className="w-4 h-4" />
               Create Role
             </Button>
           </div>
@@ -62,7 +62,7 @@ export function RolesTab({
                   onPointerDown={(e) => onStartDrag(role.id, e.pointerId)}
                   className="text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
                 >
-                  <GripVertical className="w-4 h-4" />
+                  <FontAwesomeIcon icon="grip-vertical" className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => onSelectRole(role)}
@@ -83,7 +83,10 @@ export function RolesTab({
                       Drag to reorder • Click to edit
                     </div>
                   </div>
-                  <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <FontAwesomeIcon
+                    icon="arrow-left"
+                    className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
                 </button>
               </div>
             ))

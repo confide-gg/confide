@@ -2,7 +2,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Switch } from "../../ui/switch";
 import { ScrollArea } from "../../ui/scroll-area";
-import { Trash2, ArrowLeft } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Panel } from "../../layout/Panel";
 import type { ServerRole } from "../../../features/servers/types";
 import { PERMISSION_GROUPS } from "./types";
@@ -35,7 +35,7 @@ export function RoleEditor({
       <Panel className="flex-1 flex flex-col">
         <div className="flex items-center gap-4 p-4">
           <button onClick={onBack} className="p-2 hover:bg-secondary rounded-lg transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+            <FontAwesomeIcon icon="arrow-left" className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3 flex-1">
             <div
@@ -65,7 +65,7 @@ export function RoleEditor({
             className="text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={onDelete}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <FontAwesomeIcon icon="trash" className="w-4 h-4 mr-2" />
             Delete
           </Button>
         </div>
