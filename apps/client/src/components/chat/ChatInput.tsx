@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "../../context/chat";
 import { GifPicker } from "./GifPicker";
-import data from "@emoji-mart/data";
+import { EmojiPicker } from "./EmojiPicker";
+import { EmojiAutocomplete } from "./EmojiAutocomplete";
 import type { PickerType, TimedMessageDuration } from "../../types";
 import {
   attachmentUploadService,
@@ -10,7 +11,9 @@ import {
 import { toast } from "sonner";
 import { AttachmentImage } from "./AttachmentImage";
 
-const Picker = lazy(() => import("@emoji-mart/react"));
+function hasActiveShortcode(text: string): boolean {
+  return /:([a-zA-Z0-9_+-]{2,})$/.test(text);
+}
 
 const TIMED_OPTIONS: { label: string; value: TimedMessageDuration }[] = [
   { label: "Off", value: null },
@@ -38,6 +41,7 @@ export function ChatInput() {
   } = useChat();
   const [activePicker, setActivePicker] = useState<PickerType>(null);
   const [showTimedMenu, setShowTimedMenu] = useState(false);
+  const [showEmojiAutocomplete, setShowEmojiAutocomplete] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [uploadingFile, setUploadingFile] = useState<{
@@ -157,10 +161,22 @@ export function ChatInput() {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
+        if (showEmojiAutocomplete && hasActiveShortcode(messageInput)) {
+          return;
+        }
         e.preventDefault();
         handleSendMessage();
         setActivePicker(null);
+      } else if (e.key === "Tab" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+        if (showEmojiAutocomplete && hasActiveShortcode(messageInput)) {
+          e.preventDefault();
+          return;
+        }
       } else if (e.key === "Escape") {
+        if (showEmojiAutocomplete && hasActiveShortcode(messageInput)) {
+          setShowEmojiAutocomplete(false);
+          return;
+        }
         if (selectedFile) {
           handleRemoveFile();
         } else if (replyTo) {
@@ -168,12 +184,35 @@ export function ChatInput() {
         }
       }
     },
-    [handleSendMessage, selectedFile, handleRemoveFile, replyTo, setReplyTo]
+    [
+      handleSendMessage,
+      selectedFile,
+      handleRemoveFile,
+      replyTo,
+      setReplyTo,
+      showEmojiAutocomplete,
+      messageInput,
+    ]
   );
 
   const handleEmojiSelect = useCallback(
-    (emoji: { native: string }) => {
+    (emoji: { native: string; id: string }) => {
       setMessageInput(messageInput + emoji.native);
+      inputRef.current?.focus();
+    },
+    [messageInput, setMessageInput]
+  );
+
+  const handlePickerTabChange = useCallback((tab: "gif" | "emoji") => {
+    setActivePicker(tab);
+  }, []);
+
+  const handleEmojiAutocompleteSelect = useCallback(
+    (emoji: string, _shortcode: string) => {
+      const newText = messageInput.replace(/:([a-zA-Z0-9_+-]+)$/, emoji);
+      setMessageInput(newText);
+      setShowEmojiAutocomplete(false);
+      setTimeout(() => setShowEmojiAutocomplete(true), 100);
       inputRef.current?.focus();
     },
     [messageInput, setMessageInput]
@@ -570,31 +609,34 @@ export function ChatInput() {
 
       {activePicker && (
         <div
-          className="absolute bottom-[70px] left-6 z-50 shadow-lg rounded-lg overflow-hidden border border-border animate-in slide-in-from-bottom-4 zoom-in-95 duration-100"
+          className="absolute bottom-[70px] left-6 z-50 animate-in slide-in-from-bottom-4 zoom-in-95 duration-100"
           ref={pickerRef}
         >
           {activePicker === "emoji" && (
-            <Suspense
-              fallback={
-                <div className="w-[350px] h-[400px] flex items-center justify-center bg-background">
-                  Loading...
-                </div>
-              }
-            >
-              <Picker
-                data={data}
-                onEmojiSelect={handleEmojiSelect}
-                theme="dark"
-                previewPosition="none"
-                skinTonePosition="none"
-              />
-            </Suspense>
+            <EmojiPicker
+              onSelect={handleEmojiSelect}
+              onTabChange={handlePickerTabChange}
+              activeTab="emoji"
+            />
           )}
-          {activePicker === "gif" && <GifPicker onSelect={handleGifSelect} />}
+          {activePicker === "gif" && (
+            <GifPicker
+              onSelect={handleGifSelect}
+              onTabChange={handlePickerTabChange}
+              activeTab="gif"
+            />
+          )}
         </div>
       )}
 
-      <div className="flex items-center gap-2 h-9 rounded-md bg-secondary/30 px-3 border border-border/50 focus-within:border-border transition-all">
+      <div className="relative flex items-center gap-2 h-9 rounded-md bg-secondary/30 px-3 border border-border/50 focus-within:border-border transition-all">
+        {showEmojiAutocomplete && (
+          <EmojiAutocomplete
+            text={messageInput}
+            onSelect={handleEmojiAutocompleteSelect}
+            onClose={() => setShowEmojiAutocomplete(false)}
+          />
+        )}
         <input
           ref={fileInputRef}
           type="file"

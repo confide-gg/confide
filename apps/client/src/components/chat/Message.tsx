@@ -20,6 +20,22 @@ interface MessageProps {
   showHeader: boolean;
 }
 
+const EMOJI_ONLY_REGEX =
+  /^[\p{Emoji_Presentation}\p{Emoji}\uFE0F\p{Emoji_Modifier_Base}\p{Emoji_Modifier}\u200D\s]+$/u;
+
+function isEmojiOnly(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  const withoutSpaces = trimmed.replace(/\s/g, "");
+  if (withoutSpaces.length === 0) return false;
+  return EMOJI_ONLY_REGEX.test(trimmed);
+}
+
+function getEmojiCount(text: string): number {
+  const matches = text.match(/\p{Emoji_Presentation}|\p{Emoji}\uFE0F/gu);
+  return matches ? matches.length : 0;
+}
+
 export const Message = memo(function Message({ message, showHeader }: MessageProps) {
   const {
     setMessageContextMenu,
@@ -309,7 +325,23 @@ export const Message = memo(function Message({ message, showHeader }: MessagePro
         </div>
       );
     }
-    return <>{message.content}</>;
+    const emojiOnly = isEmojiOnly(message.content);
+    const emojiCount = emojiOnly ? getEmojiCount(message.content) : 0;
+
+    let sizeClass = "text-sm";
+    if (emojiOnly) {
+      if (emojiCount === 1) {
+        sizeClass = "text-5xl leading-tight";
+      } else if (emojiCount === 2) {
+        sizeClass = "text-4xl leading-tight";
+      } else if (emojiCount <= 5) {
+        sizeClass = "text-3xl leading-tight";
+      } else {
+        sizeClass = "text-2xl leading-tight";
+      }
+    }
+
+    return <span className={emojiOnly ? sizeClass : ""}>{message.content}</span>;
   };
 
   const formatTimeLeft = (seconds: number) => {

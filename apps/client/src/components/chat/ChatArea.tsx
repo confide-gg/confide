@@ -9,8 +9,7 @@ import { MessageContextMenu } from "./MessageContextMenu";
 import { ProfileSidePanel } from "../profile/ProfileSidePanel";
 import { CallHeader } from "../calls/CallHeader";
 import { useMessages } from "../../hooks/queries";
-import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
+import { EmojiPicker } from "./EmojiPicker";
 
 export function ChatArea() {
   const {
@@ -123,7 +122,7 @@ export function ChatArea() {
     setMessageContextMenu(null);
   };
 
-  const handleEmojiSelect = (emoji: { native: string }) => {
+  const handleEmojiSelect = (emoji: { native: string; id: string }) => {
     if (messageContextMenu) {
       addReaction(messageContextMenu.messageId, emoji.native);
     }
@@ -171,14 +170,7 @@ export function ChatArea() {
             zIndex: 1001,
           }}
         >
-          <Picker
-            data={data}
-            onEmojiSelect={handleEmojiSelect}
-            theme="dark"
-            previewPosition="none"
-            skinTonePosition="none"
-            perLine={8}
-          />
+          <EmojiPicker onSelect={handleEmojiSelect} />
         </div>
       )}
     </div>

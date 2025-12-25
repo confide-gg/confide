@@ -7,13 +7,12 @@ import { cryptoService } from "../../core/crypto/crypto";
 import type { FederatedMember as Member } from "../../features/servers/federatedClient";
 import type { WsMessage as ServerMessage } from "../../core/network/wsTypes";
 import type { EncryptedMessage } from "../../features/servers/types";
-import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 import { MemberProfileCard } from "./MemberProfileCard";
 import { UserAvatar } from "../ui/user-avatar";
 import { GifPicker } from "../chat/GifPicker";
+import { EmojiPicker } from "../chat/EmojiPicker";
 import { cn } from "../../lib/utils";
 
 interface DisplayMessage {
@@ -592,17 +591,13 @@ export function ChannelChat() {
                 align="start"
                 className="w-auto p-0 border-none bg-transparent shadow-none"
               >
-                <Picker
-                  data={data}
-                  onEmojiSelect={(emoji: { native: string }) => {
+                <EmojiPicker
+                  onSelect={(emoji) => {
                     setNewMessage((prev) => prev + emoji.native);
                     if (federatedWs && activeChannel) {
                       federatedWs.sendTyping(activeChannel.id);
                     }
                   }}
-                  theme="dark"
-                  previewPosition="none"
-                  skinTonePosition="none"
                 />
               </PopoverContent>
             </Popover>

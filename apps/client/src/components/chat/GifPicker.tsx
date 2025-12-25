@@ -6,19 +6,22 @@ import { cn } from "../../lib/utils";
 
 interface GifPickerProps {
   onSelect: (gifUrl: string) => void;
+  onTabChange?: (tab: "gif" | "emoji") => void;
+  activeTab?: "gif" | "emoji";
   className?: string;
 }
 
-export function GifPicker({ onSelect, className }: GifPickerProps) {
+export function GifPicker({ onSelect, onTabChange, activeTab = "gif", className }: GifPickerProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TenorGif[]>([]);
   const [categories, setCategories] = useState<TenorCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"trending" | "search" | "favorites">("trending");
+  const [contentTab, setContentTab] = useState<"trending" | "search" | "favorites">("trending");
   const [favorites, setFavorites] = useState<FavoriteGif[]>([]);
   const [viewMode, setViewMode] = useState<"categories" | "results">("categories");
   const [favoriteUrls, setFavoriteUrls] = useState<Set<string>>(new Set());
   const [trendingPreview, setTrendingPreview] = useState<TenorGif[]>([]);
+  const [hoveredGif, setHoveredGif] = useState<string | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -59,7 +62,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
     try {
       const gifs = await tenor.getTrending();
       setResults(gifs);
-      setActiveTab("trending");
+      setContentTab("trending");
       setViewMode("results");
     } catch (err) {
       console.error("Failed to load trending gifs", err);
@@ -69,7 +72,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
   };
 
   const loadFavorites = () => {
-    setActiveTab("favorites");
+    setContentTab("favorites");
     setViewMode("results");
   };
 
@@ -77,7 +80,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
     setQuery(searchterm);
     setIsLoading(true);
     setViewMode("results");
-    setActiveTab("search");
+    setContentTab("search");
     try {
       const gifs = await tenor.search(searchterm);
       setResults(gifs);
@@ -94,7 +97,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
       return;
     }
     setIsLoading(true);
-    setActiveTab("search");
+    setContentTab("search");
     setViewMode("results");
     try {
       const gifs = await tenor.search(q);
@@ -138,11 +141,36 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
   return (
     <div
       className={cn(
-        "flex flex-col w-[420px] h-[480px] bg-card border border-border rounded-lg shadow-xl overflow-hidden",
+        "flex flex-col w-[456px] h-[420px] bg-card border border-border rounded-lg shadow-xl overflow-hidden",
         className
       )}
     >
-      <div className="p-3 border-b border-border/50 bg-secondary/20 backdrop-blur-sm">
+      <div className="flex items-center gap-1 px-3 pt-3 pb-2 border-b border-border/50">
+        <button
+          onClick={() => onTabChange?.("gif")}
+          className={cn(
+            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+            activeTab === "gif"
+              ? "bg-secondary text-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+          )}
+        >
+          GIFs
+        </button>
+        <button
+          onClick={() => onTabChange?.("emoji")}
+          className={cn(
+            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+            activeTab === "emoji"
+              ? "bg-secondary text-foreground"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+          )}
+        >
+          Emoji
+        </button>
+      </div>
+
+      <div className="px-3 py-2">
         <div className="flex items-center gap-2">
           {viewMode === "results" && (
             <button
@@ -163,7 +191,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search GIFs via Tenor..."
-              className="w-full pl-9 pr-3 py-2 bg-secondary/30 border border-border/50 rounded-md text-sm focus:outline-none focus:border-border focus:bg-secondary/40 placeholder:text-muted-foreground transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-secondary/30 border border-border/50 rounded-md text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 placeholder:text-muted-foreground transition-all"
             />
           </div>
         </div>
@@ -247,7 +275,7 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
               </button>
             ))}
           </div>
-        ) : activeTab === "favorites" ? (
+        ) : contentTab === "favorites" ? (
           favorites.length > 0 ? (
             <div className="grid grid-cols-2 gap-3">
               {favorites.map((fav) => (
@@ -255,6 +283,8 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
                   key={fav.id}
                   className="relative aspect-video rounded-lg overflow-hidden cursor-pointer group border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
                   onClick={() => onSelect(fav.gif_url)}
+                  onMouseEnter={() => setHoveredGif("Favorite GIF")}
+                  onMouseLeave={() => setHoveredGif(null)}
                 >
                   <img
                     src={fav.gif_preview_url || fav.gif_url}
@@ -295,6 +325,8 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
                   key={gif.id}
                   className="relative aspect-video rounded-lg overflow-hidden cursor-pointer bg-secondary/20 group border border-border/50 hover:border-border hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
                   onClick={() => onSelect(url)}
+                  onMouseEnter={() => setHoveredGif(gif.title || "GIF")}
+                  onMouseLeave={() => setHoveredGif(null)}
                 >
                   <img
                     src={previewUrl}
@@ -318,6 +350,14 @@ export function GifPicker({ onSelect, className }: GifPickerProps) {
               );
             })}
           </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-border/50 bg-secondary/20 h-12">
+        {hoveredGif ? (
+          <span className="text-sm text-muted-foreground truncate">{hoveredGif}</span>
+        ) : (
+          <span className="text-sm text-muted-foreground">Search or select a GIF</span>
         )}
       </div>
     </div>

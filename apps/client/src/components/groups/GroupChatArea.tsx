@@ -1,5 +1,3 @@
-import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
 import { Pin, UserPlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -8,6 +6,7 @@ import { cryptoService } from "../../core/crypto/crypto";
 import { groupService } from "../../features/groups/groupService";
 import { ChatInput } from "../chat/ChatInput";
 import { ChatMessages } from "../chat/ChatMessages";
+import { EmojiPicker } from "../chat/EmojiPicker";
 import { MessageContextMenu } from "../chat/MessageContextMenu";
 import { PinnedMessages } from "../chat/PinnedMessages";
 import { TypingIndicator } from "../chat/TypingIndicator";
@@ -169,7 +168,7 @@ export function GroupChatArea() {
     setMessageContextMenu(null);
   };
 
-  const handleEmojiSelect = (emoji: { native: string }) => {
+  const handleEmojiSelect = (emoji: { native: string; id: string }) => {
     if (messageContextMenu) {
       addReaction(messageContextMenu.messageId, emoji.native);
     }
@@ -305,14 +304,7 @@ export function GroupChatArea() {
             zIndex: 1001,
           }}
         >
-          <Picker
-            data={data}
-            onEmojiSelect={handleEmojiSelect}
-            theme="dark"
-            previewPosition="none"
-            skinTonePosition="none"
-            perLine={8}
-          />
+          <EmojiPicker onSelect={handleEmojiSelect} />
         </div>
       )}
     </div>
