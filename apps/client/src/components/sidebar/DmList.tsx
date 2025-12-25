@@ -112,7 +112,9 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
         className={`group relative flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors ${
           isActive
             ? "bg-secondary text-foreground cursor-default"
-            : "text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
+            : unreadCount > 0
+              ? "text-foreground hover:bg-secondary cursor-pointer"
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
         }`}
         onClick={() => {
           if (isActive) return;
@@ -125,6 +127,10 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
         }}
         onContextMenu={(e) => handleContextMenu(e, preview)}
       >
+        {unreadCount > 0 && !isActive && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-2 bg-white rounded-r-full" />
+        )}
+
         {preview.isGroup ? (
           <AvatarPile
             users={(preview.memberUsernames || []).slice(0, 10).map((n, idx) => ({
@@ -143,7 +149,9 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
 
         <div className="flex-1 min-w-0">
           <div className="flex flex-col min-w-0">
-            <div className="truncate text-sm font-medium flex items-center gap-2">
+            <div
+              className={`truncate text-sm flex items-center gap-2 ${unreadCount > 0 ? "font-semibold text-white" : "font-medium"}`}
+            >
               <span className="truncate">{displayName}</span>
             </div>
             {preview.isGroup ? (
@@ -155,12 +163,6 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
             )}
           </div>
         </div>
-
-        {unreadCount > 0 && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-medium text-destructive-foreground">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
 
         <div
           role="button"

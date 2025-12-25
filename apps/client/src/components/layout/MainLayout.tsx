@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useChat } from "../../context/chat";
 import { useAuth } from "../../context/AuthContext";
 import { useServer } from "../../context/server";
@@ -22,6 +22,8 @@ import { ChannelList } from "../servers/ChannelList";
 import { ChannelChat } from "../servers/ChannelChat";
 import { MemberList } from "../servers/MemberList";
 import { ServerOfflineOverlay } from "../common/ServerOfflineOverlay";
+import { Avatar } from "../ui/avatar";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
 import { groupService } from "../../features/groups/groupService";
 import { AddGroupMembersModal } from "../groups/AddGroupMembersModal";
 import { conversationService } from "../../features/chat/conversations";
@@ -67,9 +69,21 @@ export function MainLayout() {
     setSuccessMessage,
     isConnected,
     hasConnectedOnce,
+    unreadCounts,
+    dmPreviews,
+    openDmFromPreview,
   } = useChat();
   const { isDragging } = useDropzone();
   const { showShortcutsModal, setShowShortcutsModal } = useKeyboardShortcuts();
+
+  const unreadDms = useMemo(() => {
+    return dmPreviews
+      .filter((dm) => !dm.isGroup && (unreadCounts.get(dm.conversationId) || 0) > 0)
+      .map((dm) => ({
+        ...dm,
+        unreadCount: unreadCounts.get(dm.conversationId) || 0,
+      }));
+  }, [dmPreviews, unreadCounts]);
 
   useEffect(() => {
     const handleClick = () => {
@@ -162,24 +176,57 @@ export function MainLayout() {
         </div>
       )}
       <aside className="w-16 h-full shrink-0">
-        <Panel className="h-full flex flex-col items-center">
-          <div className="h-14 w-full flex items-center justify-center shrink-0">
-            <button
-              onClick={handleHomeClick}
-              className={cn(
-                "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 font-bold text-lg",
-                !activeServer
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary/30 hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
-              )}
-            >
-              C
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto py-4 w-full">
-            <ServerList onOpenDiscovery={handleOpenDiscovery} />
-          </div>
-        </Panel>
+        <TooltipProvider delayDuration={0}>
+          <Panel className="h-full flex flex-col items-center">
+            <div className="h-14 w-full flex items-center justify-center shrink-0">
+              <button
+                onClick={handleHomeClick}
+                className={cn(
+                  "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 font-bold text-lg",
+                  !activeServer
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary/30 hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                C
+              </button>
+            </div>
+
+            {unreadDms.length > 0 && (
+              <div className="flex flex-col items-center gap-2 px-1 w-full pb-2">
+                <div className="w-6 h-px bg-border" />
+                {unreadDms.map((dm) => (
+                  <Tooltip key={dm.conversationId}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => {
+                          openDmFromPreview(dm);
+                          setActiveServer(null);
+                        }}
+                        className="relative w-10 h-10 rounded-full hover:rounded-lg transition-all duration-200"
+                      >
+                        <Avatar fallback={dm.visitorUsername} size="md" className="w-10 h-10" />
+                        <span className="absolute -bottom-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white border-[3px] border-card">
+                          {dm.unreadCount > 99 ? "99+" : dm.unreadCount}
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{dm.visitorUsername}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {dm.unreadCount} unread message{dm.unreadCount !== 1 ? "s" : ""}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto py-4 w-full">
+              <ServerList onOpenDiscovery={handleOpenDiscovery} />
+            </div>
+          </Panel>
+        </TooltipProvider>
       </aside>
 
       {activeServer && <ChannelList />}
