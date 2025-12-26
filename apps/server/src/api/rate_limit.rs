@@ -78,11 +78,15 @@ pub async fn rate_limit_middleware(
     let token = bearer.or(ws_token);
 
     let user_identifier = if let Some(token) = token {
-        if let Ok(token_bytes) = hex::decode(&token) {
-            let token_hash = Sha256::digest(&token_bytes);
-            format!("user:{}", hex::encode(&token_hash[..8]))
-        } else {
-            "anon".to_string()
+        match hex::decode(&token) {
+            Ok(token_bytes) => {
+                let token_hash = Sha256::digest(&token_bytes);
+                format!("user:{}", hex::encode(&token_hash[..8]))
+            }
+            Err(_) => {
+                tracing::warn!("Invalid token format in rate limit check");
+                return Err(AppError::Unauthorized);
+            }
         }
     } else {
         "anon".to_string()
