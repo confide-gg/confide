@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 const STATUS_OPTIONS: { value: UserStatus; label: string; color: string }[] = [
   { value: "online", label: "Online", color: "#22c55e" },
@@ -69,134 +68,116 @@ export function UserProfile() {
     return name.slice(0, 2).toUpperCase();
   };
 
-  const isInCall = callState.status === "active";
-
   return (
     <>
       <div className="flex flex-col gap-2">
-        {isInCall && (
-          <div className="flex items-center justify-center gap-1 px-2">
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setMuted(!callState.is_muted)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-                      callState.is_muted
-                        ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    {callState.is_muted ? (
-                      <FontAwesomeIcon icon="microphone-slash" className="h-4 w-4" />
-                    ) : (
-                      <FontAwesomeIcon icon="microphone" className="h-4 w-4" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top">{callState.is_muted ? "Unmute" : "Mute"}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <TooltipProvider delayDuration={100}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setDeafened(!callState.is_deafened)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
-                      callState.is_deafened
-                        ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    <FontAwesomeIcon
-                      icon="headphones"
-                      className={`h-4 w-4 ${callState.is_deafened ? "line-through" : ""}`}
-                    />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  {callState.is_deafened ? "Undeafen" : "Deafen"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        )}
-
         {activity && (
           <div className="px-2">
             <ActivityDisplay activity={activity} compact />
           </div>
         )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm outline-none transition-colors hover:bg-secondary">
-              <div className="relative shrink-0">
-                <AvatarRoot className="h-9 w-9">
-                  {profile?.avatar_url ? (
-                    <AvatarImage src={uploadService.getUploadUrl(profile.avatar_url)} />
-                  ) : null}
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-[#a8d15a] text-primary-foreground text-xs font-medium">
-                    {getInitials(profile?.display_name || user.username)}
-                  </AvatarFallback>
-                </AvatarRoot>
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-secondary"
-                  style={{ background: currentStatus.color }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-medium text-foreground">
-                  {profile?.display_name || user.username}
+        <div className="flex items-center gap-1 px-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex flex-1 items-center gap-2 rounded-md p-2 text-left text-sm outline-none transition-colors hover:bg-secondary">
+                <div className="relative shrink-0">
+                  <AvatarRoot className="h-9 w-9">
+                    {profile?.avatar_url ? (
+                      <AvatarImage src={uploadService.getUploadUrl(profile.avatar_url)} />
+                    ) : null}
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-[#a8d15a] text-primary-foreground text-xs font-medium">
+                      {getInitials(profile?.display_name || user.username)}
+                    </AvatarFallback>
+                  </AvatarRoot>
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-secondary"
+                    style={{ background: currentStatus.color }}
+                  />
                 </div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {profile?.custom_status || currentStatus.label}
+                <div className="flex-1 min-w-0">
+                  <div className="truncate font-medium text-foreground">
+                    {profile?.display_name || user.username}
+                  </div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {profile?.custom_status || currentStatus.label}
+                  </div>
                 </div>
-              </div>
-              <FontAwesomeIcon
-                icon="chevron-down"
-                className="shrink-0 w-4 h-4 text-muted-foreground"
-              />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Status
-            </DropdownMenuLabel>
-            {STATUS_OPTIONS.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => handleStatusChange(option.value)}
-                className={status === option.value ? "bg-primary/10 text-primary" : ""}
-              >
-                <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ background: option.color }}
-                />
-                <span className="flex-1">{option.label}</span>
-                {status === option.value && <FontAwesomeIcon icon="check" className="w-4 h-4" />}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuLabel className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Status
+              </DropdownMenuLabel>
+              {STATUS_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => handleStatusChange(option.value)}
+                  className={status === option.value ? "bg-primary/10 text-primary" : ""}
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: option.color }}
+                  />
+                  <span className="flex-1">{option.label}</span>
+                  {status === option.value && <FontAwesomeIcon icon="check" className="w-4 h-4" />}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <FontAwesomeIcon icon="pen-to-square" className="w-4 h-4" />
+                <span>Edit Profile</span>
               </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
-              <FontAwesomeIcon icon="pen-to-square" className="w-4 h-4" />
-              <span>Edit Profile</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
-              <FontAwesomeIcon icon="gear" className="w-4 h-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={logout}
-              className="text-destructive focus:text-destructive focus:bg-destructive/10"
-            >
-              <FontAwesomeIcon icon="arrow-right-from-bracket" className="w-4 h-4" />
-              <span>Log Out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <FontAwesomeIcon icon="gear" className="w-4 h-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <FontAwesomeIcon icon="arrow-right-from-bracket" className="w-4 h-4" />
+                <span>Log Out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <button
+            onClick={() => setMuted(!callState.is_muted)}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
+              callState.is_muted
+                ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            }`}
+            title={callState.is_muted ? "Unmute" : "Mute"}
+          >
+            <FontAwesomeIcon
+              icon={callState.is_muted ? "microphone-slash" : "microphone"}
+              className="h-3.5 w-3.5"
+            />
+          </button>
+
+          <button
+            onClick={() => setDeafened(!callState.is_deafened)}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
+              callState.is_deafened
+                ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            }`}
+            title={callState.is_deafened ? "Undeafen" : "Deafen"}
+          >
+            <FontAwesomeIcon icon="headphones" className="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            onClick={() => navigate("/settings")}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+            title="Settings"
+          >
+            <FontAwesomeIcon icon="gear" className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     </>
   );
