@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/confide-gg/confide/compare/confide-central-v0.13.0...confide-central-v0.13.1) (2025-12-26)
+
+
+### Bug Fixes
+
+* prevent concurrent call creation with row locks ([684d403](https://github.com/confide-gg/confide/commit/684d4035c169f110311a4db8514e6db1e2cebf60))
+
 ## [0.13.0](https://github.com/confide-gg/confide/compare/confide-central-v0.12.1...confide-central-v0.13.0) (2025-12-25)
 
 

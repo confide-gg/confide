@@ -1,5 +1,5 @@
 {
-    "apps/client": "0.28.0",
-    "apps/server": "0.8.0",
-    "apps/central": "0.13.0"
+    "apps/client": "0.29.0",
+    "apps/server": "0.9.0",
+    "apps/central": "0.13.1"
 }

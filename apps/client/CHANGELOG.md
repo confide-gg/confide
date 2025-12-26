@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.29.0](https://github.com/confide-gg/confide/compare/confide-client-v0.28.0...confide-client-v0.29.0) (2025-12-26)
+
+
+### Features
+
+* add mute, deafen, and settings buttons to sidebar footer ([f9f57cc](https://github.com/confide-gg/confide/commit/f9f57ccc921133f4743d09f55b55eb5c7ff2bd59))
+* e2e channel encryption with permission-based key distribution ([dd9c8b3](https://github.com/confide-gg/confide/commit/dd9c8b3c99fe0109ca52217f80b18ba765b77196))
+* implement infinite reconnection with exponential backoff ([08ab0e6](https://github.com/confide-gg/confide/commit/08ab0e6331f61d2e1eab0ddceccb19d6f582e0e6))
+* improve typing indicator ux and prevent memory leak ([781ef06](https://github.com/confide-gg/confide/commit/781ef068e6565820ae1771101abfcb9b4077dce9))
+
+
+### Bug Fixes
+
+* hide admin ui elements from users without proper permissions ([ee4ddc4](https://github.com/confide-gg/confide/commit/ee4ddc43e46e79ff804d2c6e717dbc3de12abc37))
+* increase websocket rate limit from 10 to 30 per minute ([daabfd5](https://github.com/confide-gg/confide/commit/daabfd5630e733722cb7ba1577bbee0b97522a50))
+
 ## [0.28.0](https://github.com/confide-gg/confide/compare/confide-client-v0.27.1...confide-client-v0.28.0) (2025-12-25)
 
 
