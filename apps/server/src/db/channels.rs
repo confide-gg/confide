@@ -268,10 +268,26 @@ impl Database {
         distributions: Vec<(Uuid, Vec<u8>)>,
         key_version: i32,
     ) -> Result<()> {
+        let mut tx = self.pool.begin().await?;
+
         for (member_id, encrypted_key) in distributions {
-            self.set_member_channel_key(member_id, channel_id, encrypted_key, key_version)
-                .await?;
+            sqlx::query(
+                r#"
+                INSERT INTO member_channel_keys (member_id, channel_id, encrypted_key, key_version)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (member_id, channel_id)
+                DO UPDATE SET encrypted_key = $3, key_version = $4
+                "#,
+            )
+            .bind(member_id)
+            .bind(channel_id)
+            .bind(&encrypted_key)
+            .bind(key_version)
+            .execute(&mut *tx)
+            .await?;
         }
+
+        tx.commit().await?;
         Ok(())
     }
 
