@@ -15,20 +15,46 @@ impl Database {
         conversation_id: Option<Uuid>,
         caller_ephemeral_public: &[u8],
     ) -> Result<Call> {
-        if self.user_has_active_call(caller_id).await? {
+        let mut tx = self.pool.begin().await?;
+
+        let caller_has_call: (i64,) = sqlx::query_as(
+            r#"
+            SELECT COUNT(*) FROM calls
+            WHERE (caller_id = $1 OR callee_id = $1)
+            AND status IN ('pending', 'ringing', 'connecting', 'active')
+            FOR UPDATE
+            "#,
+        )
+        .bind(caller_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        if caller_has_call.0 > 0 {
             return Err(crate::error::AppError::BadRequest(
                 "You already have an active call".into(),
             ));
         }
 
-        if self.user_has_active_call(callee_id).await? {
+        let callee_has_call: (i64,) = sqlx::query_as(
+            r#"
+            SELECT COUNT(*) FROM calls
+            WHERE (caller_id = $1 OR callee_id = $1)
+            AND status IN ('pending', 'ringing', 'connecting', 'active')
+            FOR UPDATE
+            "#,
+        )
+        .bind(callee_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        if callee_has_call.0 > 0 {
             return Err(crate::error::AppError::BadRequest("User is busy".into()));
         }
 
         let call = sqlx::query_as::<_, Call>(
             r#"
             INSERT INTO calls (
-                id, caller_id, callee_id, conversation_id, 
+                id, caller_id, callee_id, conversation_id,
                 caller_ephemeral_public, status, ring_started_at
             )
             VALUES ($1, $2, $3, $4, $5, 'ringing', NOW())
@@ -40,9 +66,10 @@ impl Database {
         .bind(callee_id)
         .bind(conversation_id)
         .bind(caller_ephemeral_public)
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await?;
 
+        tx.commit().await?;
         Ok(call)
     }
 
