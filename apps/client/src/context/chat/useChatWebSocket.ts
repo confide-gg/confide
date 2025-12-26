@@ -252,6 +252,17 @@ export function useChatWebSocket({
               if (is_typing) {
                 setTypingUsers((prev) => {
                   const next = new Map(prev);
+
+                  const MAX_TYPING_USERS = 100;
+                  if (next.size >= MAX_TYPING_USERS && !next.has(user_id)) {
+                    const firstKey = next.keys().next().value;
+                    if (firstKey) {
+                      const oldTimeout = next.get(firstKey);
+                      if (oldTimeout) clearTimeout(oldTimeout);
+                      next.delete(firstKey);
+                    }
+                  }
+
                   if (next.has(user_id)) clearTimeout(next.get(user_id)!);
                   const timeout = setTimeout(() => {
                     setTypingUsers((p) => {

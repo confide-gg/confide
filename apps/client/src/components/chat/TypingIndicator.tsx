@@ -22,8 +22,11 @@ export function TypingIndicator() {
     text = `${typingNames[0]} is typing`;
   } else if (typingNames.length === 2) {
     text = `${typingNames[0]} and ${typingNames[1]} are typing`;
+  } else if (typingNames.length === 3) {
+    text = `${typingNames[0]}, ${typingNames[1]}, and ${typingNames[2]} are typing`;
   } else {
-    text = `${typingNames.length} people are typing`;
+    const othersCount = typingNames.length - 2;
+    text = `${typingNames[0]}, ${typingNames[1]}, and ${othersCount} ${othersCount === 1 ? "other" : "others"} are typing`;
   }
 
   return (
