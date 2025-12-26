@@ -131,6 +131,11 @@ export abstract class BaseWebSocket<IncomingMessageType, OutgoingMessageType> {
             return;
           }
 
+          if (event.code === 4429) {
+            console.error("[WS] Rate limited, backing off");
+            this.reconnectAttempts = this.maxReconnectAttempts - 1;
+          }
+
           if (!this.intentionalDisconnect) {
             this.attemptReconnect();
           }

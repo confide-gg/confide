@@ -21,7 +21,7 @@ impl RateLimitTier {
     pub fn limits(&self) -> (u32, u64, &'static str) {
         match self {
             RateLimitTier::Auth => (5, 60, "auth"),
-            RateLimitTier::WebSocketConnect => (10, 60, "ws"),
+            RateLimitTier::WebSocketConnect => (30, 60, "ws"),
             RateLimitTier::Read => (300, 60, "read"),
             RateLimitTier::Write => (60, 60, "write"),
         }
