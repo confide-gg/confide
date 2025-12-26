@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod cache_lock;
 mod channels;
 mod members;
 mod messages;
