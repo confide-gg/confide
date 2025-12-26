@@ -2,6 +2,8 @@ use anyhow::Result;
 use redis::{AsyncCommands, Client};
 use serde::{de::DeserializeOwned, Serialize};
 
+use super::cache_lock::CacheLock;
+
 pub async fn cached_get<T, F, Fut>(
     redis: &Client,
     cache_key: &str,
@@ -23,7 +25,9 @@ where
     }
 
     tracing::debug!("cache miss: {}", cache_key);
-    let value = fallback().await?;
+
+    let cache_lock = CacheLock::new(redis.clone());
+    let value = cache_lock.with_lock(cache_key, fallback).await?;
 
     let serialized = serde_json::to_string(&value)?;
 
