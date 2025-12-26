@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.0](https://github.com/confide-gg/confide/compare/confide-server-v0.8.0...confide-server-v0.9.0) (2025-12-26)
+
+
+### Features
+
+* add foundation utilities for websocket improvements ([9f53531](https://github.com/confide-gg/confide/commit/9f53531b10e01826238f3a6ad534180723133a8b))
+* e2e channel encryption with permission-based key distribution ([dd9c8b3](https://github.com/confide-gg/confide/commit/dd9c8b3c99fe0109ca52217f80b18ba765b77196))
+
+
+### Bug Fixes
+
+* close rate limit bypass via invalid tokens ([cb44549](https://github.com/confide-gg/confide/commit/cb44549721ad4675959124cdbf9e6563bcf350fb))
+* eliminate cache invalidation race condition ([709517f](https://github.com/confide-gg/confide/commit/709517f37c8a014e342847c0ad7053b85efa3947))
+* increase websocket rate limit from 10 to 30 per minute ([daabfd5](https://github.com/confide-gg/confide/commit/daabfd5630e733722cb7ba1577bbee0b97522a50))
+* prevent cache stampede with distributed locking ([4cc89c4](https://github.com/confide-gg/confide/commit/4cc89c4f66ebdd44b5982e8f0fd22a17d7324e98))
+* replace unbounded websocket channels with bounded ([27faf34](https://github.com/confide-gg/confide/commit/27faf347ccb332dac66bc46f83d01d881f67cc91))
+* wrap key distribution in atomic transaction ([41173f8](https://github.com/confide-gg/confide/commit/41173f87bec0941989bddf4aad66cb8b8a954faf))
+
 ## [0.8.0](https://github.com/confide-gg/confide/compare/confide-server-v0.7.2...confide-server-v0.8.0) (2025-12-25)
 
 
