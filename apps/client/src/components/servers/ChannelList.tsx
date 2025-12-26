@@ -18,6 +18,7 @@ import { ServerSettings } from "./settings";
 import { Panel } from "../layout/Panel";
 import { serverService } from "../../features/servers/servers";
 import { ChannelSidebarContextMenu } from "./ChannelSidebarContextMenu";
+import { hasPermission, Permissions } from "../../features/servers/permissions";
 
 export function ChannelList() {
   const {
@@ -30,7 +31,12 @@ export function ChannelList() {
     createCategory,
     reloadServerData,
     federatedClient,
+    myPermissions,
   } = useServer();
+
+  const isOwner = activeServer && isFederatedServer(activeServer) ? activeServer.is_owner === true : false;
+  const canManageChannels = isOwner || hasPermission(myPermissions, Permissions.MANAGE_CHANNELS);
+  const canManageServer = isOwner || hasPermission(myPermissions, Permissions.MANAGE_SERVER);
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
@@ -311,7 +317,7 @@ export function ChannelList() {
       <Panel className="h-full flex flex-col">
         <div className="h-14 px-4 flex items-center justify-between shrink-0">
           <h2 className="font-semibold text-base truncate text-foreground">{activeServer?.name}</h2>
-          {isFederated && (
+          {isFederated && canManageServer && (
             <button
               onClick={() => setShowSettings(true)}
               className="p-1.5 hover:bg-secondary/50 rounded-md transition-colors"
@@ -332,7 +338,7 @@ export function ChannelList() {
             setSidebarMenu({ x: e.clientX, y: e.clientY });
           }}
         >
-          {sidebarMenu && (
+          {sidebarMenu && canManageChannels && (
             <ChannelSidebarContextMenu
               x={sidebarMenu.x}
               y={sidebarMenu.y}
@@ -378,20 +384,22 @@ export function ChannelList() {
                     data-dnd-id={category.id}
                   >
                     <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
-                      <button
-                        type="button"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDragItem({ type: "category", id: category.id });
-                          setDragOver({ type: "category", id: category.id, position: "below" });
-                          setDragPointerId(e.pointerId);
-                        }}
-                        className="p-1 -ml-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-                        aria-label="Drag category"
-                      >
-                        <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
-                      </button>
+                      {canManageChannels && (
+                        <button
+                          type="button"
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDragItem({ type: "category", id: category.id });
+                            setDragOver({ type: "category", id: category.id, position: "below" });
+                            setDragPointerId(e.pointerId);
+                          }}
+                          className="p-1 -ml-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                          aria-label="Drag category"
+                        >
+                          <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => toggleCategory(category.id)}
@@ -408,19 +416,21 @@ export function ChannelList() {
                       </button>
                     </div>
 
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setNewChannelCategoryId(category.id);
-                          setShowCreateChannel(true);
-                        }}
-                        className="p-1 hover:text-primary transition-colors"
-                        title="Create Channel"
-                      >
-                        <FontAwesomeIcon icon="plus" className="w-3 h-3" />
-                      </button>
-                    </div>
+                    {canManageChannels && (
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNewChannelCategoryId(category.id);
+                            setShowCreateChannel(true);
+                          }}
+                          className="p-1 hover:text-primary transition-colors"
+                          title="Create Channel"
+                        >
+                          <FontAwesomeIcon icon="plus" className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {expandedCategories.has(category.id) && (
@@ -445,26 +455,33 @@ export function ChannelList() {
                           data-dnd-id={channel.id}
                           data-dnd-category-id={category.id}
                         >
-                          <div className="flex items-center gap-1 ml-2 w-[calc(100%-8px)]">
-                            <button
-                              type="button"
-                              onPointerDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setDragItem({ type: "channel", id: channel.id });
-                                setDragOver({
-                                  type: "channel",
-                                  id: channel.id,
-                                  position: "below",
-                                  categoryId: category.id,
-                                });
-                                setDragPointerId(e.pointerId);
-                              }}
-                              className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-                              aria-label="Drag channel"
-                            >
-                              <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
-                            </button>
+                          <div
+                            className={cn(
+                              "flex items-center gap-1 w-[calc(100%-8px)]",
+                              canManageChannels && "ml-2"
+                            )}
+                          >
+                            {canManageChannels && (
+                              <button
+                                type="button"
+                                onPointerDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setDragItem({ type: "channel", id: channel.id });
+                                  setDragOver({
+                                    type: "channel",
+                                    id: channel.id,
+                                    position: "below",
+                                    categoryId: category.id,
+                                  });
+                                  setDragPointerId(e.pointerId);
+                                }}
+                                className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                                aria-label="Drag channel"
+                              >
+                                <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => setActiveChannel(channel)}
                               className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${
@@ -522,25 +539,27 @@ export function ChannelList() {
                       data-dnd-id={channel.id}
                     >
                       <div className="flex items-center gap-1 w-full">
-                        <button
-                          type="button"
-                          onPointerDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setDragItem({ type: "channel", id: channel.id });
-                            setDragOver({
-                              type: "channel",
-                              id: channel.id,
-                              position: "below",
-                              categoryId: null,
-                            });
-                            setDragPointerId(e.pointerId);
-                          }}
-                          className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-                          aria-label="Drag channel"
-                        >
-                          <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
-                        </button>
+                        {canManageChannels && (
+                          <button
+                            type="button"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDragItem({ type: "channel", id: channel.id });
+                              setDragOver({
+                                type: "channel",
+                                id: channel.id,
+                                position: "below",
+                                categoryId: null,
+                              });
+                              setDragPointerId(e.pointerId);
+                            }}
+                            className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                            aria-label="Drag channel"
+                          >
+                            <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setActiveChannel(channel)}
                           className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${
@@ -667,12 +686,12 @@ export function ChannelList() {
           </DialogContent>
         </Dialog>
 
-        {/* Server Settings Modal */}
         {isFederated && showSettings && activeServer && (
           <ServerSettings
             serverId={activeServer.id}
             serverName={activeServer.name}
-            isOwner={(activeServer as any).is_owner || false}
+            isOwner={isOwner}
+            myPermissions={myPermissions}
             onClose={() => setShowSettings(false)}
           />
         )}

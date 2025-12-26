@@ -54,6 +54,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<DecryptedCategory[]>([]);
   const [channels, setChannels] = useState<DecryptedChannel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [myPermissions, setMyPermissions] = useState<number>(0);
   const [roleEventCallbacks] = useState<Set<RoleEventCallback>>(() => new Set());
   const federatedClientRef = useRef<FederatedServerClient | null>(null);
   const federatedWsRef = useRef<FederatedWsClient | null>(null);
@@ -92,10 +93,18 @@ export function ServerProvider({ children }: { children: ReactNode }) {
       activeServerRef.current = server;
       setActiveChannelState(null);
       federatedClientRef.current = null;
+      setMyPermissions(0);
 
       if (server) {
         if (isFederatedServer(server)) {
-          loadFederatedServerData(server, true);
+          loadFederatedServerData(server, true).then(() => {
+            if (federatedClientRef.current) {
+              federatedClientRef.current
+                .getMyPermissions()
+                .then(setMyPermissions)
+                .catch(() => {});
+            }
+          });
 
           if (server.session_token) {
             const wsClient = new FederatedWsClient(server.domain, server.session_token);
@@ -119,6 +128,12 @@ export function ServerProvider({ children }: { children: ReactNode }) {
                 message.type === "role_deleted"
               ) {
                 notifyRoleEvent(server.id);
+                if (federatedClientRef.current) {
+                  federatedClientRef.current
+                    .getMyPermissions()
+                    .then(setMyPermissions)
+                    .catch(() => {});
+                }
               }
             });
 
@@ -222,6 +237,7 @@ export function ServerProvider({ children }: { children: ReactNode }) {
     categories,
     channels,
     isLoading,
+    myPermissions,
     federatedClient: federatedClientRef.current,
     federatedWs: federatedWsRef.current,
     setActiveServer,

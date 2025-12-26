@@ -23,6 +23,7 @@ export interface ServerContextType {
   categories: DecryptedCategory[];
   channels: DecryptedChannel[];
   isLoading: boolean;
+  myPermissions: number;
   federatedClient: FederatedServerClient | null;
   federatedWs: FederatedWsClient | null;
 

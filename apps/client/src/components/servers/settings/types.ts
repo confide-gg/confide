@@ -5,6 +5,7 @@ export interface ServerSettingsProps {
   serverId: string;
   serverName: string;
   isOwner: boolean;
+  myPermissions: number;
   onClose: () => void;
 }
 

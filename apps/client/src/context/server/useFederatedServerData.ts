@@ -11,10 +11,7 @@ import {
 } from "../../features/servers/federatedClient";
 import type { WsMember } from "../../features/servers/federatedWebSocket";
 import { getLastChannelForServer } from "./storage";
-import {
-  encryptChannelKeyForMember,
-  type ChannelKeyDistribution,
-} from "../../features/servers/channelEncryption";
+import { encryptChannelKeyForMember } from "../../features/servers/channelEncryption";
 
 interface UseFederatedServerDataParams {
   keys: { kem_public_key: number[]; kem_secret_key: number[] } | null;

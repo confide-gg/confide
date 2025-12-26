@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { ScrollArea } from "../../ui/scroll-area";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Panel } from "../../layout/Panel";
@@ -10,8 +10,15 @@ import { RolesTab } from "./RolesTab";
 import { BansTab } from "./BansTab";
 import { RoleEditor } from "./RoleEditor";
 import { CreateRoleDialog, DeleteRoleDialog, DeleteServerDialog } from "./ServerSettingsDialogs";
+import { hasPermission, Permissions } from "../../../features/servers/permissions";
 
-export function ServerSettings({ serverId, serverName, isOwner, onClose }: ServerSettingsProps) {
+export function ServerSettings({
+  serverId,
+  serverName,
+  isOwner,
+  myPermissions,
+  onClose,
+}: ServerSettingsProps) {
   const settings = useServerSettings({ serverId, serverName, onClose });
 
   const { dragOverRoleId, startDrag } = useRoleDrag({
@@ -82,11 +89,21 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
     );
   }
 
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: "overview", label: "Overview", icon: "gear" },
-    { id: "roles", label: "Roles", icon: "shield" },
-    { id: "bans", label: "Bans", icon: "ban" },
-  ];
+  const canManageRoles = isOwner || hasPermission(myPermissions, Permissions.MANAGE_ROLES);
+  const canBanMembers = isOwner || hasPermission(myPermissions, Permissions.BAN_MEMBERS);
+
+  const tabs = useMemo(() => {
+    const allTabs: { id: Tab; label: string; icon: string }[] = [
+      { id: "overview", label: "Overview", icon: "gear" },
+    ];
+    if (canManageRoles) {
+      allTabs.push({ id: "roles", label: "Roles", icon: "shield" });
+    }
+    if (canBanMembers) {
+      allTabs.push({ id: "bans", label: "Bans", icon: "ban" });
+    }
+    return allTabs;
+  }, [canManageRoles, canBanMembers]);
 
   return (
     <>
@@ -162,7 +179,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
                 />
               )}
 
-              {settings.activeTab === "roles" && (
+              {settings.activeTab === "roles" && canManageRoles && (
                 <RolesTab
                   roles={settings.roles}
                   isLoading={settings.isLoading}
@@ -176,7 +193,7 @@ export function ServerSettings({ serverId, serverName, isOwner, onClose }: Serve
                 />
               )}
 
-              {settings.activeTab === "bans" && (
+              {settings.activeTab === "bans" && canBanMembers && (
                 <BansTab
                   bans={settings.bans}
                   isLoading={settings.isLoading}
