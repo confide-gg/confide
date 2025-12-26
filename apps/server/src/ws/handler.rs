@@ -10,7 +10,6 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::models::permissions;
@@ -99,10 +98,19 @@ async fn authenticate_token(state: &AppState, token: &str) -> Result<Uuid, Strin
     Ok(session.member_id)
 }
 
-async fn handle_socket(socket: WebSocket, state: Arc<AppState>, member_id: Uuid) {
+async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>, member_id: Uuid) {
+    let _connection_guard = match state.ws.limiter.try_add_connection(member_id).await {
+        Ok(guard) => guard,
+        Err(e) => {
+            tracing::warn!("Connection limit exceeded for member {}: {}", member_id, e);
+            let _ = socket.close().await;
+            return;
+        }
+    };
+
     let (mut sender, mut receiver) = socket.split();
 
-    let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
+    let (tx, mut rx) = super::bounded_channel::create_ws_channel::<ServerMessage>();
 
     state.ws.add_connection(member_id, tx).await;
     let mut guard = ConnectionGuard::new(state.clone(), member_id);

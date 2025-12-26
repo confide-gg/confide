@@ -3,9 +3,10 @@ use std::collections::{HashMap, HashSet};
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
+use super::bounded_channel::try_send_with_backoff;
 use super::types::ServerMessage;
 
-pub type WsSender = mpsc::UnboundedSender<ServerMessage>;
+pub type WsSender = mpsc::Sender<ServerMessage>;
 
 #[derive(Debug)]
 pub struct Connection {
@@ -14,11 +15,12 @@ pub struct Connection {
     pub subscribed_channels: HashSet<Uuid>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ConnectionManager {
     connections: RwLock<HashMap<Uuid, Connection>>,
     channel_subscriptions: RwLock<HashMap<Uuid, HashSet<Uuid>>>,
     member_presence: RwLock<HashMap<Uuid, String>>,
+    pub limiter: super::connection_limit::ConnectionLimiter,
 }
 
 impl ConnectionManager {
@@ -27,6 +29,7 @@ impl ConnectionManager {
             connections: RwLock::new(HashMap::new()),
             channel_subscriptions: RwLock::new(HashMap::new()),
             member_presence: RwLock::new(HashMap::new()),
+            limiter: super::connection_limit::ConnectionLimiter::new(),
         }
     }
 
@@ -38,6 +41,14 @@ impl ConnectionManager {
             for channel_id in old_conn.subscribed_channels {
                 if let Some(members) = subs.get_mut(&channel_id) {
                     members.remove(&member_id);
+
+                    if members.is_empty() {
+                        subs.remove(&channel_id);
+                        tracing::debug!(
+                            "Cleaned up empty subscription set for channel {} during reconnect",
+                            channel_id
+                        );
+                    }
                 }
             }
         }
@@ -65,6 +76,14 @@ impl ConnectionManager {
             for channel_id in conn.subscribed_channels {
                 if let Some(members) = subs.get_mut(&channel_id) {
                     members.remove(&member_id);
+
+                    if members.is_empty() {
+                        subs.remove(&channel_id);
+                        tracing::debug!(
+                            "Cleaned up empty subscription set for channel {}",
+                            channel_id
+                        );
+                    }
                 }
             }
         }
@@ -96,6 +115,14 @@ impl ConnectionManager {
 
         if let Some(members) = subs.get_mut(&channel_id) {
             members.remove(&member_id);
+
+            if members.is_empty() {
+                subs.remove(&channel_id);
+                tracing::debug!(
+                    "Cleaned up empty subscription set for channel {}",
+                    channel_id
+                );
+            }
         }
 
         tracing::debug!(
@@ -112,9 +139,12 @@ impl ConnectionManager {
         if let Some(member_ids) = subs.get(&channel_id) {
             for member_id in member_ids {
                 if let Some(conn) = connections.get(member_id) {
-                    if conn.sender.send(message.clone()).is_err() {
+                    if try_send_with_backoff(&conn.sender, message.clone(), *member_id)
+                        .await
+                        .is_err()
+                    {
                         tracing::warn!(
-                            "Failed to send message to member {}, connection may be dead",
+                            "Failed to send message to member {}, connection may be dead or channel full",
                             member_id
                         );
                     }
@@ -136,9 +166,12 @@ impl ConnectionManager {
             for member_id in member_ids {
                 if *member_id != except_member_id {
                     if let Some(conn) = connections.get(member_id) {
-                        if conn.sender.send(message.clone()).is_err() {
+                        if try_send_with_backoff(&conn.sender, message.clone(), *member_id)
+                            .await
+                            .is_err()
+                        {
                             tracing::warn!(
-                                "Failed to send message to member {}, connection may be dead",
+                                "Failed to send message to member {}, connection may be dead or channel full",
                                 member_id
                             );
                         }
@@ -152,9 +185,12 @@ impl ConnectionManager {
         let connections = self.connections.read().await;
 
         for conn in connections.values() {
-            if conn.sender.send(message.clone()).is_err() {
+            if try_send_with_backoff(&conn.sender, message.clone(), conn.member_id)
+                .await
+                .is_err()
+            {
                 tracing::warn!(
-                    "Failed to send message to member {}, connection may be dead",
+                    "Failed to send message to member {}, connection may be dead or channel full",
                     conn.member_id
                 );
             }
@@ -165,9 +201,13 @@ impl ConnectionManager {
         let connections = self.connections.read().await;
 
         for conn in connections.values() {
-            if conn.member_id != except_member_id && conn.sender.send(message.clone()).is_err() {
+            if conn.member_id != except_member_id
+                && try_send_with_backoff(&conn.sender, message.clone(), conn.member_id)
+                    .await
+                    .is_err()
+            {
                 tracing::warn!(
-                    "Failed to send message to member {}, connection may be dead",
+                    "Failed to send message to member {}, connection may be dead or channel full",
                     conn.member_id
                 );
             }
@@ -178,9 +218,12 @@ impl ConnectionManager {
         let connections = self.connections.read().await;
 
         if let Some(conn) = connections.get(&member_id) {
-            if conn.sender.send(message).is_err() {
+            if try_send_with_backoff(&conn.sender, message, member_id)
+                .await
+                .is_err()
+            {
                 tracing::warn!(
-                    "Failed to send message to member {}, connection may be dead",
+                    "Failed to send message to member {}, connection may be dead or channel full",
                     member_id
                 );
             }
@@ -229,5 +272,11 @@ impl ConnectionManager {
 
     pub async fn get_presence(&self, member_id: Uuid) -> Option<String> {
         self.member_presence.read().await.get(&member_id).cloned()
+    }
+}
+
+impl Default for ConnectionManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
