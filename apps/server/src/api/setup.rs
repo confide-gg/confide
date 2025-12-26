@@ -135,11 +135,14 @@ pub async fn claim_ownership(
         }
     }
 
-    // Create default category
-    let category = match state.db.create_category("General".to_string(), 0).await {
+    let category = match state
+        .db
+        .create_category("Text Channels".to_string(), 0)
+        .await
+    {
         Ok(c) => Some(c),
         Err(e) => {
-            tracing::warn!("Failed to create default General category: {}", e);
+            tracing::warn!("Failed to create default category: {}", e);
             None
         }
     };
@@ -156,7 +159,7 @@ pub async fn claim_ownership(
         )
         .await
     {
-        tracing::warn!("Failed to create default General channel: {}", e);
+        tracing::warn!("Failed to create default channel: {}", e);
     }
 
     Ok(Json(ClaimOwnershipResponse {

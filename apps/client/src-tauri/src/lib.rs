@@ -260,21 +260,6 @@ fn decrypt_with_message_key(message_key: Vec<u8>, ciphertext: Vec<u8>) -> Result
 }
 
 #[tauri::command]
-fn generate_channel_key() -> Vec<u8> {
-    crypto::generate_channel_key()
-}
-
-#[tauri::command]
-fn encrypt_with_channel_key(channel_key: Vec<u8>, plaintext: Vec<u8>) -> Result<Vec<u8>, String> {
-    crypto::encrypt_with_channel_key(&channel_key, &plaintext).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn decrypt_with_channel_key(channel_key: Vec<u8>, ciphertext: Vec<u8>) -> Result<Vec<u8>, String> {
-    crypto::decrypt_with_channel_key(&channel_key, &ciphertext).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 async fn get_call_state() -> Result<CallState, String> {
     let manager = get_call_manager().read().await;
     Ok(manager.get_state().await)
@@ -690,9 +675,6 @@ pub fn run() {
             ratchet_decrypt,
             generate_safety_number,
             decrypt_with_message_key,
-            generate_channel_key,
-            encrypt_with_channel_key,
-            decrypt_with_channel_key,
             get_call_state,
             get_call_stats,
             reset_call_state,

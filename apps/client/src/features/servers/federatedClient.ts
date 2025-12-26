@@ -24,7 +24,17 @@ export interface FederatedMember {
   username: string;
   display_name?: string;
   kem_public_key: number[];
-  encrypted_channel_keys?: Record<string, number[]>;
+  channel_keys?: Record<string, number[]>;
+}
+
+export interface PermittedMember {
+  id: string;
+  kem_public_key: number[];
+}
+
+export interface KeyDistribution {
+  member_id: string;
+  encrypted_key: number[];
 }
 
 export class FederatedServerClient {
@@ -105,6 +115,7 @@ export class FederatedServerClient {
     category_id?: string;
     description?: string;
     position: number;
+    key_distributions?: KeyDistribution[];
   }): Promise<FederatedChannel> {
     return this.fetch<FederatedChannel>("/channels", {
       method: "POST",
@@ -243,25 +254,15 @@ export class FederatedServerClient {
     });
   }
 
-  async updateMyChannelKeys(keys: Record<string, number[]>): Promise<void> {
-    return this.fetch<void>("/members/me/channel-keys", {
+  async distributeChannelKeys(channelId: string, distributions: KeyDistribution[]): Promise<void> {
+    return this.fetch<void>(`/channels/${channelId}/keys`, {
       method: "POST",
-      body: JSON.stringify({ channel_keys: keys }),
+      body: JSON.stringify({ distributions }),
     });
   }
 
-  async distributeChannelKey(
-    memberId: string,
-    channelId: string,
-    encryptedKey: number[]
-  ): Promise<void> {
-    return this.fetch<void>(`/members/${memberId}/channel-keys`, {
-      method: "POST",
-      body: JSON.stringify({
-        channel_id: channelId,
-        encrypted_key: encryptedKey,
-      }),
-    });
+  async getPermittedMembers(channelId: string): Promise<PermittedMember[]> {
+    return this.fetch<PermittedMember[]>(`/channels/${channelId}/permitted-members`);
   }
 
   async getMessages(channelId: string, limit = 50, before?: string): Promise<any[]> {

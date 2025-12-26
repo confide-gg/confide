@@ -12,7 +12,6 @@ pub struct Member {
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
     pub joined_at: DateTime<Utc>,
-    pub encrypted_channel_keys: serde_json::Value,
 }
 
 #[allow(dead_code)]

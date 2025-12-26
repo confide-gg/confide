@@ -426,15 +426,3 @@ pub fn ratchet_decrypt(
 pub fn generate_safety_number(our_identity_key: &[u8], their_identity_key: &[u8]) -> String {
     crypto::generate_safety_number(our_identity_key, their_identity_key)
 }
-
-pub fn generate_channel_key() -> Vec<u8> {
-    crypto::generate_channel_key()
-}
-
-pub fn encrypt_with_channel_key(channel_key: &[u8], plaintext: &[u8]) -> Result<Vec<u8>> {
-    crypto::encrypt_with_channel_key(channel_key, plaintext).map_err(|e| e.into())
-}
-
-pub fn decrypt_with_channel_key(channel_key: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>> {
-    crypto::decrypt_with_channel_key(channel_key, ciphertext).map_err(|e| e.into())
-}

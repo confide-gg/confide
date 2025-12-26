@@ -19,14 +19,12 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/me", get(get_me))
         .route("/me/permissions", get(get_my_permissions))
         .route("/me/leave", post(leave_server))
-        .route("/me/channel-keys", post(update_my_channel_keys))
         .route("/roles", get(get_all_member_roles))
         .route("/{id}", get(get_member))
         .route("/{id}/roles", get(get_member_roles))
         .route("/{id}/kick", post(kick_member))
         .route("/{id}/ban", post(ban_member))
         .route("/{id}/unban", post(unban_member))
-        .route("/{id}/channel-keys", post(distribute_channel_key))
         .route("/bans", get(get_bans))
 }
 
@@ -38,13 +36,33 @@ pub async fn get_members(
     Ok(Json(members))
 }
 
-pub async fn get_me(State(state): State<Arc<AppState>>, auth: AuthMember) -> Result<Json<Member>> {
+#[derive(Debug, Serialize)]
+pub struct MeResponse {
+    #[serde(flatten)]
+    pub member: Member,
+    pub channel_keys: std::collections::HashMap<String, Vec<u8>>,
+}
+
+pub async fn get_me(
+    State(state): State<Arc<AppState>>,
+    auth: AuthMember,
+) -> Result<Json<MeResponse>> {
     let member = state
         .db
         .get_member(auth.member_id)
         .await?
         .ok_or(AppError::NotFound("Member not found".into()))?;
-    Ok(Json(member))
+
+    let keys = state.db.get_member_channel_keys(auth.member_id).await?;
+    let channel_keys: std::collections::HashMap<String, Vec<u8>> = keys
+        .into_iter()
+        .map(|k| (k.channel_id.to_string(), k.encrypted_key))
+        .collect();
+
+    Ok(Json(MeResponse {
+        member,
+        channel_keys,
+    }))
 }
 
 #[derive(Debug, Serialize)]
@@ -237,60 +255,4 @@ pub async fn get_bans(
 
     let bans = state.db.get_all_bans().await?;
     Ok(Json(bans))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateChannelKeysRequest {
-    pub channel_keys: serde_json::Value,
-}
-
-pub async fn update_my_channel_keys(
-    State(state): State<Arc<AppState>>,
-    auth: AuthMember,
-    Json(req): Json<UpdateChannelKeysRequest>,
-) -> Result<Json<()>> {
-    state
-        .db
-        .update_member_channel_keys(auth.member_id, req.channel_keys)
-        .await?;
-    Ok(Json(()))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct DistributeChannelKeyRequest {
-    pub channel_id: Uuid,
-    pub encrypted_key: Vec<u8>,
-}
-
-pub async fn distribute_channel_key(
-    State(state): State<Arc<AppState>>,
-    auth: AuthMember,
-    Path(target_member_id): Path<Uuid>,
-    Json(req): Json<DistributeChannelKeyRequest>,
-) -> Result<Json<()>> {
-    let perms = state.db.get_member_permissions(auth.member_id).await?;
-    if !permissions::has_permission(perms, permissions::MANAGE_CHANNELS) {
-        return Err(AppError::Forbidden);
-    }
-
-    let target_member = state
-        .db
-        .get_member(target_member_id)
-        .await?
-        .ok_or(AppError::NotFound("Member not found".into()))?;
-
-    let mut channel_keys = target_member.encrypted_channel_keys.clone();
-    if let Some(obj) = channel_keys.as_object_mut() {
-        obj.insert(
-            req.channel_id.to_string(),
-            serde_json::json!(req.encrypted_key),
-        );
-    }
-
-    state
-        .db
-        .update_member_channel_keys(target_member_id, channel_keys)
-        .await?;
-
-    Ok(Json(()))
 }

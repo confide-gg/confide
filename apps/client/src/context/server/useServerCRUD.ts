@@ -1,8 +1,8 @@
 import { useCallback, type MutableRefObject } from "react";
-import { cryptoService } from "../../core/crypto/crypto";
 import type { DecryptedChannel, FederatedServer, AnyServer } from "../../features/servers/types";
 import { isFederatedServer } from "../../features/servers/types";
 import { FederatedServerClient } from "../../features/servers/federatedClient";
+import { createChannelEncryptionPayload } from "../../features/servers/channelEncryption";
 
 interface UseServerCRUDParams {
   keys: { kem_public_key: number[]; kem_secret_key: number[] } | null;
@@ -64,27 +64,19 @@ export function useServerCRUD({
         );
         const position = existingChannels.length;
 
+        const members = await federatedClientRef.current.getMembers();
+
+        const { distributions } = await createChannelEncryptionPayload(
+          members.map((m) => ({ id: m.id, kem_public_key: m.kem_public_key }))
+        );
+
         const newChannel = await federatedClientRef.current.createChannel({
           category_id: categoryId,
           name,
           description,
           position,
+          key_distributions: distributions,
         });
-
-        const channelKey = await cryptoService.generateChannelKey();
-        const encryptedChannelKey = await cryptoService.encryptForRecipient(
-          Array.from(keys.kem_public_key),
-          channelKey
-        );
-
-        const myMember = await federatedClientRef.current.getMe();
-        const currentChannelKeys = myMember.encrypted_channel_keys || {};
-        const updatedKeys = {
-          ...currentChannelKeys,
-          [newChannel.id]: encryptedChannelKey,
-        };
-
-        await federatedClientRef.current.updateMyChannelKeys(updatedKeys);
 
         await loadFederatedServerData(activeServer);
 

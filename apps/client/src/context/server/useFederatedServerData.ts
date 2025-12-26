@@ -11,6 +11,10 @@ import {
 } from "../../features/servers/federatedClient";
 import type { WsMember } from "../../features/servers/federatedWebSocket";
 import { getLastChannelForServer } from "./storage";
+import {
+  encryptChannelKeyForMember,
+  type ChannelKeyDistribution,
+} from "../../features/servers/channelEncryption";
 
 interface UseFederatedServerDataParams {
   keys: { kem_public_key: number[]; kem_secret_key: number[] } | null;
@@ -35,7 +39,7 @@ export function useFederatedServerData({
     async (client: FederatedServerClient, newMember: WsMember | Member, myMember: Member) => {
       if (!keys) return;
 
-      const myChannelKeys = myMember.encrypted_channel_keys || {};
+      const myChannelKeys = myMember.channel_keys || {};
       const channelIds = Object.keys(myChannelKeys);
 
       for (const channelId of channelIds) {
@@ -48,12 +52,12 @@ export function useFederatedServerData({
             encryptedKey
           );
 
-          const reEncryptedKey = await cryptoService.encryptForRecipient(
-            newMember.kem_public_key,
-            decryptedKey
-          );
+          const distribution = await encryptChannelKeyForMember(decryptedKey, {
+            id: newMember.id,
+            kem_public_key: newMember.kem_public_key,
+          });
 
-          await client.distributeChannelKey(newMember.id, channelId, reEncryptedKey);
+          await client.distributeChannelKeys(channelId, [distribution]);
         } catch (err) {
           console.error(`Failed to distribute key for channel ${channelId}:`, err);
         }
@@ -117,59 +121,14 @@ export function useFederatedServerData({
           }
         }
 
-        if (keys && channelsRes.length > 0 && server.is_owner) {
-          const currentChannelKeys = myMember.encrypted_channel_keys || {};
-          const missingKeyChannels = channelsRes.filter(
-            (ch) => !currentChannelKeys[ch.id] || currentChannelKeys[ch.id].length === 0
-          );
-
-          if (missingKeyChannels.length > 0) {
-            const updatedKeys = { ...currentChannelKeys };
-            for (const ch of missingKeyChannels) {
-              const channelKey = await cryptoService.generateChannelKey();
-              const encryptedChannelKey = await cryptoService.encryptForRecipient(
-                Array.from(keys.kem_public_key),
-                channelKey
-              );
-              updatedKeys[ch.id] = encryptedChannelKey;
-            }
-            await client.updateMyChannelKeys(updatedKeys);
-            const updatedMyMember = await client.getMe();
-            myMemberRef.current = updatedMyMember;
-
-            const allMembers = await client.getMembers();
-            for (const member of allMembers) {
-              if (member.id === updatedMyMember.id) continue;
-              const memberKeys = member.encrypted_channel_keys || {};
-              const hasMissingKeys = channelsRes.some(
-                (ch) => !memberKeys[ch.id] || memberKeys[ch.id].length === 0
-              );
-              if (hasMissingKeys) {
-                await distributeKeysToMember(client, member, updatedMyMember);
-              }
-            }
-          } else {
-            myMemberRef.current = myMember;
-          }
-        } else {
-          myMemberRef.current = myMember;
-        }
+        myMemberRef.current = myMember;
       } catch (error) {
         console.error("Failed to load federated server data:", error);
       } finally {
         setIsLoading(false);
       }
     },
-    [
-      keys,
-      setIsLoading,
-      setCategories,
-      setChannels,
-      setActiveChannel,
-      federatedClientRef,
-      myMemberRef,
-      distributeKeysToMember,
-    ]
+    [setIsLoading, setCategories, setChannels, setActiveChannel, federatedClientRef, myMemberRef]
   );
 
   return { loadFederatedServerData, distributeKeysToMember };

@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import { cryptoService } from "../../core/crypto/crypto";
 import { federationService } from "../../features/servers/federation";
 import type { FederatedServer, AnyServer } from "../../features/servers/types";
 import { FederatedServerClient } from "../../features/servers/federatedClient";
 import { saveFederatedServersToDB } from "./storage";
 import type { RegisterServerData } from "./types";
+import { createChannelEncryptionPayload } from "../../features/servers/channelEncryption";
 
 interface UseServerMembershipParams {
   user: { id: string; username: string } | null;
@@ -100,25 +100,17 @@ export function useServerMembership({
               position: 0,
             });
 
-            const channel = await client.createChannel({
+            const myMember = await client.getMe();
+            const { distributions } = await createChannelEncryptionPayload([
+              { id: myMember.id, kem_public_key: myMember.kem_public_key },
+            ]);
+
+            await client.createChannel({
               name: "general",
               category_id: category.id,
               position: 0,
               description: "General discussion",
-            });
-
-            const channelKey = await cryptoService.generateChannelKey();
-            const encryptedChannelKey = await cryptoService.encryptForRecipient(
-              Array.from(keys.kem_public_key),
-              channelKey
-            );
-
-            const myMember = await client.getMe();
-            const currentChannelKeys = myMember.encrypted_channel_keys || {};
-
-            await client.updateMyChannelKeys({
-              ...currentChannelKeys,
-              [channel.id]: encryptedChannelKey,
+              key_distributions: distributions,
             });
           }
         } catch (err) {

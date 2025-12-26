@@ -91,7 +91,7 @@ impl Database {
                     m.signature, m.reply_to_id, m.created_at as msg_created_at,
                     mem.id as mem_id, mem.central_user_id, mem.username, mem.kem_public_key,
                     mem.dsa_public_key, mem.display_name, mem.avatar_url,
-                    mem.joined_at, mem.encrypted_channel_keys
+                    mem.joined_at
                 FROM messages m
                 INNER JOIN members mem ON m.sender_id = mem.id
                 WHERE m.channel_id = $1 AND m.created_at < $2
@@ -110,7 +110,7 @@ impl Database {
                     m.signature, m.reply_to_id, m.created_at as msg_created_at,
                     mem.id as mem_id, mem.central_user_id, mem.username, mem.kem_public_key,
                     mem.dsa_public_key, mem.display_name, mem.avatar_url,
-                    mem.joined_at, mem.encrypted_channel_keys
+                    mem.joined_at
                 FROM messages m
                 INNER JOIN members mem ON m.sender_id = mem.id
                 WHERE m.channel_id = $1
@@ -145,7 +145,6 @@ impl Database {
                 display_name: row.try_get("display_name")?,
                 avatar_url: row.try_get("avatar_url")?,
                 joined_at: row.try_get("joined_at")?,
-                encrypted_channel_keys: row.try_get("encrypted_channel_keys")?,
             };
 
             results.push((message, member));

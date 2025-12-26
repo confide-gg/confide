@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use crate::error::Result;
-use crate::models::{Category, Invite, TextChannel};
+use crate::models::{Category, ChannelPermissionOverride, Invite, MemberChannelKey, TextChannel};
 
 use super::Database;
 
@@ -236,5 +236,216 @@ impl Database {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    pub async fn set_member_channel_key(
+        &self,
+        member_id: Uuid,
+        channel_id: Uuid,
+        encrypted_key: Vec<u8>,
+        key_version: i32,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO member_channel_keys (member_id, channel_id, encrypted_key, key_version)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (member_id, channel_id)
+            DO UPDATE SET encrypted_key = $3, key_version = $4
+            "#,
+        )
+        .bind(member_id)
+        .bind(channel_id)
+        .bind(encrypted_key)
+        .bind(key_version)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn bulk_set_channel_keys(
+        &self,
+        channel_id: Uuid,
+        distributions: Vec<(Uuid, Vec<u8>)>,
+        key_version: i32,
+    ) -> Result<()> {
+        for (member_id, encrypted_key) in distributions {
+            self.set_member_channel_key(member_id, channel_id, encrypted_key, key_version)
+                .await?;
+        }
+        Ok(())
+    }
+
+    pub async fn get_member_channel_keys(&self, member_id: Uuid) -> Result<Vec<MemberChannelKey>> {
+        let keys = sqlx::query_as::<_, MemberChannelKey>(
+            "SELECT * FROM member_channel_keys WHERE member_id = $1",
+        )
+        .bind(member_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(keys)
+    }
+
+    pub async fn get_channel_key(
+        &self,
+        member_id: Uuid,
+        channel_id: Uuid,
+    ) -> Result<Option<MemberChannelKey>> {
+        let key = sqlx::query_as::<_, MemberChannelKey>(
+            "SELECT * FROM member_channel_keys WHERE member_id = $1 AND channel_id = $2",
+        )
+        .bind(member_id)
+        .bind(channel_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(key)
+    }
+
+    pub async fn delete_member_channel_keys(&self, member_id: Uuid) -> Result<()> {
+        sqlx::query("DELETE FROM member_channel_keys WHERE member_id = $1")
+            .bind(member_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_channel_keys(&self, channel_id: Uuid) -> Result<()> {
+        sqlx::query("DELETE FROM member_channel_keys WHERE channel_id = $1")
+            .bind(channel_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn set_channel_permission_override(
+        &self,
+        channel_id: Uuid,
+        role_id: Option<Uuid>,
+        member_id: Option<Uuid>,
+        allow_permissions: i64,
+        deny_permissions: i64,
+    ) -> Result<ChannelPermissionOverride> {
+        let query = if role_id.is_some() {
+            r#"
+            INSERT INTO channel_permission_overrides (channel_id, role_id, member_id, allow_permissions, deny_permissions)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (channel_id, role_id) WHERE role_id IS NOT NULL
+            DO UPDATE SET allow_permissions = EXCLUDED.allow_permissions, deny_permissions = EXCLUDED.deny_permissions
+            RETURNING *
+            "#
+        } else {
+            r#"
+            INSERT INTO channel_permission_overrides (channel_id, role_id, member_id, allow_permissions, deny_permissions)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (channel_id, member_id) WHERE member_id IS NOT NULL
+            DO UPDATE SET allow_permissions = EXCLUDED.allow_permissions, deny_permissions = EXCLUDED.deny_permissions
+            RETURNING *
+            "#
+        };
+
+        let override_record = sqlx::query_as::<_, ChannelPermissionOverride>(query)
+            .bind(channel_id)
+            .bind(role_id)
+            .bind(member_id)
+            .bind(allow_permissions)
+            .bind(deny_permissions)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(override_record)
+    }
+
+    pub async fn get_channel_permission_overrides(
+        &self,
+        channel_id: Uuid,
+    ) -> Result<Vec<ChannelPermissionOverride>> {
+        let overrides = sqlx::query_as::<_, ChannelPermissionOverride>(
+            "SELECT * FROM channel_permission_overrides WHERE channel_id = $1",
+        )
+        .bind(channel_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(overrides)
+    }
+
+    pub async fn delete_channel_permission_override(
+        &self,
+        channel_id: Uuid,
+        role_id: Option<Uuid>,
+        member_id: Option<Uuid>,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+            DELETE FROM channel_permission_overrides
+            WHERE channel_id = $1
+            AND (role_id IS NOT DISTINCT FROM $2)
+            AND (member_id IS NOT DISTINCT FROM $3)
+            "#,
+        )
+        .bind(channel_id)
+        .bind(role_id)
+        .bind(member_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_members_with_channel_permission(
+        &self,
+        channel_id: Uuid,
+        permission: i64,
+    ) -> Result<Vec<Uuid>> {
+        let member_ids: Vec<(Uuid,)> = sqlx::query_as(
+            r#"
+            WITH member_permissions AS (
+                SELECT
+                    m.id as member_id,
+                    COALESCE(
+                        (SELECT SUM(r.permissions) FROM roles r
+                         INNER JOIN member_roles mr ON r.id = mr.role_id
+                         WHERE mr.member_id = m.id),
+                        0
+                    ) as base_permissions
+                FROM members m
+            ),
+            channel_overrides AS (
+                SELECT
+                    mp.member_id,
+                    mp.base_permissions,
+                    COALESCE(
+                        (SELECT BIT_OR(cpo.allow_permissions) FROM channel_permission_overrides cpo
+                         INNER JOIN member_roles mr ON cpo.role_id = mr.role_id
+                         WHERE cpo.channel_id = $1 AND mr.member_id = mp.member_id),
+                        0
+                    ) as role_allow,
+                    COALESCE(
+                        (SELECT BIT_OR(cpo.deny_permissions) FROM channel_permission_overrides cpo
+                         INNER JOIN member_roles mr ON cpo.role_id = mr.role_id
+                         WHERE cpo.channel_id = $1 AND mr.member_id = mp.member_id),
+                        0
+                    ) as role_deny,
+                    COALESCE(
+                        (SELECT allow_permissions FROM channel_permission_overrides cpo
+                         WHERE cpo.channel_id = $1 AND cpo.member_id = mp.member_id),
+                        0
+                    ) as member_allow,
+                    COALESCE(
+                        (SELECT deny_permissions FROM channel_permission_overrides cpo
+                         WHERE cpo.channel_id = $1 AND cpo.member_id = mp.member_id),
+                        0
+                    ) as member_deny
+                FROM member_permissions mp
+            )
+            SELECT member_id FROM channel_overrides
+            WHERE (
+                ((base_permissions | role_allow | member_allow) & ~role_deny & ~member_deny) & $2
+            ) != 0
+            OR (base_permissions & $3) != 0
+            "#,
+        )
+        .bind(channel_id)
+        .bind(permission)
+        .bind(1i64 << 9) // ADMINISTRATOR permission
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(member_ids.into_iter().map(|(id,)| id).collect())
     }
 }

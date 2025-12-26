@@ -109,7 +109,7 @@ export function ChannelChat() {
   const getChannelKey = async (channelId: string): Promise<number[] | null> => {
     if (!keys || !myMember) return null;
 
-    const encryptedKey = myMember.encrypted_channel_keys?.[channelId];
+    const encryptedKey = myMember.channel_keys?.[channelId];
     if (!encryptedKey || encryptedKey.length === 0) return null;
 
     try {
@@ -149,7 +149,7 @@ export function ChannelChat() {
         };
       }
 
-      const decryptedContent = await cryptoService.decryptWithChannelKey(
+      const decryptedContent = await cryptoService.decryptWithKey(
         channelKey,
         msg.encrypted_content
       );
@@ -354,7 +354,7 @@ export function ChannelChat() {
       }
 
       const contentBytes = cryptoService.stringToBytes(newMessage.trim());
-      const encryptedContent = await cryptoService.encryptWithChannelKey(channelKey, contentBytes);
+      const encryptedContent = await cryptoService.encryptWithKey(channelKey, contentBytes);
 
       const signature = await cryptoService.dsaSign(keys.dsa_secret_key, encryptedContent);
 

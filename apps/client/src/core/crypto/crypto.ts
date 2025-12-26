@@ -307,21 +307,6 @@ class CryptoService {
       targetIteration,
     });
   }
-
-  public async generateChannelKey(): Promise<number[]> {
-    return invoke<number[]>("generate_channel_key");
-  }
-
-  public async encryptWithChannelKey(channelKey: number[], plaintext: number[]): Promise<number[]> {
-    return invoke<number[]>("encrypt_with_channel_key", { channelKey, plaintext });
-  }
-
-  public async decryptWithChannelKey(
-    channelKey: number[],
-    ciphertext: number[]
-  ): Promise<number[]> {
-    return invoke<number[]>("decrypt_with_channel_key", { channelKey, ciphertext });
-  }
 }
 
 export const cryptoService = new CryptoService();

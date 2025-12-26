@@ -18,8 +18,26 @@ pub struct TextChannel {
     pub description: Option<String>,
     pub position: i32,
     pub created_at: DateTime<Utc>,
-    #[serde(default)]
-    pub channel_key_version: i32,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+pub struct MemberChannelKey {
+    pub member_id: Uuid,
+    pub channel_id: Uuid,
+    pub encrypted_key: Vec<u8>,
+    pub key_version: i32,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, Serialize)]
+pub struct ChannelPermissionOverride {
+    pub id: Uuid,
+    pub channel_id: Uuid,
+    pub role_id: Option<Uuid>,
+    pub member_id: Option<Uuid>,
+    pub allow_permissions: i64,
+    pub deny_permissions: i64,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, Serialize)]

@@ -191,19 +191,6 @@ impl Database {
         Ok(bans)
     }
 
-    pub async fn update_member_channel_keys(
-        &self,
-        member_id: Uuid,
-        channel_keys: serde_json::Value,
-    ) -> Result<()> {
-        sqlx::query("UPDATE members SET encrypted_channel_keys = $2 WHERE id = $1")
-            .bind(member_id)
-            .bind(channel_keys)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
-    }
-
     pub async fn get_all_members_with_roles(&self) -> Result<Vec<(Member, Vec<Uuid>)>> {
         let members = self.get_all_members().await?;
         if members.is_empty() {
