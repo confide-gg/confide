@@ -85,6 +85,8 @@ impl Database {
     }
 
     pub async fn assign_role(&self, member_id: Uuid, role_id: Uuid) -> Result<()> {
+        let mut tx = self.pool.begin().await?;
+
         sqlx::query(
             r#"
             INSERT INTO member_roles (member_id, role_id)
@@ -94,8 +96,10 @@ impl Database {
         )
         .bind(member_id)
         .bind(role_id)
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         let cache_key = format!("permissions:{}", member_id);
         let mut conn = self.redis_conn().await?;
@@ -108,11 +112,15 @@ impl Database {
     }
 
     pub async fn remove_role(&self, member_id: Uuid, role_id: Uuid) -> Result<()> {
+        let mut tx = self.pool.begin().await?;
+
         sqlx::query("DELETE FROM member_roles WHERE member_id = $1 AND role_id = $2")
             .bind(member_id)
             .bind(role_id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        tx.commit().await?;
 
         let cache_key = format!("permissions:{}", member_id);
         let mut conn = self.redis_conn().await?;
