@@ -10,9 +10,9 @@ export abstract class BaseWebSocket<IncomingMessageType, OutgoingMessageType> {
   protected errorHandlers: Set<ErrorHandler> = new Set();
 
   protected reconnectAttempts = 0;
-  protected maxReconnectAttempts = 5;
+  protected maxReconnectAttempts = Infinity;
   protected reconnectDelay = 1000;
-  protected maxReconnectDelay = 30000;
+  protected maxReconnectDelay = 300000;
   protected reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   protected intentionalDisconnect = false;
   protected isConnecting = false;
