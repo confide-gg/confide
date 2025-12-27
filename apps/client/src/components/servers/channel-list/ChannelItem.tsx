@@ -48,24 +48,17 @@ export function ChannelItem({
       data-dnd-id={channel.id}
       data-dnd-category-id={categoryId}
     >
-      <div className={cn("flex items-center gap-1 w-full", canManage && categoryId && "ml-2")}>
-        {canManage && (
-          <button
-            type="button"
-            onPointerDown={onDragStart}
-            className="p-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-            aria-label="Drag channel"
-          >
-            <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
-          </button>
-        )}
+      <div className={cn("flex items-center gap-1 w-full", categoryId && "ml-2")}>
         <button
           onClick={onSelect}
-          className={`flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors ${
+          onPointerDown={canManage ? onDragStart : undefined}
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 flex-1 text-left rounded-lg transition-colors",
             isActive
               ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-          }`}
+              : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+            canManage && "cursor-grab active:cursor-grabbing"
+          )}
         >
           <FontAwesomeIcon icon="hashtag" className="w-4 h-4 flex-shrink-0 opacity-70" />
           <span className="truncate text-sm">{channel.name}</span>

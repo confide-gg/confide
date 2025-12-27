@@ -67,20 +67,14 @@ export function CategorySection({
         data-dnd-id={category.id}
       >
         <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
-          {canManage && (
-            <button
-              type="button"
-              onPointerDown={onCategoryDragStart}
-              className="p-1 -ml-1 rounded hover:bg-secondary/50 text-muted-foreground/70 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing"
-              aria-label="Drag category"
-            >
-              <FontAwesomeIcon icon="grip-vertical" className="w-3.5 h-3.5" />
-            </button>
-          )}
           <button
             type="button"
             onClick={onToggle}
-            className="flex items-center gap-1.5 flex-1 overflow-hidden text-left"
+            onPointerDown={canManage ? onCategoryDragStart : undefined}
+            className={cn(
+              "flex items-center gap-1.5 flex-1 overflow-hidden text-left",
+              canManage && "cursor-grab active:cursor-grabbing"
+            )}
           >
             <FontAwesomeIcon
               icon={isExpanded ? "chevron-down" : "chevron-right"}
