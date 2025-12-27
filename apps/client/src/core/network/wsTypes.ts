@@ -39,7 +39,7 @@ import {
 } from "../../features/chat/types";
 import { WsFriendAccepted, WsFriendRemoved, WsFriendRequest } from "../../features/friends/types";
 import { WsActivityUpdate } from "../../features/profiles/types";
-import { WsPresence, WsPresenceSync, WsUpdatePresence } from "../../shared/types/common";
+import { WsPresence, WsPresenceSync, WsUpdatePresence } from "@/types/common";
 
 export type WsMessage =
   | WsNewMessage

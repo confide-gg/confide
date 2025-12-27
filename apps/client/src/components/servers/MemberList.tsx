@@ -6,7 +6,7 @@ import { UserAvatar } from "../ui/user-avatar";
 import type { FederatedMember as Member } from "../../features/servers/federatedClient";
 import type { ServerRole } from "../../features/servers/types";
 import { FederatedMemberContextMenu } from "./FederatedMemberContextMenu";
-import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { ActivityDisplay } from "@/features/shared-kernel";
 import { MemberProfileCard } from "./MemberProfileCard";
 import { Panel } from "../layout/Panel";
 

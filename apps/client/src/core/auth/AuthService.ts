@@ -7,7 +7,7 @@ import type {
   PublicUser,
   RegisterRequest,
 } from "./types";
-import { SuccessResponse } from "../../shared/types/common";
+import { SuccessResponse } from "@/types/common";
 
 class AuthService {
   public async register(data: RegisterRequest): Promise<AuthResponse> {

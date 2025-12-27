@@ -9,7 +9,7 @@ import type {
   AddReactionRequest,
   ReactionResponse,
 } from "./types";
-import { SuccessResponse } from "../../shared/types/common";
+import { SuccessResponse } from "@/types/common";
 
 export interface MessageKeyResponse {
   encrypted_key: number[] | null;

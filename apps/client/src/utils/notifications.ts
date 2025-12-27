@@ -1,4 +1,4 @@
-import NotificationService, { NotificationPriority } from "@/services/notificationService";
+import { NotificationService, NotificationPriority } from "@/features/shared-kernel";
 
 // Legacy API support - these functions maintain backward compatibility
 let legacyInitialized = false;
@@ -91,10 +91,9 @@ export async function showMessageNotification(
 }
 
 // New enhanced exports for modern usage
-export { default as NotificationService } from "@/services/notificationService";
-export { NotificationPriority } from "@/services/notificationService";
+export { NotificationService, NotificationPriority } from "@/features/shared-kernel";
 export type {
   NotificationOptions,
   NotificationPreferences,
   NotificationStats,
-} from "@/services/notificationService";
+} from "@/features/shared-kernel";

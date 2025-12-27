@@ -7,7 +7,7 @@ import { AvatarRoot, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import type { UserStatus, UserProfile as UserProfileType } from "../../types";
-import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { ActivityDisplay } from "@/features/shared-kernel";
 import {
   DropdownMenu,
   DropdownMenuContent,

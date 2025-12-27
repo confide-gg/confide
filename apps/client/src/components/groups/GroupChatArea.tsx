@@ -10,7 +10,7 @@ import { EmojiPicker } from "../chat/EmojiPicker";
 import { MessageContextMenu } from "../chat/MessageContextMenu";
 import { PinnedMessages } from "../chat/PinnedMessages";
 import { TypingIndicator } from "../chat/TypingIndicator";
-import { MessageSearch } from "../search";
+import { MessageSearch } from "@/features/search";
 import { Input } from "../ui/input";
 import { AddGroupMembersModal } from "./AddGroupMembersModal";
 

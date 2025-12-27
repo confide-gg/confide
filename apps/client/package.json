@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "lint:imports": "eslint --config eslint.config.mjs 'src/**/*.{ts,tsx}'"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
@@ -68,6 +69,8 @@
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.22",
     "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-boundaries": "^5.3.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.8.3",

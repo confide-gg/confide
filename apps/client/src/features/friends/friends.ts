@@ -8,7 +8,7 @@ import type {
   UpdateFriendsRequest,
 } from "./types";
 import { PublicUser } from "../../core/auth/types";
-import { SuccessResponse } from "../../shared/types/common";
+import { SuccessResponse } from "@/types/common";
 
 class FriendService {
   public async getFriends(): Promise<FriendsResponse> {

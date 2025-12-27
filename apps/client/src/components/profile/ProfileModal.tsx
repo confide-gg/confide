@@ -6,7 +6,7 @@ import type { PublicProfile, UserStatus } from "../../types";
 import { usePresence } from "../../context/PresenceContext";
 import { Avatar } from "../ui/avatar";
 import { useUserActivity } from "../../hooks/useUserActivity";
-import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { ActivityDisplay } from "@/features/shared-kernel";
 
 interface ProfileModalProps {
   userId: string;

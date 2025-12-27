@@ -4,7 +4,7 @@ import { Avatar } from "../ui/avatar";
 import { profileService } from "../../features/profiles/profiles";
 import { uploadService } from "../../features/uploads/UploadService";
 import { usePresence } from "../../context/PresenceContext";
-import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { ActivityDisplay } from "@/features/shared-kernel";
 import type { PublicProfile, UserStatus } from "../../types";
 import type { ServerRole } from "../../features/servers/types";
 

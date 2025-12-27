@@ -7,7 +7,7 @@ import { usePresence } from "../../context/PresenceContext";
 import { cn } from "@/lib/utils";
 import type { MemberResponse } from "../../features/chat/types";
 import { groupService } from "../../features/groups/groupService";
-import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { ActivityDisplay } from "@/features/shared-kernel";
 import { MemberProfileCard } from "../servers/MemberProfileCard";
 
 interface GroupMemberListProps {

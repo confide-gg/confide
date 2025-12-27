@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { LoginScene } from "../three";
+import { LoginScene } from "@/app/components/three";
 
 export function AuthLayout() {
   return (

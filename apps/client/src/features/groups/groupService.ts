@@ -1,6 +1,6 @@
 import { httpClient } from "../../core/network/HttpClient";
 import type { ConversationResponse, MemberInit, MemberResponse } from "../chat/types";
-import type { SuccessResponse } from "../../shared/types/common";
+import type { SuccessResponse } from "@/types/common";
 
 export interface CreateGroupRequest {
   encrypted_metadata: number[] | null;

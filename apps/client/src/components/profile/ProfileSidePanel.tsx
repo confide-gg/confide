@@ -6,7 +6,7 @@ import { usePresence } from "../../context/PresenceContext";
 import type { PublicProfile, UserStatus } from "../../types";
 import { Avatar } from "../ui/avatar";
 import { Panel } from "../layout/Panel";
-import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { ActivityDisplay } from "@/features/shared-kernel";
 
 interface ProfileSidePanelProps {
   userId: string;

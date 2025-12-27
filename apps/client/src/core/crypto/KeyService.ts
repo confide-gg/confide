@@ -10,7 +10,7 @@ import type {
   SessionResponse,
   UploadPrekeysRequest,
 } from "../../features/chat/types";
-import type { SuccessResponse } from "../../shared/types/common";
+import type { SuccessResponse } from "@/types/common";
 
 class KeyService {
   public async uploadPrekeys(data: UploadPrekeysRequest): Promise<SuccessResponse> {

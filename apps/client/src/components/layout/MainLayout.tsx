@@ -7,7 +7,7 @@ import { cn } from "../../lib/utils";
 import { Sidebar } from "../sidebar/Sidebar";
 import { ChatArea } from "../chat/ChatArea";
 import { GroupChatArea } from "../groups/GroupChatArea";
-import { FriendsPage, DiscoveryPage } from "../pages";
+import { FriendsPage, DiscoveryPage } from "@/app/pages";
 import { Panel } from "./Panel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { ContextMenu } from "../common/ContextMenu";
@@ -34,7 +34,7 @@ import { cryptoService } from "../../core/crypto/crypto";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { KeyboardShortcutsModal } from "../common/KeyboardShortcutsModal";
 import { useOnboarding } from "../../hooks/useOnboarding";
-import { WelcomeScreen } from "../onboarding";
+import { WelcomeScreen } from "@/features/onboarding";
 
 export function MainLayout() {
   const { user, keys } = useAuth();

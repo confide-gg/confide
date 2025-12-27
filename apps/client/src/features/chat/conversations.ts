@@ -7,7 +7,7 @@ import type {
   CreateDmRequest,
   MemberResponse,
 } from "./types";
-import { SuccessResponse } from "../../shared/types/common";
+import { SuccessResponse } from "@/types/common";
 
 class ConversationService {
   public async getConversations(): Promise<ConversationWithRouting[]> {

@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
 import { useCall } from "../calls/context";
-import { MessageSearch } from "../search";
+import { MessageSearch } from "@/features/search";
 import { Avatar } from "../ui/avatar";
 import { ConnectionStatus } from "../ui/ConnectionStatus";
 import { PinnedMessages } from "./PinnedMessages";

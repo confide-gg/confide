@@ -6,7 +6,7 @@ import { Avatar } from "../ui/avatar";
 import { AvatarPile } from "../ui/avatar-pile";
 import { useAuth } from "../../context/AuthContext";
 import type { DmPreview } from "../../types/index";
-import { ActivityDisplay } from "../activity/ActivityDisplay";
+import { ActivityDisplay } from "@/features/shared-kernel";
 import { Button } from "../ui/button";
 import { usePrefetchConversation } from "../../hooks/usePrefetchConversation";
 

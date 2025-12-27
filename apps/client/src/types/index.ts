@@ -4,7 +4,7 @@ export * from "../features/friends/types";
 export * from "../features/calls/types";
 export * from "../features/servers/types";
 export * from "../features/profiles/types";
-export * from "../shared/types/common";
+export * from "./common";
 export * from "../core/network/wsTypes";
 export * from "../features/discovery/DiscoveryService";
 export * from "../features/settings/preferences";
