@@ -1,5 +1,30 @@
 export type SearchFilterType = "from" | "has" | "mentions" | "before" | "after";
 
+export interface AutocompleteSuggestion {
+  value: string;
+  label: string;
+  icon?: string;
+}
+
+export interface FilterOption {
+  type: SearchFilterType;
+  icon: string;
+  label: string;
+  hint: string;
+}
+
+export const FILTER_OPTIONS: FilterOption[] = [
+  { type: "from", icon: "user", label: "From a specific user", hint: "from: username" },
+  { type: "has", icon: "link", label: "Contains content", hint: "has: link, file, image" },
+  { type: "mentions", icon: "at", label: "Mentions a user", hint: "mentions: username" },
+];
+
+export const CONTENT_SUGGESTIONS: AutocompleteSuggestion[] = [
+  { value: "link", label: "Links", icon: "link" },
+  { value: "file", label: "Files", icon: "file" },
+  { value: "image", label: "Images", icon: "image" },
+];
+
 export type ContentFilterValue = "link" | "file" | "image" | "gif";
 
 export interface SearchFilter {
