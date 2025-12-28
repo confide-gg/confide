@@ -17,37 +17,39 @@ impl Database {
     ) -> Result<Call> {
         let mut tx = self.pool.begin().await?;
 
-        let caller_has_call: (i64,) = sqlx::query_as(
+        let caller_has_call: Option<(Uuid,)> = sqlx::query_as(
             r#"
-            SELECT COUNT(*) FROM calls
+            SELECT id FROM calls
             WHERE (caller_id = $1 OR callee_id = $1)
             AND status IN ('pending', 'ringing', 'connecting', 'active')
+            LIMIT 1
             FOR UPDATE
             "#,
         )
         .bind(caller_id)
-        .fetch_one(&mut *tx)
+        .fetch_optional(&mut *tx)
         .await?;
 
-        if caller_has_call.0 > 0 {
+        if caller_has_call.is_some() {
             return Err(crate::error::AppError::BadRequest(
                 "You already have an active call".into(),
             ));
         }
 
-        let callee_has_call: (i64,) = sqlx::query_as(
+        let callee_has_call: Option<(Uuid,)> = sqlx::query_as(
             r#"
-            SELECT COUNT(*) FROM calls
+            SELECT id FROM calls
             WHERE (caller_id = $1 OR callee_id = $1)
             AND status IN ('pending', 'ringing', 'connecting', 'active')
+            LIMIT 1
             FOR UPDATE
             "#,
         )
         .bind(callee_id)
-        .fetch_one(&mut *tx)
+        .fetch_optional(&mut *tx)
         .await?;
 
-        if callee_has_call.0 > 0 {
+        if callee_has_call.is_some() {
             return Err(crate::error::AppError::BadRequest("User is busy".into()));
         }
 
