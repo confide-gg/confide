@@ -127,7 +127,9 @@ export function useCallEffects({
   }, [refs, isPTTEnabled, callState.status]);
 
   useEffect(() => {
-    if (peerHasLeft && callState.status === "active") {
+    if (callState.status === "left" && peerHasLeft) {
+      endCall();
+    } else if (peerHasLeft && callState.status === "active") {
       refs.peerLeftTimeoutRef.current = setTimeout(() => {
         endCall();
       }, PEER_LEFT_TIMEOUT_MS);

@@ -1,5 +1,4 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Button } from "../../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../../ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { CallQuality, CallQualityStats } from "../types";
@@ -14,9 +13,6 @@ interface CallHeaderProps {
   duration: number;
   quality: CallQuality;
   stats: CallQualityStats | null;
-  isFullscreen: boolean;
-  onToggleFullscreen: () => void;
-  onMinimize?: () => void;
 }
 
 export function CallHeader({
@@ -28,9 +24,6 @@ export function CallHeader({
   duration,
   quality,
   stats,
-  isFullscreen,
-  onToggleFullscreen,
-  onMinimize,
 }: CallHeaderProps) {
   const getQualityIcon = () => {
     const iconClass = "w-4 h-4";
@@ -138,49 +131,6 @@ export function CallHeader({
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 text-xs font-medium">
             <span>{getStatusText()}</span>
           </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-1">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-white/60 hover:text-white hover:bg-white/10"
-                onClick={onToggleFullscreen}
-              >
-                {isFullscreen ? (
-                  <FontAwesomeIcon icon="minimize" className="w-3.5 h-3.5" />
-                ) : (
-                  <FontAwesomeIcon icon="maximize" className="w-3.5 h-3.5" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs bg-card border-border">
-              {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        {onMinimize && !isFullscreen && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-white/60 hover:text-white hover:bg-white/10"
-                  onClick={onMinimize}
-                >
-                  <FontAwesomeIcon icon="chevron-up" className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs bg-card border-border">
-                Minimize
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         )}
       </div>
     </div>

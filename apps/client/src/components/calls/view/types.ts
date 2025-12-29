@@ -1,9 +1,6 @@
 import type { CallQuality, CallQualityStats } from "../types";
 
-export interface CallViewProps {
-  onMinimize?: () => void;
-  isMinimized?: boolean;
-}
+export interface CallViewProps {}
 
 export interface ControlButtonProps {
   icon: React.ReactNode;
@@ -64,7 +61,6 @@ export interface CallViewState {
   stats: CallQualityStats | null;
   showScreenPicker: boolean;
   isRejoining: boolean;
-  isFullscreen: boolean;
 }
 
 export function formatDuration(seconds: number): string {

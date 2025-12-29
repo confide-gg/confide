@@ -387,7 +387,7 @@ impl Database {
             .await?
             .ok_or_else(|| AppError::NotFound("Call not found".into()))?;
 
-        let is_caller = call.caller_id == user_id;
+        let is_caller = call.caller_id == Some(user_id);
 
         let call = if is_caller {
             sqlx::query_as::<_, Call>(
@@ -424,7 +424,7 @@ impl Database {
             .await?
             .ok_or_else(|| AppError::NotFound("Call not found".into()))?;
 
-        let is_caller = call.caller_id == user_id;
+        let is_caller = call.caller_id == Some(user_id);
 
         let call = if is_caller {
             sqlx::query_as::<_, Call>(
@@ -634,8 +634,10 @@ impl Database {
             Some(row) => {
                 let call = Call {
                     id: row.get("id"),
+                    call_type: row.get("call_type"),
                     caller_id: row.get("caller_id"),
                     callee_id: row.get("callee_id"),
+                    initiator_id: row.get("initiator_id"),
                     conversation_id: row.get("conversation_id"),
                     status: row.get("status"),
                     caller_ephemeral_public: row.get("caller_ephemeral_public"),

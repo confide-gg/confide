@@ -9,6 +9,7 @@ mod discovery;
 mod federation;
 mod friends;
 mod gifs;
+mod group_calls;
 mod messages;
 mod preferences;
 mod profiles;

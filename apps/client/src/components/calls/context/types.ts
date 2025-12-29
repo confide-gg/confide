@@ -5,10 +5,14 @@ import type {
   CallAnswerResult,
   KeyCompleteResult,
   ScreenCaptureSource,
+  GroupCallState,
+  IncomingGroupCallInfo,
+  GroupCallResponse,
 } from "../types";
 
 export const MAX_INCOMING_CALL_QUEUE = 3;
 export const RING_TIMEOUT_MS = 30000;
+export const GROUP_RING_TIMEOUT_MS = 60000;
 export const KEY_EXCHANGE_TIMEOUT_MS = 30000;
 export const PEER_LEFT_TIMEOUT_MS = 300000;
 
@@ -19,6 +23,7 @@ export interface PeerInfo {
 }
 
 export interface CallContextValue {
+  currentUserId?: string;
   callState: CallState;
   incomingCall: IncomingCallInfo | null;
   incomingCallQueue: IncomingCallInfo[];
@@ -55,6 +60,32 @@ export interface CallContextValue {
   startScreenShare: (sourceId: string) => Promise<void>;
   stopScreenShare: () => Promise<void>;
   checkScreenPermission: () => Promise<boolean>;
+  groupCallState: GroupCallState | null;
+  incomingGroupCall: IncomingGroupCallInfo | null;
+  startGroupCall: (params: {
+    conversationId: string;
+    userId: string;
+    identityPublicKey: number[];
+    dsaSecretKey: number[];
+  }) => Promise<GroupCallResponse>;
+  joinGroupCall: (params: {
+    callId: string;
+    userId: string;
+    identityPublicKey: number[];
+    dsaSecretKey: number[];
+    announcement: number[];
+  }) => Promise<void>;
+  declineGroupCall: () => void;
+  leaveGroupCall: () => Promise<void>;
+  rejoinGroupCall: (params: {
+    identityPublicKey: number[];
+    dsaSecretKey: number[];
+  }) => Promise<void>;
+  canRejoinGroupCall: () => Promise<boolean>;
+  endGroupCall: () => Promise<void>;
+  setGroupMuted: (muted: boolean) => Promise<void>;
+  setGroupDeafened: (deafened: boolean) => Promise<void>;
+  resetGroupCallState: () => void;
 }
 
 export const defaultCallState: CallState = {
@@ -85,6 +116,8 @@ export const defaultCallState: CallState = {
 export interface CallProviderProps {
   children: React.ReactNode;
   currentUserId?: string;
+  identityPublicKey?: number[];
+  dsaSecretKey?: number[];
   onCallAnswerReceived?: (data: {
     call_id: string;
     callee_id: string;

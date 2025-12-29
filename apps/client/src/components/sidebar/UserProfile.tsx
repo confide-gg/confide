@@ -29,7 +29,8 @@ export function UserProfile() {
   const navigate = useNavigate();
   const { user, logout, refreshProfile } = useAuth();
   const { updateMyPresence, getUserActivity } = usePresence();
-  const { callState, setMuted, setDeafened } = useCall();
+  const { callState, setMuted, setDeafened, groupCallState, setGroupMuted, setGroupDeafened } =
+    useCall();
   const [status, setStatus] = useState<UserStatus>("online");
   const [profile, setProfile] = useState<UserProfileType | null>(null);
   const activity = user ? getUserActivity(user.id) : null;
@@ -144,28 +145,62 @@ export function UserProfile() {
           </DropdownMenu>
 
           <button
-            onClick={() => setMuted(!callState.is_muted)}
+            onClick={() => {
+              const inGroupCall = groupCallState && groupCallState.status !== "ended";
+              if (inGroupCall) {
+                setGroupMuted(!groupCallState.is_muted);
+              } else {
+                setMuted(!callState.is_muted);
+              }
+            }}
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
-              callState.is_muted
+              (groupCallState?.status !== "ended" ? groupCallState?.is_muted : callState.is_muted)
                 ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
-            title={callState.is_muted ? "Unmute" : "Mute"}
+            title={
+              (groupCallState?.status !== "ended" ? groupCallState?.is_muted : callState.is_muted)
+                ? "Unmute"
+                : "Mute"
+            }
           >
             <FontAwesomeIcon
-              icon={callState.is_muted ? "microphone-slash" : "microphone"}
+              icon={
+                (groupCallState?.status !== "ended" ? groupCallState?.is_muted : callState.is_muted)
+                  ? "microphone-slash"
+                  : "microphone"
+              }
               className="h-3.5 w-3.5"
             />
           </button>
 
           <button
-            onClick={() => setDeafened(!callState.is_deafened)}
+            onClick={() => {
+              const inGroupCall = groupCallState && groupCallState.status !== "ended";
+              if (inGroupCall) {
+                setGroupDeafened(!groupCallState.is_deafened);
+              } else {
+                setDeafened(!callState.is_deafened);
+              }
+            }}
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
-              callState.is_deafened
+              (
+                groupCallState?.status !== "ended"
+                  ? groupCallState?.is_deafened
+                  : callState.is_deafened
+              )
                 ? "bg-destructive/90 text-destructive-foreground hover:bg-destructive"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
-            title={callState.is_deafened ? "Undeafen" : "Deafen"}
+            title={
+              (
+                groupCallState?.status !== "ended"
+                  ? groupCallState?.is_deafened
+                  : callState.is_deafened
+              )
+                ? "Undeafen"
+                : "Deafen"
+            }
           >
             <FontAwesomeIcon icon="headphones" className="h-3.5 w-3.5" />
           </button>

@@ -99,6 +99,21 @@ pub enum WsMessage {
 
     #[serde(rename = "activity_update")]
     ActivityUpdate(ActivityUpdateData),
+
+    #[serde(rename = "group_call_ring")]
+    GroupCallRing(GroupCallRingData),
+    #[serde(rename = "group_call_participant_joined")]
+    GroupCallParticipantJoined(GroupCallParticipantJoinedData),
+    #[serde(rename = "group_call_participant_left")]
+    GroupCallParticipantLeft(GroupCallParticipantLeftData),
+    #[serde(rename = "group_call_ended")]
+    GroupCallEnded(GroupCallEndedData),
+    #[serde(rename = "group_call_mute_update")]
+    GroupCallMuteUpdate(GroupCallMuteUpdateData),
+    #[serde(rename = "group_call_speaking_update")]
+    GroupCallSpeakingUpdate(GroupCallSpeakingUpdateData),
+    #[serde(rename = "group_call_sender_key")]
+    GroupCallSenderKey(GroupCallSenderKeyData),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -387,7 +402,7 @@ pub struct CallRecoveryData {
     pub call_id: Uuid,
     pub status: String,
     pub is_caller: bool,
-    pub peer_id: Uuid,
+    pub peer_id: Option<Uuid>,
     pub relay_endpoint: Option<String>,
     pub relay_token: Option<Vec<u8>>,
     pub relay_token_expires_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -419,6 +434,72 @@ pub struct CallMuteUpdateData {
     pub call_id: Uuid,
     pub user_id: Uuid,
     pub is_muted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCallRingData {
+    pub call_id: Uuid,
+    pub conversation_id: Uuid,
+    pub initiator_id: Uuid,
+    pub initiator_username: String,
+    pub initiator_display_name: Option<String>,
+    pub initiator_avatar_url: Option<String>,
+    pub participant_count: i64,
+    pub encrypted_group_metadata: Option<Vec<u8>>,
+    pub announcement: Vec<u8>,
+    pub signature: Vec<u8>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCallParticipantJoinedData {
+    pub call_id: Uuid,
+    pub user_id: Uuid,
+    pub username: String,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub encrypted_sender_key: Vec<u8>,
+    pub joiner_ephemeral_public: Vec<u8>,
+    pub identity_public: Vec<u8>,
+    pub joined_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCallParticipantLeftData {
+    pub call_id: Uuid,
+    pub user_id: Uuid,
+    pub left_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCallEndedData {
+    pub call_id: Uuid,
+    pub conversation_id: Uuid,
+    pub reason: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCallMuteUpdateData {
+    pub call_id: Uuid,
+    pub user_id: Uuid,
+    pub is_muted: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCallSpeakingUpdateData {
+    pub call_id: Uuid,
+    pub user_id: Uuid,
+    pub is_speaking: bool,
+    pub audio_level: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GroupCallSenderKeyData {
+    pub call_id: Uuid,
+    pub from_user_id: Uuid,
+    pub encrypted_sender_key: Vec<u8>,
+    pub sender_identity_public: Vec<u8>,
+    pub sender_ephemeral_public: Vec<u8>,
 }
 
 pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uuid) {
@@ -668,16 +749,18 @@ async fn handle_client_message(
                 .get_call_for_participant(data.call_id, user_id)
                 .await
             {
-                let peer_id = if call.caller_id == user_id {
+                let peer_id = if call.caller_id == Some(user_id) {
                     call.callee_id
                 } else {
                     call.caller_id
                 };
-                let msg = WsMessage::ScreenShareStart(data);
-                if let Ok(json) = serde_json::to_string(&msg) {
-                    let channel = format!("user:{}", peer_id);
-                    let _ = publish_message(&state.redis, &channel, &json).await;
-                    tracing::debug!("Forwarded screen_share_start to user {}", peer_id);
+                if let Some(peer_id) = peer_id {
+                    let msg = WsMessage::ScreenShareStart(data);
+                    if let Ok(json) = serde_json::to_string(&msg) {
+                        let channel = format!("user:{}", peer_id);
+                        let _ = publish_message(&state.redis, &channel, &json).await;
+                        tracing::debug!("Forwarded screen_share_start to user {}", peer_id);
+                    }
                 }
             }
         }
@@ -687,16 +770,18 @@ async fn handle_client_message(
                 .get_call_for_participant(data.call_id, user_id)
                 .await
             {
-                let peer_id = if call.caller_id == user_id {
+                let peer_id = if call.caller_id == Some(user_id) {
                     call.callee_id
                 } else {
                     call.caller_id
                 };
-                let msg = WsMessage::ScreenShareStop(data);
-                if let Ok(json) = serde_json::to_string(&msg) {
-                    let channel = format!("user:{}", peer_id);
-                    let _ = publish_message(&state.redis, &channel, &json).await;
-                    tracing::debug!("Forwarded screen_share_stop to user {}", peer_id);
+                if let Some(peer_id) = peer_id {
+                    let msg = WsMessage::ScreenShareStop(data);
+                    if let Ok(json) = serde_json::to_string(&msg) {
+                        let channel = format!("user:{}", peer_id);
+                        let _ = publish_message(&state.redis, &channel, &json).await;
+                        tracing::debug!("Forwarded screen_share_stop to user {}", peer_id);
+                    }
                 }
             }
         }
@@ -706,16 +791,18 @@ async fn handle_client_message(
                 .get_call_for_participant(data.call_id, user_id)
                 .await
             {
-                let peer_id = if call.caller_id == user_id {
+                let peer_id = if call.caller_id == Some(user_id) {
                     call.callee_id
                 } else {
                     call.caller_id
                 };
-                let msg = WsMessage::CallMuteUpdate(data);
-                if let Ok(json) = serde_json::to_string(&msg) {
-                    let channel = format!("user:{}", peer_id);
-                    let _ = publish_message(&state.redis, &channel, &json).await;
-                    tracing::debug!("Forwarded call_mute_update to user {}", peer_id);
+                if let Some(peer_id) = peer_id {
+                    let msg = WsMessage::CallMuteUpdate(data);
+                    if let Ok(json) = serde_json::to_string(&msg) {
+                        let channel = format!("user:{}", peer_id);
+                        let _ = publish_message(&state.redis, &channel, &json).await;
+                        tracing::debug!("Forwarded call_mute_update to user {}", peer_id);
+                    }
                 }
             }
         }
@@ -1003,5 +1090,82 @@ async fn get_online_users(redis: &redis::Client, user_ids: &[Uuid]) -> Vec<Uuid>
         }
     } else {
         Vec::new()
+    }
+}
+
+pub async fn send_group_call_ring(state: &AppState, user_id: Uuid, data: GroupCallRingData) {
+    let msg = WsMessage::GroupCallRing(data);
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let channel = format!("user:{}", user_id);
+        let _ = publish_message(&state.redis, &channel, &json).await;
+    }
+}
+
+pub async fn send_group_call_participant_joined(
+    state: &AppState,
+    user_id: Uuid,
+    data: GroupCallParticipantJoinedData,
+) {
+    let msg = WsMessage::GroupCallParticipantJoined(data);
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let channel = format!("user:{}", user_id);
+        let _ = publish_message(&state.redis, &channel, &json).await;
+    }
+}
+
+pub async fn send_group_call_participant_left(
+    state: &AppState,
+    user_id: Uuid,
+    data: GroupCallParticipantLeftData,
+) {
+    let msg = WsMessage::GroupCallParticipantLeft(data);
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let channel = format!("user:{}", user_id);
+        let _ = publish_message(&state.redis, &channel, &json).await;
+    }
+}
+
+pub async fn send_group_call_ended(state: &AppState, user_id: Uuid, data: GroupCallEndedData) {
+    let msg = WsMessage::GroupCallEnded(data);
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let channel = format!("user:{}", user_id);
+        let _ = publish_message(&state.redis, &channel, &json).await;
+    }
+}
+
+pub async fn send_group_call_mute_update(
+    state: &AppState,
+    user_id: Uuid,
+    data: GroupCallMuteUpdateData,
+) {
+    let msg = WsMessage::GroupCallMuteUpdate(data);
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let channel = format!("user:{}", user_id);
+        let _ = publish_message(&state.redis, &channel, &json).await;
+    }
+}
+
+#[allow(dead_code)]
+pub async fn send_group_call_speaking_update(
+    state: &AppState,
+    user_id: Uuid,
+    data: GroupCallSpeakingUpdateData,
+) {
+    let msg = WsMessage::GroupCallSpeakingUpdate(data);
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let channel = format!("user:{}", user_id);
+        let _ = publish_message(&state.redis, &channel, &json).await;
+    }
+}
+
+pub async fn send_group_call_sender_key(
+    state: &AppState,
+    user_id: Uuid,
+    data: GroupCallSenderKeyData,
+) {
+    let msg = WsMessage::GroupCallSenderKey(data);
+    if let Ok(json) = serde_json::to_string(&msg) {
+        let channel = format!("user:{}", user_id);
+        let _ = publish_message(&state.redis, &channel, &json).await;
     }
 }

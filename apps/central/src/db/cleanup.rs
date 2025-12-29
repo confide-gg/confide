@@ -82,7 +82,9 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
             Ok(calls) => {
                 for call in &calls {
                     tracing::info!("timed out stale ringing call: {}", call.id);
-                    notify_call_missed(&state.redis, call.id, call.caller_id, call.callee_id).await;
+                    if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
+                        notify_call_missed(&state.redis, call.id, caller_id, callee_id).await;
+                    }
                 }
             }
             Err(e) => {
@@ -94,15 +96,17 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
             Ok(calls) => {
                 for call in &calls {
                     tracing::info!("ended call with both participants left: {}", call.id);
-                    notify_call_ended(
-                        &state.redis,
-                        call.id,
-                        call.caller_id,
-                        call.callee_id,
-                        "both_left",
-                        call.duration_seconds,
-                    )
-                    .await;
+                    if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
+                        notify_call_ended(
+                            &state.redis,
+                            call.id,
+                            caller_id,
+                            callee_id,
+                            "both_left",
+                            call.duration_seconds,
+                        )
+                        .await;
+                    }
                 }
             }
             Err(e) => {
@@ -114,15 +118,17 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
             Ok(calls) => {
                 for call in &calls {
                     tracing::info!("ended abandoned call: {}", call.id);
-                    notify_call_ended(
-                        &state.redis,
-                        call.id,
-                        call.caller_id,
-                        call.callee_id,
-                        "abandoned",
-                        call.duration_seconds,
-                    )
-                    .await;
+                    if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
+                        notify_call_ended(
+                            &state.redis,
+                            call.id,
+                            caller_id,
+                            callee_id,
+                            "abandoned",
+                            call.duration_seconds,
+                        )
+                        .await;
+                    }
                 }
             }
             Err(e) => {
@@ -145,15 +151,17 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
             Ok(calls) => {
                 for call in &calls {
                     tracing::info!("cleaned up stale connecting call: {}", call.id);
-                    notify_call_ended(
-                        &state.redis,
-                        call.id,
-                        call.caller_id,
-                        call.callee_id,
-                        "connection_timeout",
-                        call.duration_seconds,
-                    )
-                    .await;
+                    if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
+                        notify_call_ended(
+                            &state.redis,
+                            call.id,
+                            caller_id,
+                            callee_id,
+                            "connection_timeout",
+                            call.duration_seconds,
+                        )
+                        .await;
+                    }
                 }
             }
             Err(e) => {

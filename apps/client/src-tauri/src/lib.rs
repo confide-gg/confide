@@ -1,5 +1,6 @@
 mod call;
 mod crypto;
+mod group_call;
 mod notifications;
 
 use call::{
@@ -10,17 +11,42 @@ use crypto::{
     InitialSessionResult, OneTimePrekey, RatchetDecryptResult, RatchetEncryptResult,
     RecoveryKeyData, SignedPrekey,
 };
+use group_call::{
+    CreateGroupCallResult, GroupCallManager, GroupCallMediaState, JoinGroupCallResult,
+    SenderKeyBundle, SpeakingStateInfo,
+};
 use notifications::{NotificationOptions, NotificationService, NotificationStats};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use confide_sdk::crypto::group_call::GroupCallState as SdkGroupCallState;
+use confide_sdk::crypto::DsaKeyPair;
+
 static CALL_MANAGER: std::sync::OnceLock<Arc<RwLock<CallManager>>> = std::sync::OnceLock::new();
+static GROUP_CALL_MANAGER: std::sync::OnceLock<Arc<RwLock<GroupCallManager>>> =
+    std::sync::OnceLock::new();
 static NOTIFICATION_SERVICE: std::sync::OnceLock<Arc<NotificationService>> =
     std::sync::OnceLock::new();
 
+#[allow(clippy::type_complexity)]
+static PENDING_GROUP_CALL_STATES: std::sync::OnceLock<
+    std::sync::Mutex<HashMap<Uuid, (SdkGroupCallState, DsaKeyPair, Vec<u8>, Vec<u8>)>>,
+> = std::sync::OnceLock::new();
+
+#[allow(clippy::type_complexity)]
+fn get_pending_group_call_states(
+) -> &'static std::sync::Mutex<HashMap<Uuid, (SdkGroupCallState, DsaKeyPair, Vec<u8>, Vec<u8>)>> {
+    PENDING_GROUP_CALL_STATES.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+}
+
 fn get_call_manager() -> &'static Arc<RwLock<CallManager>> {
     CALL_MANAGER.get_or_init(|| Arc::new(RwLock::new(CallManager::new())))
+}
+
+fn get_group_call_manager() -> &'static Arc<RwLock<GroupCallManager>> {
+    GROUP_CALL_MANAGER.get_or_init(|| Arc::new(RwLock::new(GroupCallManager::new())))
 }
 
 fn get_notification_service() -> &'static Arc<NotificationService> {
@@ -631,6 +657,213 @@ async fn update_platform_badge(_count: u32) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+#[tauri::command]
+fn create_group_call_announcement(
+    user_id: String,
+    identity_public_key: Vec<u8>,
+    dsa_secret_key: Vec<u8>,
+) -> Result<CreateGroupCallResult, String> {
+    let user_uuid = Uuid::parse_str(&user_id).map_err(|e| e.to_string())?;
+    let (result, sdk_state, dsa) =
+        group_call::create_group_call_crypto(user_uuid, identity_public_key, &dsa_secret_key)?;
+
+    let call_uuid = Uuid::parse_str(&result.call_id).map_err(|e| e.to_string())?;
+    let announcement_bytes = result.announcement.clone();
+    let our_ephemeral = result.initiator_ephemeral_public.clone();
+
+    if let Ok(mut states) = get_pending_group_call_states().lock() {
+        states.insert(
+            call_uuid,
+            (sdk_state, dsa, announcement_bytes, our_ephemeral),
+        );
+    }
+
+    Ok(result)
+}
+
+#[tauri::command]
+fn create_group_call_join(
+    call_id: String,
+    user_id: String,
+    identity_public_key: Vec<u8>,
+    dsa_secret_key: Vec<u8>,
+    announcement: Vec<u8>,
+) -> Result<JoinGroupCallResult, String> {
+    let call_uuid = Uuid::parse_str(&call_id).map_err(|e| e.to_string())?;
+    let user_uuid = Uuid::parse_str(&user_id).map_err(|e| e.to_string())?;
+    let (result, sdk_state, dsa) = group_call::join_group_call_crypto(
+        user_uuid,
+        identity_public_key,
+        &dsa_secret_key,
+        &announcement,
+    )?;
+
+    let our_ephemeral = result.joiner_ephemeral_public.clone();
+
+    if let Ok(mut states) = get_pending_group_call_states().lock() {
+        states.insert(call_uuid, (sdk_state, dsa, announcement, our_ephemeral));
+    }
+
+    Ok(result)
+}
+
+#[tauri::command]
+async fn start_group_call_media_session(
+    call_id: String,
+    relay_endpoint: String,
+    relay_token: Vec<u8>,
+    our_participant_id: String,
+    existing_sender_keys: Vec<SenderKeyBundle>,
+) -> Result<(), String> {
+    eprintln!(
+        "[GroupCall] start_group_call_media_session called for call_id: {}",
+        call_id
+    );
+    let call_uuid = Uuid::parse_str(&call_id).map_err(|e| e.to_string())?;
+    let participant_uuid = Uuid::parse_str(&our_participant_id).map_err(|e| e.to_string())?;
+
+    let (sdk_state, dsa, our_ephemeral) = {
+        let mut states = get_pending_group_call_states()
+            .lock()
+            .map_err(|e| format!("Failed to lock state: {}", e))?;
+        eprintln!(
+            "[GroupCall] Pending states: {:?}",
+            states.keys().collect::<Vec<_>>()
+        );
+        states
+            .remove(&call_uuid)
+            .ok_or_else(|| format!("No pending state found for call_id: {}", call_id))
+            .map(|(state, dsa, _, ephemeral)| (state, dsa, ephemeral))?
+    };
+    eprintln!(
+        "[GroupCall] SDK state retrieved, connecting to relay: {}",
+        relay_endpoint
+    );
+
+    let manager = get_group_call_manager().write().await;
+    manager
+        .start_media_session(
+            call_uuid,
+            &relay_endpoint,
+            relay_token,
+            participant_uuid,
+            sdk_state,
+            dsa,
+            our_ephemeral,
+        )
+        .await?;
+
+    for bundle in existing_sender_keys {
+        let pid = Uuid::parse_str(&bundle.participant_id).map_err(|e| e.to_string())?;
+        manager
+            .add_participant_sender_key(
+                pid,
+                &bundle.encrypted_sender_key,
+                &bundle.identity_public,
+                &[],
+            )
+            .ok();
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn stop_group_call_media_session() -> Result<(), String> {
+    let manager = get_group_call_manager().write().await;
+    manager.stop_media_session().await
+}
+
+#[tauri::command]
+async fn handle_group_call_sender_key(
+    participant_id: String,
+    encrypted_sender_key: Vec<u8>,
+    sender_identity_public: Vec<u8>,
+    sender_ephemeral_public: Vec<u8>,
+) -> Result<(), String> {
+    let pid = Uuid::parse_str(&participant_id).map_err(|e| e.to_string())?;
+    let manager = get_group_call_manager().write().await;
+    manager.add_participant_sender_key(
+        pid,
+        &encrypted_sender_key,
+        &sender_identity_public,
+        &sender_ephemeral_public,
+    )
+}
+
+#[tauri::command]
+async fn remove_group_call_participant(participant_id: String) -> Result<(), String> {
+    let pid = Uuid::parse_str(&participant_id).map_err(|e| e.to_string())?;
+    let manager = get_group_call_manager().read().await;
+    manager.remove_participant(pid);
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_group_call_speaking_states() -> Result<Vec<SpeakingStateInfo>, String> {
+    let manager = get_group_call_manager().read().await;
+    Ok(manager.get_speaking_states())
+}
+
+#[tauri::command]
+async fn get_group_call_media_state() -> Result<GroupCallMediaState, String> {
+    let manager = get_group_call_manager().read().await;
+    Ok(manager.get_state().await)
+}
+
+#[tauri::command]
+async fn set_group_call_muted(muted: bool) -> Result<(), String> {
+    let manager = get_group_call_manager().read().await;
+    manager.set_muted(muted).await;
+    Ok(())
+}
+
+#[tauri::command]
+async fn set_group_call_deafened(deafened: bool) -> Result<(), String> {
+    let manager = get_group_call_manager().read().await;
+    manager.set_deafened(deafened).await;
+    Ok(())
+}
+
+#[tauri::command]
+async fn update_group_call_relay_token(
+    relay_token: Vec<u8>,
+    expires_at: String,
+) -> Result<(), String> {
+    let expires = chrono::DateTime::parse_from_rfc3339(&expires_at)
+        .map_err(|e| e.to_string())?
+        .with_timezone(&chrono::Utc);
+    let manager = get_group_call_manager().read().await;
+    manager.update_relay_token(relay_token, expires).await;
+    Ok(())
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SenderKeyDistributionResult {
+    pub encrypted_sender_key: Vec<u8>,
+    pub our_ephemeral_public: Vec<u8>,
+}
+
+#[tauri::command]
+async fn create_sender_key_for_participant(
+    participant_id: String,
+    participant_identity_public: Vec<u8>,
+    participant_ephemeral_public: Vec<u8>,
+) -> Result<SenderKeyDistributionResult, String> {
+    let manager = get_group_call_manager().read().await;
+    let (encrypted, our_ephemeral) = manager
+        .create_sender_key_for_participant(
+            &participant_id,
+            &participant_identity_public,
+            &participant_ephemeral_public,
+        )
+        .map_err(|e| format!("Failed to create sender key: {}", e))?;
+    Ok(SenderKeyDistributionResult {
+        encrypted_sender_key: encrypted,
+        our_ephemeral_public: our_ephemeral,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
@@ -711,7 +944,19 @@ pub fn run() {
             handle_notification_click,
             get_notification_stats,
             clear_all_notifications,
-            update_app_badge
+            update_app_badge,
+            create_group_call_announcement,
+            create_group_call_join,
+            start_group_call_media_session,
+            stop_group_call_media_session,
+            handle_group_call_sender_key,
+            remove_group_call_participant,
+            get_group_call_speaking_states,
+            get_group_call_media_state,
+            set_group_call_muted,
+            set_group_call_deafened,
+            update_group_call_relay_token,
+            create_sender_key_for_participant
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

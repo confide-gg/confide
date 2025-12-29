@@ -158,10 +158,11 @@ export function useCallLifecycle({
         dsaSecretKey,
       });
       setIncomingCall(null);
+      setPeerHasLeft(false);
       await refreshState();
       return result;
     },
-    [refreshState, setIncomingCall]
+    [refreshState, setIncomingCall, setPeerHasLeft]
   );
 
   const rejectCall = useCallback(async () => {

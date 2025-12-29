@@ -131,7 +131,7 @@ async fn answer_call(
         .await?
         .ok_or_else(|| AppError::NotFound("Call not found".into()))?;
 
-    if call.callee_id != user_id {
+    if call.callee_id != Some(user_id) {
         return Err(AppError::Forbidden);
     }
 
@@ -141,6 +141,10 @@ async fn answer_call(
     if status != CallStatus::Ringing {
         return Err(AppError::BadRequest("Call is not ringing".into()));
     }
+
+    let caller_id = call
+        .caller_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing caller_id".into()))?;
 
     let call = state
         .db
@@ -154,7 +158,7 @@ async fn answer_call(
 
     send_call_answer(
         &state,
-        call.caller_id,
+        caller_id,
         CallAnswerData {
             call_id,
             callee_id: user_id,
@@ -180,9 +184,13 @@ async fn key_exchange_complete(
         .await?
         .ok_or_else(|| AppError::NotFound("Call not found".into()))?;
 
-    if call.caller_id != user_id {
+    if call.caller_id != Some(user_id) {
         return Err(AppError::Forbidden);
     }
+
+    let callee_id = call
+        .callee_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing callee_id".into()))?;
 
     let status = call
         .get_status()
@@ -195,7 +203,7 @@ async fn key_exchange_complete(
 
     send_call_key_complete(
         &state,
-        call.callee_id,
+        callee_id,
         CallKeyCompleteData {
             call_id,
             kem_ciphertext: req.kem_ciphertext,
@@ -203,7 +211,7 @@ async fn key_exchange_complete(
     )
     .await;
 
-    let call = state
+    let _call = state
         .db
         .update_call_status(call_id, CallStatus::Active)
         .await?;
@@ -221,7 +229,7 @@ async fn key_exchange_complete(
     let callee_token = generate_relay_token(
         &relay_config.token_secret,
         call_id,
-        call.callee_id,
+        callee_id,
         false,
         expires_at,
     )?;
@@ -236,7 +244,7 @@ async fn key_exchange_complete(
 
     send_call_media_ready(
         &state,
-        call.callee_id,
+        callee_id,
         CallMediaReadyData {
             call_id,
             relay_endpoint: relay_endpoint.clone(),
@@ -265,9 +273,16 @@ async fn reject_call(
         .await?
         .ok_or_else(|| AppError::NotFound("Call not found".into()))?;
 
-    if call.callee_id != user_id {
+    if call.callee_id != Some(user_id) {
         return Err(AppError::Forbidden);
     }
+
+    let caller_id = call
+        .caller_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing caller_id".into()))?;
+    let callee_id = call
+        .callee_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing callee_id".into()))?;
 
     let status = call
         .get_status()
@@ -283,7 +298,7 @@ async fn reject_call(
 
     send_call_reject(
         &state,
-        call.caller_id,
+        caller_id,
         CallRejectData {
             call_id,
             reason: "declined".to_string(),
@@ -291,11 +306,7 @@ async fn reject_call(
     )
     .await;
 
-    if let Some(conv) = state
-        .db
-        .find_dm_conversation(call.caller_id, call.callee_id)
-        .await?
-    {
+    if let Some(conv) = state.db.find_dm_conversation(caller_id, callee_id).await? {
         if !state.db.has_call_message(call_id, "call_rejected").await? {
             let message = state
                 .db
@@ -341,9 +352,16 @@ async fn cancel_call(
         .await?
         .ok_or_else(|| AppError::NotFound("Call not found".into()))?;
 
-    if call.caller_id != user_id {
+    if call.caller_id != Some(user_id) {
         return Err(AppError::Forbidden);
     }
+
+    let caller_id = call
+        .caller_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing caller_id".into()))?;
+    let callee_id = call
+        .callee_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing callee_id".into()))?;
 
     let status = call
         .get_status()
@@ -357,17 +375,13 @@ async fn cancel_call(
         .end_call(call_id, CallStatus::Cancelled, CallEndReason::Cancelled)
         .await?;
 
-    send_call_cancel(&state, call.callee_id, CallCancelData { call_id }).await;
+    send_call_cancel(&state, callee_id, CallCancelData { call_id }).await;
 
-    if let Some(conv) = state
-        .db
-        .find_dm_conversation(call.caller_id, call.callee_id)
-        .await?
-    {
+    if let Some(conv) = state.db.find_dm_conversation(caller_id, callee_id).await? {
         if !state.db.has_call_message(call_id, "call_missed").await? {
             let message = state
                 .db
-                .create_call_event_message(conv.id, call.caller_id, "call_missed", call_id, None)
+                .create_call_event_message(conv.id, caller_id, "call_missed", call_id, None)
                 .await?;
 
             send_new_message(
@@ -376,7 +390,7 @@ async fn cancel_call(
                 NewMessageData {
                     id: message.id,
                     conversation_id: conv.id,
-                    sender_id: call.caller_id,
+                    sender_id: caller_id,
                     encrypted_content: vec![],
                     signature: vec![],
                     reply_to_id: None,
@@ -427,10 +441,17 @@ async fn end_call(
         }
     };
 
-    let peer_id = if call.caller_id == user_id {
-        call.callee_id
+    let caller_id = call
+        .caller_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing caller_id".into()))?;
+    let callee_id = call
+        .callee_id
+        .ok_or_else(|| AppError::BadRequest("Direct call missing callee_id".into()))?;
+
+    let peer_id = if caller_id == user_id {
+        callee_id
     } else {
-        call.caller_id
+        caller_id
     };
 
     send_call_end(
@@ -444,17 +465,13 @@ async fn end_call(
     )
     .await;
 
-    if let Some(conv) = state
-        .db
-        .find_dm_conversation(call.caller_id, call.callee_id)
-        .await?
-    {
+    if let Some(conv) = state.db.find_dm_conversation(caller_id, callee_id).await? {
         if !state.db.has_call_message(call_id, "call_ended").await? {
             let message = state
                 .db
                 .create_call_event_message(
                     conv.id,
-                    call.caller_id,
+                    caller_id,
                     "call_ended",
                     call_id,
                     call.duration_seconds,
@@ -467,7 +484,7 @@ async fn end_call(
                 NewMessageData {
                     id: message.id,
                     conversation_id: conv.id,
-                    sender_id: call.caller_id,
+                    sender_id: caller_id,
                     encrypted_content: vec![],
                     signature: vec![],
                     reply_to_id: None,
@@ -597,45 +614,43 @@ async fn leave_call(
             )
             .await;
 
-            if let Some(conv) = state
-                .db
-                .find_dm_conversation(call.caller_id, call.callee_id)
-                .await?
-            {
-                if !state.db.has_call_message(call_id, "call_ended").await? {
-                    let message = state
-                        .db
-                        .create_call_event_message(
-                            conv.id,
-                            call.caller_id,
-                            "call_ended",
-                            call_id,
-                            ended_call.duration_seconds,
-                        )
-                        .await?;
+            if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
+                if let Some(conv) = state.db.find_dm_conversation(caller_id, callee_id).await? {
+                    if !state.db.has_call_message(call_id, "call_ended").await? {
+                        let message = state
+                            .db
+                            .create_call_event_message(
+                                conv.id,
+                                caller_id,
+                                "call_ended",
+                                call_id,
+                                ended_call.duration_seconds,
+                            )
+                            .await?;
 
-                    send_new_message(
-                        &state,
-                        conv.id,
-                        NewMessageData {
-                            id: message.id,
-                            conversation_id: conv.id,
-                            sender_id: call.caller_id,
-                            encrypted_content: vec![],
-                            signature: vec![],
-                            reply_to_id: None,
-                            expires_at: None,
-                            sender_chain_id: None,
-                            sender_chain_iteration: None,
-                            message_type: "call_ended".to_string(),
-                            call_id: Some(call_id),
-                            call_duration_seconds: ended_call.duration_seconds,
-                            pinned_at: None,
-                            created_at: message.created_at,
-                        },
-                        None,
-                    )
-                    .await;
+                        send_new_message(
+                            &state,
+                            conv.id,
+                            NewMessageData {
+                                id: message.id,
+                                conversation_id: conv.id,
+                                sender_id: caller_id,
+                                encrypted_content: vec![],
+                                signature: vec![],
+                                reply_to_id: None,
+                                expires_at: None,
+                                sender_chain_id: None,
+                                sender_chain_iteration: None,
+                                message_type: "call_ended".to_string(),
+                                call_id: Some(call_id),
+                                call_duration_seconds: ended_call.duration_seconds,
+                                pinned_at: None,
+                                created_at: message.created_at,
+                            },
+                            None,
+                        )
+                        .await;
+                    }
                 }
             }
         }

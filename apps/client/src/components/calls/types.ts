@@ -119,3 +119,205 @@ export interface ScreenShareStopData {
   call_id: string;
   user_id: string;
 }
+
+export type CallType = "direct" | "group";
+
+export type ParticipantStatus =
+  | "invited"
+  | "ringing"
+  | "connecting"
+  | "active"
+  | "left"
+  | "declined";
+
+export interface GroupCallParticipant {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  status: ParticipantStatus;
+  is_muted: boolean;
+  is_speaking: boolean;
+  audio_level: number;
+  joined_at: string | null;
+}
+
+export interface GroupCallState {
+  call_type: "group";
+  call_id: string;
+  conversation_id: string;
+  initiator_id: string;
+  status: CallStatus;
+  participants: GroupCallParticipant[];
+  is_muted: boolean;
+  is_deafened: boolean;
+  started_at: string | null;
+  connected_at: string | null;
+  connection_health: ConnectionHealth;
+  our_identity_public?: number[];
+  left_at: string | null;
+  can_rejoin: boolean;
+  rejoin_expires_at: string | null;
+  announcement?: number[];
+}
+
+export interface IncomingGroupCallInfo {
+  call_id: string;
+  conversation_id: string;
+  initiator_id: string;
+  initiator_username: string;
+  initiator_display_name: string | null;
+  initiator_avatar_url: string | null;
+  participant_count: number;
+  encrypted_group_metadata: number[] | null;
+  announcement: number[];
+  signature: number[];
+  created_at: string;
+}
+
+export interface GroupCallResponse {
+  id: string;
+  conversation_id: string;
+  initiator_id: string;
+  status: string;
+  participants: GroupCallParticipantInfo[];
+  created_at: string;
+  ring_started_at: string | null;
+  connected_at: string | null;
+  ended_at: string | null;
+}
+
+export interface GroupCallParticipantInfo {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  status: ParticipantStatus;
+  is_muted: boolean;
+  joined_at: string | null;
+}
+
+export interface ActiveGroupCallResponse {
+  call_id: string;
+  conversation_id: string;
+  initiator_id: string;
+  status: string;
+  participant_count: number;
+  created_at: string;
+}
+
+export interface GroupCallRingData {
+  call_id: string;
+  conversation_id: string;
+  initiator_id: string;
+  initiator_username: string;
+  initiator_display_name: string | null;
+  initiator_avatar_url: string | null;
+  participant_count: number;
+  encrypted_group_metadata: number[] | null;
+  announcement: number[];
+  signature: number[];
+  created_at: string;
+}
+
+export interface GroupCallParticipantJoinedData {
+  call_id: string;
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  encrypted_sender_key: number[];
+  joined_at: string;
+}
+
+export interface GroupCallParticipantLeftData {
+  call_id: string;
+  user_id: string;
+  left_at: string;
+}
+
+export interface GroupCallEndedData {
+  call_id: string;
+  conversation_id: string;
+  reason: string;
+}
+
+export interface GroupCallMuteUpdateData {
+  call_id: string;
+  user_id: string;
+  is_muted: boolean;
+}
+
+export interface GroupCallSpeakingUpdateData {
+  call_id: string;
+  user_id: string;
+  is_speaking: boolean;
+  audio_level: number;
+}
+
+export interface CreateGroupCallApiRequest {
+  call_id: string;
+  conversation_id: string;
+  announcement: number[];
+  signature: number[];
+}
+
+export interface JoinGroupCallApiRequest {
+  encrypted_sender_key_bundle: number[];
+  signature: number[];
+  joiner_ephemeral_public: number[];
+  identity_public: number[];
+}
+
+export interface CreateGroupCallTauriResult {
+  call_id: string;
+  announcement: number[];
+  signature: number[];
+}
+
+export interface JoinGroupCallTauriResult {
+  encrypted_sender_key_bundle: number[];
+  signature: number[];
+  joiner_ephemeral_public: number[];
+}
+
+export interface RelayCredentials {
+  call_id: string;
+  relay_endpoint: string;
+  relay_token: number[];
+  expires_at: string;
+}
+
+export interface SpeakingStateInfo {
+  participant_id: string;
+  is_speaking: boolean;
+  audio_level: number;
+}
+
+export interface GroupCallMediaState {
+  call_id: string | null;
+  status: string;
+  is_muted: boolean;
+  is_deafened: boolean;
+  connection_health: ConnectionHealth;
+  connected_at: string | null;
+  relay_token_expires_at: string | null;
+  relay_token_expires_soon: boolean;
+  participant_count: number;
+}
+
+export interface SenderKeyBundle {
+  participant_id: string;
+  encrypted_sender_key: number[];
+  identity_public: number[];
+}
+
+export interface RejoinableGroupCallInfo {
+  call_id: string;
+  conversation_id: string;
+  initiator_id: string;
+  status: string;
+  participants: GroupCallParticipantInfo[];
+  left_at: string;
+  rejoin_expires_at: string;
+}

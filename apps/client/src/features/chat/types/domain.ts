@@ -9,7 +9,9 @@ export type SystemMessageType =
   | "group_member_added"
   | "group_member_removed"
   | "group_member_left"
-  | "group_owner_changed";
+  | "group_owner_changed"
+  | "group_call_started"
+  | "group_call_ended";
 
 export interface ReplyTo {
   id: string;

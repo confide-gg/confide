@@ -8,6 +8,7 @@ mod discovery;
 mod federation;
 mod friends;
 mod gifs;
+mod group_calls;
 mod keys;
 mod messages;
 pub mod middleware;
@@ -44,6 +45,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .nest("/audio-settings", audio_settings::routes())
         .nest("/auth", auth::routes())
         .nest("/calls", calls::routes())
+        .nest("/calls/group", group_calls::routes())
         .nest("/conversations", conversations::routes())
         .nest("/discovery", discovery::routes())
         .nest("/federation", federation::routes())

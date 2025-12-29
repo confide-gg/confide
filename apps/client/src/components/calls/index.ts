@@ -2,6 +2,8 @@ export * from "./types";
 export * from "./context";
 export * from "./IncomingCallDialog";
 export * from "./ActiveCallOverlay";
+export * from "./ActiveGroupCallOverlay";
 export * from "./CallButton";
 export * from "./view";
 export * from "./CallHeader";
+export * from "./group";

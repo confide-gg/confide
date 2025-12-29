@@ -15,17 +15,17 @@ pub const SAMPLE_RATE: u32 = 48000;
 pub const FRAME_SIZE: usize = 480;
 pub const MAX_OPUS_FRAME_SIZE: usize = 1275;
 
-const OPUS_BITRATE: i32 = 128000;
-const OPUS_COMPLEXITY: u8 = 10;
+const OPUS_BITRATE: i32 = 192000;
+const OPUS_COMPLEXITY: u8 = 9;
 const OPUS_ENABLE_FEC: bool = true;
 const OPUS_PACKET_LOSS_PERC: u8 = 5;
 const OPUS_USE_DTX: bool = false;
 const OPUS_USE_VBR: bool = true;
 
 const JITTER_BUFFER_MIN_MS: usize = 10;
-const JITTER_BUFFER_TARGET_MS: usize = 30;
+const JITTER_BUFFER_TARGET_MS: usize = 40;
 const JITTER_BUFFER_MAX_MS: usize = 80;
-const JITTER_BUFFER_ADAPTATION_RATE: f32 = 0.15;
+const JITTER_BUFFER_ADAPTATION_RATE: f32 = 0.08;
 
 const DENOISE_FRAME_SIZE: usize = DenoiseState::FRAME_SIZE;
 
@@ -184,13 +184,11 @@ impl AdaptiveJitterBuffer {
         self.jitter_estimate = self.jitter_estimate * (1.0 - JITTER_BUFFER_ADAPTATION_RATE)
             + new_jitter * JITTER_BUFFER_ADAPTATION_RATE;
 
-        // More aggressive jitter buffer adaptation
-        let target_delay = (JITTER_BUFFER_MIN_MS as f32 + self.jitter_estimate * 1.8)
+        let target_delay = (JITTER_BUFFER_MIN_MS as f32 + self.jitter_estimate * 2.2)
             .clamp(JITTER_BUFFER_MIN_MS as f32, JITTER_BUFFER_MAX_MS as f32);
 
-        // Faster convergence to target delay
-        self.current_delay_ms = self.current_delay_ms * (1.0 - JITTER_BUFFER_ADAPTATION_RATE * 2.0)
-            + target_delay * (JITTER_BUFFER_ADAPTATION_RATE * 2.0);
+        self.current_delay_ms = self.current_delay_ms * (1.0 - JITTER_BUFFER_ADAPTATION_RATE * 1.5)
+            + target_delay * (JITTER_BUFFER_ADAPTATION_RATE * 1.5);
         self.target_packets = (self.current_delay_ms / 10.0).ceil() as usize;
         self.target_packets = self
             .target_packets
@@ -678,6 +676,9 @@ fn create_input_stream(
                             .iter()
                             .map(|&s| (s * 32767.0).clamp(-32768.0, 32767.0) as i16)
                             .collect();
+
+                        let _ =
+                            crate::group_call::get_local_audio_sender().try_send(frame_i16.clone());
 
                         let mut output = [0u8; MAX_OPUS_FRAME_SIZE];
                         if let Ok(enc) = encoder.lock() {

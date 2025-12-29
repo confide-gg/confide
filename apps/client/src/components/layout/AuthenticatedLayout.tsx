@@ -1,10 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { PresenceProvider } from "../../context/PresenceContext";
 import { ChatProvider } from "../../context/chat";
 import { ServerProvider } from "../../context/server";
-import { CallProvider, ActiveCallOverlay, IncomingCallDialog } from "../calls";
+import {
+  CallProvider,
+  ActiveCallOverlay,
+  ActiveGroupCallOverlay,
+  IncomingCallDialog,
+  useCall,
+} from "../calls";
+import { GroupCallInviteDialog } from "../calls/group";
 import { useIdleDetection } from "../../hooks/useIdleDetection";
 import { useCacheSync } from "../../hooks/useCacheSync";
 import { preferenceService } from "../../features/settings/preferences";
@@ -36,14 +43,61 @@ function PreferencesLoader() {
   return null;
 }
 
+function GroupCallDialogWrapper({
+  userId,
+  dsaSecretKey,
+  identityPublicKey,
+}: {
+  userId: string;
+  dsaSecretKey: number[];
+  identityPublicKey: number[];
+}) {
+  const { incomingGroupCall, joinGroupCall, declineGroupCall } = useCall();
+  const [isJoining, setIsJoining] = useState(false);
+
+  const handleJoin = async () => {
+    if (!incomingGroupCall || isJoining) return;
+    setIsJoining(true);
+    try {
+      await joinGroupCall({
+        callId: incomingGroupCall.call_id,
+        userId,
+        identityPublicKey,
+        dsaSecretKey,
+        announcement: incomingGroupCall.announcement,
+      });
+    } catch (e) {
+      console.error("Failed to join group call:", e);
+      setIsJoining(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!incomingGroupCall) {
+      setIsJoining(false);
+    }
+  }, [incomingGroupCall]);
+
+  return (
+    <GroupCallInviteDialog
+      incomingCall={incomingGroupCall}
+      isJoining={isJoining}
+      onJoin={handleJoin}
+      onDecline={declineGroupCall}
+    />
+  );
+}
+
 function GlobalProviders({
   children,
   userId,
   dsaSecretKey,
+  identityPublicKey,
 }: {
   children: React.ReactNode;
   userId: string;
   dsaSecretKey: number[];
+  identityPublicKey: number[];
 }) {
   return (
     <ErrorBoundary>
@@ -53,14 +107,24 @@ function GlobalProviders({
             <ErrorBoundary>
               <ServerProvider>
                 <ErrorBoundary>
-                  <CallProvider currentUserId={userId}>
+                  <CallProvider
+                    currentUserId={userId}
+                    identityPublicKey={identityPublicKey}
+                    dsaSecretKey={dsaSecretKey}
+                  >
                     <IdleDetector />
                     <PreferencesLoader />
                     <CacheSync />
                     <SnowEffect />
                     {children}
                     <ActiveCallOverlay />
+                    <ActiveGroupCallOverlay />
                     <IncomingCallDialog dsaSecretKey={dsaSecretKey} />
+                    <GroupCallDialogWrapper
+                      userId={userId}
+                      dsaSecretKey={dsaSecretKey}
+                      identityPublicKey={identityPublicKey}
+                    />
                   </CallProvider>
                 </ErrorBoundary>
               </ServerProvider>
@@ -80,7 +144,11 @@ export function AuthenticatedLayout() {
   }
 
   return (
-    <GlobalProviders userId={user.id} dsaSecretKey={keys.dsa_secret_key}>
+    <GlobalProviders
+      userId={user.id}
+      dsaSecretKey={keys.dsa_secret_key}
+      identityPublicKey={keys.dsa_public_key}
+    >
       <Outlet />
     </GlobalProviders>
   );

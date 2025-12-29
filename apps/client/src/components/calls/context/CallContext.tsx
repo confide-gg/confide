@@ -1,17 +1,24 @@
 import { createContext, useContext, useState, useRef } from "react";
-import { CallState, IncomingCallInfo } from "../types";
+import { CallState, IncomingCallInfo, GroupCallState, IncomingGroupCallInfo } from "../types";
 import { defaultCallState, CallProviderProps, CallContextValue, CallRefs } from "./types";
 import { useCallLifecycle } from "./useCallLifecycle";
 import { useCallMedia } from "./useCallMedia";
 import { useCallKeyExchange } from "./useCallKeyExchange";
 import { useCallWebSocket } from "./useCallWebSocket";
 import { useCallEffects } from "./useCallEffects";
+import { useGroupCallLifecycle } from "./useGroupCallLifecycle";
+import { useGroupCallWebSocket } from "./useGroupCallWebSocket";
+import { useGroupCallSpeaking } from "./useGroupCallSpeaking";
+import { useGroupCallTokenRefresh } from "./useGroupCallTokenRefresh";
+import { useGroupCallEffects } from "./useGroupCallEffects";
 
 const CallContext = createContext<CallContextValue | null>(null);
 
 export function CallProvider({
   children,
   currentUserId,
+  identityPublicKey,
+  dsaSecretKey,
   onCallAnswerReceived,
   onKeyCompleteReceived,
   onMediaReadyReceived,
@@ -23,6 +30,8 @@ export function CallProvider({
   const [isPTTActive, setIsPTTActive] = useState(false);
   const [isPTTEnabled, setIsPTTEnabled] = useState(false);
   const [pttKey, setPttKey] = useState<string | null>(null);
+  const [groupCallState, setGroupCallState] = useState<GroupCallState | null>(null);
+  const [incomingGroupCall, setIncomingGroupCall] = useState<IncomingGroupCallInfo | null>(null);
 
   const peerIdentityKeyRef = useRef<number[] | null>(null);
   const pendingMediaReadyRef = useRef<{ relay_endpoint: string; relay_token: number[] } | null>(
@@ -129,9 +138,65 @@ export function CallProvider({
     rejoinCall,
   });
 
+  const {
+    resetGroupCallState,
+    setGroupCallEnded,
+    startGroupCall,
+    joinGroupCall,
+    handleIncomingGroupCall,
+    declineGroupCall,
+    leaveGroupCall,
+    rejoinGroupCall,
+    canRejoinGroupCall,
+    endGroupCall,
+    setMuted: setGroupMuted,
+    setDeafened: setGroupDeafened,
+    updateParticipant,
+    addParticipant,
+    removeParticipant,
+  } = useGroupCallLifecycle({
+    setGroupCallState,
+    setIncomingGroupCall,
+    currentUserId,
+  });
+
+  useGroupCallWebSocket({
+    groupCallState,
+    setGroupCallState,
+    currentUserId,
+    currentUserIdentityPublic: groupCallState?.our_identity_public,
+    handleIncomingGroupCall,
+    addParticipant,
+    removeParticipant,
+    updateParticipant,
+    resetGroupCallState,
+    setGroupCallEnded,
+  });
+
+  useGroupCallSpeaking({
+    groupCallState,
+    updateParticipant,
+  });
+
+  useGroupCallTokenRefresh({
+    groupCallState,
+  });
+
+  useGroupCallEffects({
+    groupCallState,
+    setGroupCallState,
+    leaveGroupCall,
+    rejoinGroupCall,
+    canRejoinGroupCall,
+    resetGroupCallState,
+    identityPublicKey,
+    dsaSecretKey,
+  });
+
   return (
     <CallContext.Provider
       value={{
+        currentUserId,
         callState,
         incomingCall,
         incomingCallQueue,
@@ -157,6 +222,18 @@ export function CallProvider({
         startScreenShare,
         stopScreenShare,
         checkScreenPermission,
+        groupCallState,
+        incomingGroupCall,
+        startGroupCall,
+        joinGroupCall,
+        declineGroupCall,
+        leaveGroupCall,
+        rejoinGroupCall,
+        canRejoinGroupCall,
+        endGroupCall,
+        setGroupMuted,
+        setGroupDeafened,
+        resetGroupCallState,
       }}
     >
       {children}

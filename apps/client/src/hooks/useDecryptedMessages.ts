@@ -130,28 +130,44 @@ async function decryptMessages(
           msg.sender_id === context.userId
             ? "You"
             : groupMemberNames.get(msg.sender_id) || "Someone";
-        try {
-          const payload = JSON.parse(cryptoService.bytesToString(msg.encrypted_content));
-          if (msg.message_type === "group_member_added" && Array.isArray(payload.added_user_ids)) {
-            const names = payload.added_user_ids.map(
-              (id: string) => groupMemberNames!.get(id) || "Someone"
-            );
-            systemContent = `${actorName} added ${names.join(", ")}`;
-          } else if (msg.message_type === "group_member_removed" && payload.removed_user_id) {
-            const name = groupMemberNames.get(payload.removed_user_id) || "Someone";
-            systemContent = `${actorName} removed ${name}`;
-          } else if (msg.message_type === "group_member_left" && payload.user_id) {
-            const name =
-              payload.user_id === context.userId
-                ? "You"
-                : groupMemberNames.get(payload.user_id) || "Someone";
-            systemContent = `${name} left the group`;
-          } else if (msg.message_type === "group_owner_changed" && payload.new_owner_id) {
-            const name = groupMemberNames.get(payload.new_owner_id) || "Someone";
-            systemContent = `${actorName} made ${name} the owner`;
+
+        const messageTypesWithPayload = [
+          "group_member_added",
+          "group_member_removed",
+          "group_member_left",
+          "group_owner_changed",
+        ];
+
+        if (
+          messageTypesWithPayload.includes(msg.message_type || "") &&
+          msg.encrypted_content.length > 0
+        ) {
+          try {
+            const payload = JSON.parse(cryptoService.bytesToString(msg.encrypted_content));
+            if (
+              msg.message_type === "group_member_added" &&
+              Array.isArray(payload.added_user_ids)
+            ) {
+              const names = payload.added_user_ids.map(
+                (id: string) => groupMemberNames!.get(id) || "Someone"
+              );
+              systemContent = `${actorName} added ${names.join(", ")}`;
+            } else if (msg.message_type === "group_member_removed" && payload.removed_user_id) {
+              const name = groupMemberNames.get(payload.removed_user_id) || "Someone";
+              systemContent = `${actorName} removed ${name}`;
+            } else if (msg.message_type === "group_member_left" && payload.user_id) {
+              const name =
+                payload.user_id === context.userId
+                  ? "You"
+                  : groupMemberNames.get(payload.user_id) || "Someone";
+              systemContent = `${name} left the group`;
+            } else if (msg.message_type === "group_owner_changed" && payload.new_owner_id) {
+              const name = groupMemberNames.get(payload.new_owner_id) || "Someone";
+              systemContent = `${actorName} made ${name} the owner`;
+            }
+          } catch (err) {
+            console.error("Failed to decode system message payload:", err);
           }
-        } catch (err) {
-          console.error("Failed to decode system message payload:", err);
         }
       }
 

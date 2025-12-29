@@ -260,13 +260,15 @@ export function MainLayout() {
           <Panel className="flex-1 flex flex-col min-w-0">
             <GroupChatArea />
           </Panel>
-          <GroupMemberList
-            conversationId={activeChat.conversationId}
-            ownerId={activeChat.groupOwnerId || undefined}
-            onOwnerIdChange={(newOwnerId) => {
-              setActiveChat((prev) => (prev ? { ...prev, groupOwnerId: newOwnerId } : prev));
-            }}
-          />
+          {showProfilePanel && (
+            <GroupMemberList
+              conversationId={activeChat.conversationId}
+              ownerId={activeChat.groupOwnerId || undefined}
+              onOwnerIdChange={(newOwnerId) => {
+                setActiveChat((prev) => (prev ? { ...prev, groupOwnerId: newOwnerId } : prev));
+              }}
+            />
+          )}
         </main>
       )}
 

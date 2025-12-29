@@ -13,6 +13,8 @@ pub enum MessageType {
     CallMissed,
     CallRejected,
     ChannelPin,
+    GroupCallStarted,
+    GroupCallEnded,
 }
 
 impl std::fmt::Display for MessageType {
@@ -23,6 +25,8 @@ impl std::fmt::Display for MessageType {
             MessageType::CallMissed => write!(f, "call_missed"),
             MessageType::CallRejected => write!(f, "call_rejected"),
             MessageType::ChannelPin => write!(f, "channel_pin"),
+            MessageType::GroupCallStarted => write!(f, "group_call_started"),
+            MessageType::GroupCallEnded => write!(f, "group_call_ended"),
         }
     }
 }
@@ -36,6 +40,8 @@ impl std::str::FromStr for MessageType {
             "call_missed" => Ok(MessageType::CallMissed),
             "call_rejected" => Ok(MessageType::CallRejected),
             "channel_pin" => Ok(MessageType::ChannelPin),
+            "group_call_started" => Ok(MessageType::GroupCallStarted),
+            "group_call_ended" => Ok(MessageType::GroupCallEnded),
             _ => Err(format!("Unknown message type: {}", s)),
         }
     }

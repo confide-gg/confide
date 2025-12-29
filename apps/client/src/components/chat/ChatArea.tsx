@@ -129,8 +129,8 @@ export function ChatArea() {
 
   return (
     <div className="flex flex-col h-full">
-      {isInCallWithActiveChat && <CallHeader />}
       <ChatHeader />
+      {isInCallWithActiveChat && <CallHeader />}
       <ChatMessages />
       <TypingIndicator />
       <ChatInput />

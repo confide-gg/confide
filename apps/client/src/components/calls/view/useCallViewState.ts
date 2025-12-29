@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { CallQuality, CallQualityStats } from "../types";
 
@@ -13,8 +13,6 @@ export function useCallViewState({ isActive, connectedAt }: UseCallViewStatePara
   const [stats, setStats] = useState<CallQualityStats | null>(null);
   const [showScreenPicker, setShowScreenPicker] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,27 +54,6 @@ export function useCallViewState({ isActive, connectedAt }: UseCallViewStatePara
     return () => clearInterval(interval);
   }, [isActive]);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  const toggleFullscreen = useCallback(async () => {
-    if (!containerRef.current) return;
-    try {
-      if (isFullscreen) {
-        await document.exitFullscreen();
-      } else {
-        await containerRef.current.requestFullscreen();
-      }
-    } catch (e) {
-      console.error("Fullscreen toggle failed:", e);
-    }
-  }, [isFullscreen]);
-
   return {
     duration,
     quality,
@@ -85,9 +62,6 @@ export function useCallViewState({ isActive, connectedAt }: UseCallViewStatePara
     setShowScreenPicker,
     isRejoining,
     setIsRejoining,
-    isFullscreen,
-    containerRef,
     contentRef,
-    toggleFullscreen,
   };
 }

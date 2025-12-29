@@ -47,6 +47,10 @@ export const SystemMessage = memo(function SystemMessage({
         return <FontAwesomeIcon icon="arrow-right-from-bracket" className="w-4 h-4" />;
       case "group_owner_changed":
         return <FontAwesomeIcon icon="crown" className="w-4 h-4" />;
+      case "group_call_started":
+        return <FontAwesomeIcon icon="phone-flip" className="w-4 h-4" />;
+      case "group_call_ended":
+        return <FontAwesomeIcon icon="phone" className="w-4 h-4" />;
       default:
         return <FontAwesomeIcon icon="phone" className="w-4 h-4" />;
     }
@@ -56,6 +60,8 @@ export const SystemMessage = memo(function SystemMessage({
     switch (message.systemType) {
       case "call_started":
       case "call_ended":
+      case "group_call_started":
+      case "group_call_ended":
         return "text-green-500";
       case "call_missed":
         return "text-yellow-500";
@@ -100,6 +106,13 @@ export const SystemMessage = memo(function SystemMessage({
       case "group_member_left":
       case "group_owner_changed":
         return "";
+      case "group_call_started":
+        return `${actor} started a group call`;
+      case "group_call_ended":
+        if (message.callDurationSeconds && message.callDurationSeconds > 0) {
+          return `Group call ended • ${formatDuration(message.callDurationSeconds)}`;
+        }
+        return "Group call ended";
       default:
         return "";
     }

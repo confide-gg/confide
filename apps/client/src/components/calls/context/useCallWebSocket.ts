@@ -188,7 +188,6 @@ export function useCallWebSocket({
               refs.calleeKeyExchangeDoneRef.current = false;
               refs.callStartTimeRef.current = null;
               refs.callPeerIdRef.current = null;
-              setPeerHasLeft(false);
               await invoke("end_call");
               await refreshState();
               processNextQueuedCall();

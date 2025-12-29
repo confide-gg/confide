@@ -1,15 +1,14 @@
 import { useCall } from "../context";
 import { useAuth } from "@/context/AuthContext";
 import { ScreenSharePicker } from "../ScreenSharePicker";
-import { cn } from "@/lib/utils";
-import type { CallViewProps } from "./types";
 import { useCallViewState } from "./useCallViewState";
 import { CallHeader } from "./CallHeader";
 import { CallControls } from "./CallControls";
 import { DefaultCallLayout } from "./DefaultCallLayout";
 import { ScreenShareLayout } from "./ScreenShareLayout";
+import { CallEndedView } from "./CallEndedView";
 
-export function CallView({ onMinimize, isMinimized: _isMinimized = false }: CallViewProps) {
+export function CallView() {
   const {
     callState,
     peerHasLeft,
@@ -37,10 +36,7 @@ export function CallView({ onMinimize, isMinimized: _isMinimized = false }: Call
     setShowScreenPicker,
     isRejoining,
     setIsRejoining,
-    isFullscreen,
-    containerRef,
     contentRef,
-    toggleFullscreen,
   } = useCallViewState({
     isActive,
     connectedAt: callState.connected_at,
@@ -108,16 +104,24 @@ export function CallView({ onMinimize, isMinimized: _isMinimized = false }: Call
 
   if (callState.status === "idle" || callState.status === "ended") return null;
 
+  if (isLeft) {
+    return (
+      <CallEndedView
+        peerName={peerDisplayName}
+        peerAvatarUrl={peerAvatarUrl}
+        duration={duration}
+        onRejoin={handleRejoin}
+        canRejoin={callState.can_rejoin}
+        isRejoining={isRejoining}
+        callStillActive={!peerHasLeft}
+      />
+    );
+  }
+
   const hasScreenShare = callState.peer_is_screen_sharing || callState.is_screen_sharing;
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "flex flex-col bg-card text-white overflow-hidden h-full",
-        isFullscreen && "fixed inset-0 z-50"
-      )}
-    >
+    <div className="flex flex-col bg-card text-white overflow-hidden h-full">
       <CallHeader
         isActive={isActive}
         isLeft={isLeft}
@@ -127,9 +131,6 @@ export function CallView({ onMinimize, isMinimized: _isMinimized = false }: Call
         duration={duration}
         quality={quality}
         stats={stats}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={toggleFullscreen}
-        onMinimize={onMinimize}
       />
 
       <div ref={contentRef} className="flex-1 flex flex-col relative overflow-hidden min-h-0">

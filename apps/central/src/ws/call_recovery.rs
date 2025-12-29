@@ -14,7 +14,7 @@ pub struct CallStateInfo {
     pub call_id: Uuid,
     pub status: CallStatus,
     pub is_caller: bool,
-    pub peer_id: Uuid,
+    pub peer_id: Option<Uuid>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub last_activity: chrono::DateTime<chrono::Utc>,
     pub relay_endpoint: Option<String>,
@@ -40,7 +40,7 @@ impl CallStateManager {
     #[allow(dead_code)]
     pub async fn get_active_call_state(&self, user_id: Uuid) -> Result<Option<CallStateInfo>> {
         let cache = self.active_calls.lock().await;
-        if let Some(state) = cache.values().find(|s| s.peer_id == user_id) {
+        if let Some(state) = cache.values().find(|s| s.peer_id == Some(user_id)) {
             return Ok(Some(state.clone()));
         }
         drop(cache);
@@ -75,7 +75,7 @@ impl CallStateManager {
 
     /// Convert call to state info
     async fn call_to_state_info(&self, call: Call, user_id: Uuid) -> Result<CallStateInfo> {
-        let is_caller = call.caller_id == user_id;
+        let is_caller = call.caller_id == Some(user_id);
         let peer_id = if is_caller {
             call.callee_id
         } else {
@@ -110,7 +110,7 @@ impl CallStateManager {
             call.get_status()
         {
             let created_recently = call.created_at > (Utc::now() - Duration::hours(24));
-            let is_participant = call.caller_id == user_id || call.callee_id == user_id;
+            let is_participant = call.caller_id == Some(user_id) || call.callee_id == Some(user_id);
             let not_ended = call.ended_at.is_none();
 
             created_recently && is_participant && not_ended

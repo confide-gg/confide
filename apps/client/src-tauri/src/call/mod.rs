@@ -4,7 +4,7 @@ pub mod jitter;
 pub mod screen;
 pub mod settings;
 pub mod state;
-mod transport;
+pub mod transport;
 mod video_decoder;
 
 pub use screen::{

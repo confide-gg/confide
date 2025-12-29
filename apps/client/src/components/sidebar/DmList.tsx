@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useChat } from "../../context/chat";
 import { usePresence } from "../../context/PresenceContext";
@@ -9,6 +9,9 @@ import type { DmPreview } from "../../types/index";
 import { ActivityDisplay } from "@/features/shared-kernel";
 import { Button } from "../ui/button";
 import { usePrefetchConversation } from "../../hooks/usePrefetchConversation";
+import { GroupCallIndicator } from "../calls/group";
+import { callService } from "../../features/calls/calls";
+import type { ActiveGroupCallResponse } from "../calls/types";
 
 interface DmListProps {
   onCreateGroup?: () => void;
@@ -31,6 +34,9 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
   const { getUserPresence, getUserActivity, subscribeToUsers, isWsConnected, isOnline } =
     usePresence();
   const { prefetch } = usePrefetchConversation();
+  const [activeGroupCalls, setActiveGroupCalls] = useState<Map<string, ActiveGroupCallResponse>>(
+    new Map()
+  );
 
   const { directMessages, groupMessages } = useMemo(() => {
     return {
@@ -38,6 +44,27 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
       groupMessages: dmPreviews.filter((p) => p.isGroup),
     };
   }, [dmPreviews]);
+
+  const checkGroupCalls = useCallback(async () => {
+    const calls = new Map<string, ActiveGroupCallResponse>();
+    for (const group of groupMessages) {
+      try {
+        const call = await callService.getActiveGroupCall(group.conversationId);
+        if (call) {
+          calls.set(group.conversationId, call);
+        }
+      } catch {}
+    }
+    setActiveGroupCalls(calls);
+  }, [groupMessages]);
+
+  useEffect(() => {
+    if (groupMessages.length > 0) {
+      checkGroupCalls();
+      const interval = setInterval(checkGroupCalls, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [groupMessages.length, checkGroupCalls]);
 
   useEffect(() => {
     if (dmPreviews.length > 0 && isWsConnected) {
@@ -105,6 +132,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
     const displayName = preview.isGroup ? preview.groupName || "Group" : preview.visitorUsername;
     const memberCount = preview.isGroup ? preview.memberUsernames?.length || 0 : 0;
     const activity = preview.isGroup ? null : getUserActivity(preview.visitorId);
+    const activeCall = preview.isGroup ? activeGroupCalls.get(preview.conversationId) : null;
 
     return (
       <button
@@ -153,6 +181,7 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
               className={`truncate text-sm flex items-center gap-2 ${unreadCount > 0 ? "font-semibold text-white" : "font-medium"}`}
             >
               <span className="truncate">{displayName}</span>
+              {activeCall && <GroupCallIndicator participantCount={activeCall.participant_count} />}
             </div>
             {preview.isGroup ? (
               <div className="text-[11px] text-muted-foreground truncate">
