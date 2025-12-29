@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/confide-gg/confide/compare/confide-central-v0.13.1...confide-central-v0.14.0) (2025-12-29)
+
+
+### Features
+
+* implement voice calls for groups ([d758c65](https://github.com/confide-gg/confide/commit/d758c65e9caebd89097f3f0468b1069aa0b63f62))
+
+
+### Bug Fixes
+
+* call creation query error ([5aa1d47](https://github.com/confide-gg/confide/commit/5aa1d473e9cd669f0c7aa0c45a0a59e944b21256))
+
 ## [0.13.1](https://github.com/confide-gg/confide/compare/confide-central-v0.13.0...confide-central-v0.13.1) (2025-12-26)
 
 
