@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/confide-gg/confide/compare/confide-client-v0.29.0...confide-client-v0.30.0) (2025-12-29)
+
+
+### Features
+
+* implement voice calls for groups ([d758c65](https://github.com/confide-gg/confide/commit/d758c65e9caebd89097f3f0468b1069aa0b63f62))
+
 ## [0.29.0](https://github.com/confide-gg/confide/compare/confide-client-v0.28.0...confide-client-v0.29.0) (2025-12-26)
 
 
