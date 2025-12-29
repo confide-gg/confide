@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::call::h264::H264Decoder;
-use crate::call::screen::{FrameReassembler, VideoFrame};
+use crate::call::screen::EncodedFrame;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecodedFrame {
@@ -63,9 +63,7 @@ fn run_video_decoder(
         Err(_) => return,
     };
 
-    let mut reassembler = FrameReassembler::new();
     let mut waiting_for_keyframe = true;
-    let mut _frames_received = 0u64;
 
     loop {
         crossbeam_channel::select! {
@@ -75,58 +73,53 @@ fn run_video_decoder(
             recv(encrypted_rx) -> result => {
                 match result {
                     Ok(data) => {
-                        _frames_received += 1;
-
-                        let frame = match VideoFrame::from_bytes(&data) {
+                        let frame = match EncodedFrame::from_bytes(&data) {
                             Ok(f) => f,
                             Err(_) => continue,
                         };
 
-                        let reassembled = reassembler.add_fragment(frame);
-                        if let Some((h264_data, is_keyframe, width, height, timestamp, frame_id, reasm_ms)) = reassembled {
-                            if waiting_for_keyframe && !is_keyframe {
-                                continue;
-                            }
+                        if waiting_for_keyframe && !frame.is_keyframe {
+                            continue;
+                        }
 
-                            if is_keyframe {
-                                waiting_for_keyframe = false;
-                            }
+                        if frame.is_keyframe {
+                            waiting_for_keyframe = false;
+                        }
 
-                            let queued_at_ms = SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as u64;
+                        let queued_at_ms = SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_millis() as u64;
 
-                            let _ = h264_tx.try_send(H264Chunk {
-                                width: width as u32,
-                                height: height as u32,
-                                timestamp,
-                                frame_id,
-                                is_keyframe,
-                                data_b64: general_purpose::STANDARD.encode(&h264_data),
-                                queued_at_ms,
-                                age_ms: 0,
-                                drained: 0,
-                                reasm_ms,
-                            });
+                        let _ = h264_tx.try_send(H264Chunk {
+                            width: frame.width as u32,
+                            height: frame.height as u32,
+                            timestamp: frame.timestamp,
+                            frame_id: frame.frame_id,
+                            is_keyframe: frame.is_keyframe,
+                            data_b64: general_purpose::STANDARD.encode(&frame.data),
+                            queued_at_ms,
+                            age_ms: 0,
+                            drained: 0,
+                            reasm_ms: 0,
+                        });
 
-                            match decoder.decode(&h264_data) {
-                                Ok(decoded_frames) => {
-                                    for frame in decoded_frames {
-                                        let decoded_frame = DecodedFrame {
-                                            width: frame.width,
-                                            height: frame.height,
-                                            timestamp,
-                                            rgba_data: frame.rgba_data,
-                                        };
+                        match decoder.decode(&frame.data) {
+                            Ok(decoded_frames) => {
+                                for decoded in decoded_frames {
+                                    let decoded_frame = DecodedFrame {
+                                        width: decoded.width,
+                                        height: decoded.height,
+                                        timestamp: frame.timestamp,
+                                        rgba_data: decoded.rgba_data,
+                                    };
 
-                                        let _ = decoded_tx.try_send(decoded_frame);
-                                    }
+                                    let _ = decoded_tx.try_send(decoded_frame);
                                 }
-                                Err(_) => {
-                                    if is_keyframe {
-                                        waiting_for_keyframe = true;
-                                    }
+                            }
+                            Err(_) => {
+                                if frame.is_keyframe {
+                                    waiting_for_keyframe = true;
                                 }
                             }
                         }

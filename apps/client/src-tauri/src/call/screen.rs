@@ -6,7 +6,6 @@ use crate::call::h264::{rgba_to_i420, H264Encoder};
 
 pub const TARGET_FPS: u32 = 30;
 pub const TARGET_BITRATE: u32 = 6_000_000;
-pub const MAX_FRAME_SIZE: usize = 1100;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScreenCaptureSource {
@@ -68,10 +67,8 @@ impl ScreenSharePipelineHandle {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VideoFrame {
+pub struct EncodedFrame {
     pub frame_id: u32,
-    pub fragment_index: u16,
-    pub fragment_count: u16,
     pub is_keyframe: bool,
     pub width: u16,
     pub height: u16,
@@ -79,12 +76,10 @@ pub struct VideoFrame {
     pub data: Vec<u8>,
 }
 
-impl VideoFrame {
+impl EncodedFrame {
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(21 + self.data.len());
+        let mut buf = Vec::with_capacity(17 + self.data.len());
         buf.extend_from_slice(&self.frame_id.to_be_bytes());
-        buf.extend_from_slice(&self.fragment_index.to_be_bytes());
-        buf.extend_from_slice(&self.fragment_count.to_be_bytes());
         buf.push(if self.is_keyframe { 1 } else { 0 });
         buf.extend_from_slice(&self.width.to_be_bytes());
         buf.extend_from_slice(&self.height.to_be_bytes());
@@ -94,25 +89,21 @@ impl VideoFrame {
     }
 
     pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
-        if data.len() < 21 {
+        if data.len() < 17 {
             return Err("Frame too short".to_string());
         }
 
         let frame_id = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
-        let fragment_index = u16::from_be_bytes([data[4], data[5]]);
-        let fragment_count = u16::from_be_bytes([data[6], data[7]]);
-        let is_keyframe = data[8] != 0;
-        let width = u16::from_be_bytes([data[9], data[10]]);
-        let height = u16::from_be_bytes([data[11], data[12]]);
+        let is_keyframe = data[4] != 0;
+        let width = u16::from_be_bytes([data[5], data[6]]);
+        let height = u16::from_be_bytes([data[7], data[8]]);
         let timestamp = u64::from_be_bytes([
-            data[13], data[14], data[15], data[16], data[17], data[18], data[19], data[20],
+            data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16],
         ]);
-        let frame_data = data[21..].to_vec();
+        let frame_data = data[17..].to_vec();
 
         Ok(Self {
             frame_id,
-            fragment_index,
-            fragment_count,
             is_keyframe,
             width,
             height,
@@ -448,36 +439,28 @@ fn run_screen_capture_pipeline(
                 let frame_key_requested = do_keyframe;
                 for packet in packets {
                     let is_keyframe = packet.is_keyframe || frame_key_requested;
-                    let fragments = fragment_frame(
+                    let encoded_frame = EncodedFrame {
                         frame_id,
                         is_keyframe,
-                        aligned_width as u16,
-                        aligned_height as u16,
+                        width: aligned_width as u16,
+                        height: aligned_height as u16,
                         timestamp,
-                        &packet.data,
-                    );
+                        data: packet.data,
+                    };
 
-                    let mut dropped = false;
-                    for fragment in fragments {
-                        let bytes = fragment.to_bytes();
-                        match frame_tx.try_send(bytes) {
-                            Ok(_) => {}
-                            Err(crossbeam_channel::TrySendError::Full(_)) => {
-                                dropped = true;
-                                if is_keyframe {
-                                    force_keyframe = true;
-                                }
-                                break;
+                    let bytes = encoded_frame.to_bytes();
+                    match frame_tx.try_send(bytes) {
+                        Ok(_) => {}
+                        Err(crossbeam_channel::TrySendError::Full(_)) => {
+                            if is_keyframe {
+                                force_keyframe = true;
                             }
-                            Err(crossbeam_channel::TrySendError::Disconnected(_)) => {
-                                capturer.stop_capture();
-                                return;
-                            }
+                            break;
                         }
-                    }
-
-                    if dropped {
-                        break;
+                        Err(crossbeam_channel::TrySendError::Disconnected(_)) => {
+                            capturer.stop_capture();
+                            return;
+                        }
                     }
                 }
                 frame_id = frame_id.wrapping_add(1);
@@ -500,177 +483,6 @@ fn bgra_to_rgba(bgra: &[u8]) -> Vec<u8> {
         rgba[i + 3] = bgra[i + 3];
     }
     rgba
-}
-
-fn fragment_frame(
-    frame_id: u32,
-    is_keyframe: bool,
-    width: u16,
-    height: u16,
-    timestamp: u64,
-    data: &[u8],
-) -> Vec<VideoFrame> {
-    let max_payload = MAX_FRAME_SIZE - 21;
-    let fragment_count = data.len().div_ceil(max_payload) as u16;
-
-    let mut fragments = Vec::with_capacity(fragment_count as usize);
-
-    for (i, chunk) in data.chunks(max_payload).enumerate() {
-        fragments.push(VideoFrame {
-            frame_id,
-            fragment_index: i as u16,
-            fragment_count,
-            is_keyframe,
-            width,
-            height,
-            timestamp,
-            data: chunk.to_vec(),
-        });
-    }
-
-    fragments
-}
-
-pub struct FrameReassembler {
-    pending_frames: std::collections::HashMap<u32, Vec<Option<Vec<u8>>>>,
-    frame_metadata: std::collections::HashMap<u32, (bool, u16, u16, u64)>,
-    frame_first_seen: std::collections::HashMap<u32, Instant>,
-    last_complete_frame: u32,
-}
-
-pub type ReassembledFrame = (Vec<u8>, bool, u16, u16, u64, u32, u64);
-
-impl FrameReassembler {
-    pub fn new() -> Self {
-        Self {
-            pending_frames: std::collections::HashMap::new(),
-            frame_metadata: std::collections::HashMap::new(),
-            frame_first_seen: std::collections::HashMap::new(),
-            last_complete_frame: 0,
-        }
-    }
-
-    pub fn add_fragment(&mut self, frame: VideoFrame) -> Option<ReassembledFrame> {
-        let now = Instant::now();
-        self.evict_expired(now);
-
-        if frame.frame_id < self.last_complete_frame
-            && self.last_complete_frame - frame.frame_id < 1000
-        {
-            return None;
-        }
-
-        if frame.is_keyframe {
-            self.evict_before(frame.frame_id);
-        }
-
-        let fragments = self
-            .pending_frames
-            .entry(frame.frame_id)
-            .or_insert_with(|| vec![None; frame.fragment_count as usize]);
-
-        self.frame_first_seen.entry(frame.frame_id).or_insert(now);
-
-        if (frame.fragment_index as usize) < fragments.len() {
-            fragments[frame.fragment_index as usize] = Some(frame.data.clone());
-        }
-
-        self.frame_metadata.entry(frame.frame_id).or_insert((
-            frame.is_keyframe,
-            frame.width,
-            frame.height,
-            frame.timestamp,
-        ));
-
-        if fragments.iter().all(|f| f.is_some()) {
-            let complete_data: Vec<u8> = fragments
-                .iter()
-                .filter_map(|f| f.clone())
-                .flatten()
-                .collect();
-
-            let metadata = self.frame_metadata.remove(&frame.frame_id)?;
-            self.pending_frames.remove(&frame.frame_id);
-            let first_seen = self.frame_first_seen.remove(&frame.frame_id);
-            self.last_complete_frame = frame.frame_id;
-
-            self.pending_frames
-                .retain(|&id, _| id >= frame.frame_id.saturating_sub(5));
-            self.frame_metadata
-                .retain(|&id, _| id >= frame.frame_id.saturating_sub(5));
-            self.frame_first_seen
-                .retain(|&id, _| id >= frame.frame_id.saturating_sub(5));
-
-            return Some((
-                complete_data,
-                metadata.0,
-                metadata.1,
-                metadata.2,
-                metadata.3,
-                frame.frame_id,
-                first_seen
-                    .map(|t| now.duration_since(t).as_millis() as u64)
-                    .unwrap_or(0),
-            ));
-        }
-
-        if self.pending_frames.len() > 16 {
-            self.evict_oldest_until(12);
-        }
-
-        None
-    }
-
-    fn evict_expired(&mut self, now: Instant) {
-        let timeout = Duration::from_millis(150);
-        let mut expired = Vec::new();
-        for (id, first_seen) in self.frame_first_seen.iter() {
-            if now.duration_since(*first_seen) > timeout {
-                expired.push(*id);
-            }
-        }
-
-        for id in expired {
-            self.pending_frames.remove(&id);
-            self.frame_metadata.remove(&id);
-            self.frame_first_seen.remove(&id);
-        }
-    }
-
-    fn evict_before(&mut self, frame_id: u32) {
-        let mut to_remove = Vec::new();
-        for id in self.pending_frames.keys() {
-            if *id < frame_id {
-                to_remove.push(*id);
-            }
-        }
-        for id in to_remove {
-            self.pending_frames.remove(&id);
-            self.frame_metadata.remove(&id);
-            self.frame_first_seen.remove(&id);
-        }
-    }
-
-    fn evict_oldest_until(&mut self, target_len: usize) {
-        if self.pending_frames.len() <= target_len {
-            return;
-        }
-        let mut ids: Vec<(u32, Instant)> = self
-            .frame_first_seen
-            .iter()
-            .map(|(id, t)| (*id, *t))
-            .collect();
-        ids.sort_by_key(|(_, t)| *t);
-
-        for (id, _) in ids {
-            if self.pending_frames.len() <= target_len {
-                break;
-            }
-            self.pending_frames.remove(&id);
-            self.frame_metadata.remove(&id);
-            self.frame_first_seen.remove(&id);
-        }
-    }
 }
 
 pub fn check_screen_recording_permission() -> bool {
