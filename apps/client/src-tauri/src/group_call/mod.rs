@@ -51,7 +51,7 @@ pub fn get_local_audio_sender() -> crossbeam_channel::Sender<Vec<i16>> {
     GROUP_LOCAL_AUDIO_CHANNEL.0.clone()
 }
 
-static PARTICIPANT_DECODERS: Lazy<DashMap<Uuid, std::sync::Mutex<audiopus::coder::Decoder>>> =
+static PARTICIPANT_DECODERS: Lazy<DashMap<Uuid, std::sync::Mutex<opus::Decoder>>> =
     Lazy::new(DashMap::new);
 
 static PARTICIPANT_LAST_SEQ: Lazy<DashMap<Uuid, u32>> = Lazy::new(DashMap::new);
@@ -879,29 +879,21 @@ fn deserialize_group_audio_packet(data: &[u8]) -> Option<(Uuid, GroupCallMediaFr
 }
 
 fn decode_opus_to_samples(sender_id: Uuid, opus_data: &[u8]) -> Vec<f32> {
-    use audiopus::coder::Decoder;
-    use audiopus::{packet::Packet, Channels, MutSignals, SampleRate};
+    use opus::{Channels, Decoder};
 
     let decoder_entry = PARTICIPANT_DECODERS.entry(sender_id).or_insert_with(|| {
         std::sync::Mutex::new(
-            Decoder::new(SampleRate::Hz48000, Channels::Mono)
-                .expect("Failed to create Opus decoder"),
+            Decoder::new(48000, Channels::Mono).expect("Failed to create Opus decoder"),
         )
     });
 
     if let Ok(mut decoder) = decoder_entry.lock() {
         let mut output = [0i16; 480];
-        if let Ok(packet) = Packet::try_from(opus_data) {
-            if let Ok(signals) = MutSignals::try_from(&mut output[..]) {
-                if decoder.decode(Some(packet), signals, false).is_ok() {
-                    return output.iter().map(|s| *s as f32 / 32768.0).collect();
-                }
-            }
+        if decoder.decode(opus_data, &mut output, false).is_ok() {
+            return output.iter().map(|s| *s as f32 / 32768.0).collect();
         }
-        if let Ok(signals) = MutSignals::try_from(&mut output[..]) {
-            if decoder.decode(None, signals, false).is_ok() {
-                return output.iter().map(|s| *s as f32 / 32768.0).collect();
-            }
+        if decoder.decode(&[], &mut output, false).is_ok() {
+            return output.iter().map(|s| *s as f32 / 32768.0).collect();
         }
     }
 
@@ -909,15 +901,11 @@ fn decode_opus_to_samples(sender_id: Uuid, opus_data: &[u8]) -> Vec<f32> {
 }
 
 fn generate_plc_audio(sender_id: Uuid) -> Vec<f32> {
-    use audiopus::MutSignals;
-
     if let Some(decoder_entry) = PARTICIPANT_DECODERS.get(&sender_id) {
         if let Ok(mut decoder) = decoder_entry.lock() {
             let mut output = [0i16; 480];
-            if let Ok(signals) = MutSignals::try_from(&mut output[..]) {
-                if decoder.decode(None, signals, false).is_ok() {
-                    return output.iter().map(|s| *s as f32 / 32768.0).collect();
-                }
+            if decoder.decode(&[], &mut output, false).is_ok() {
+                return output.iter().map(|s| *s as f32 / 32768.0).collect();
             }
         }
     }

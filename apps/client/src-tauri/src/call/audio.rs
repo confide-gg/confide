@@ -1,12 +1,9 @@
 use crate::call::settings::AudioSettings;
 use crate::call::state::{AudioDeviceInfo, AudioDevices};
-use audiopus::{
-    coder::Decoder, coder::Encoder, packet::Packet, Application, Bandwidth, Bitrate, Channels,
-    MutSignals, SampleRate, Signal,
-};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crossbeam_channel::{Receiver, Sender};
 use nnnoiseless::DenoiseState;
+use opus::{Application, Bitrate, Channels, Decoder, Encoder};
 use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::oneshot;
@@ -16,10 +13,8 @@ pub const FRAME_SIZE: usize = 480;
 pub const MAX_OPUS_FRAME_SIZE: usize = 1275;
 
 const OPUS_BITRATE: i32 = 192000;
-const OPUS_COMPLEXITY: u8 = 9;
 const OPUS_ENABLE_FEC: bool = true;
 const OPUS_PACKET_LOSS_PERC: u8 = 5;
-const OPUS_USE_DTX: bool = false;
 const OPUS_USE_VBR: bool = true;
 
 const JITTER_BUFFER_MIN_MS: usize = 10;
@@ -314,20 +309,15 @@ fn run_audio_pipeline(
     noise_suppression_enabled: Arc<std::sync::atomic::AtomicBool>,
     ready_tx: Option<oneshot::Sender<()>>,
 ) {
-    let encoder = match Encoder::new(SampleRate::Hz48000, Channels::Mono, Application::Voip) {
+    let encoder = match Encoder::new(48000, Channels::Mono, Application::Voip) {
         Ok(mut e) => {
-            let _ = e.set_bitrate(Bitrate::BitsPerSecond(OPUS_BITRATE));
-            let _ = e.set_complexity(OPUS_COMPLEXITY);
-            let _ = e.set_signal(Signal::Voice);
-            let _ = e.set_bandwidth(Bandwidth::Fullband);
+            let _ = e.set_bitrate(Bitrate::Bits(OPUS_BITRATE));
             if OPUS_ENABLE_FEC {
                 let _ = e.set_inband_fec(true);
-                let _ = e.set_packet_loss_perc(OPUS_PACKET_LOSS_PERC);
+                let _ = e.set_packet_loss_perc(OPUS_PACKET_LOSS_PERC as i32);
             }
             let _ = e.set_vbr(OPUS_USE_VBR);
             let _ = e.set_vbr_constraint(false);
-            let _ = e.set_dtx(OPUS_USE_DTX);
-            let _ = e.set_force_channels(Channels::Mono);
 
             Arc::new(std::sync::Mutex::new(e))
         }
@@ -337,7 +327,7 @@ fn run_audio_pipeline(
         }
     };
 
-    let decoder = match Decoder::new(SampleRate::Hz48000, Channels::Mono) {
+    let decoder = match Decoder::new(48000, Channels::Mono) {
         Ok(d) => Arc::new(std::sync::Mutex::new(d)),
         Err(e) => {
             eprintln!("Failed to create decoder: {:?}", e);
@@ -346,9 +336,8 @@ fn run_audio_pipeline(
     };
 
     eprintln!(
-        "[Audio] Encoder: bitrate={}kbps, complexity={}, bandwidth=fullband, FEC={}",
+        "[Audio] Encoder: bitrate={}kbps, FEC={}",
         OPUS_BITRATE / 1000,
-        OPUS_COMPLEXITY,
         OPUS_ENABLE_FEC
     );
     eprintln!(
@@ -520,34 +509,26 @@ fn run_decoder_thread(
             if let Some(opus_data) = packet_to_decode {
                 let mut output = [0i16; FRAME_SIZE];
                 if let Ok(mut dec) = decoder.lock() {
-                    if let Ok(packet) = Packet::try_from(&opus_data[..]) {
-                        if let Ok(signals) = MutSignals::try_from(&mut output[..]) {
-                            if dec.decode(Some(packet), signals, false).is_ok() {
-                                let samples: Vec<f32> =
-                                    output.iter().map(|&s| s as f32 / 32768.0).collect();
-                                if let Ok(mut buf) = playback_buffer.lock() {
-                                    if buf.len() > max_buffer_samples {
-                                        let drain_amount =
-                                            buf.len() - max_buffer_samples + FRAME_SIZE;
-                                        buf.drain(..drain_amount);
-                                    }
-                                    buf.extend(samples);
-                                }
+                    if dec.decode(&opus_data, &mut output, false).is_ok() {
+                        let samples: Vec<f32> =
+                            output.iter().map(|&s| s as f32 / 32768.0).collect();
+                        if let Ok(mut buf) = playback_buffer.lock() {
+                            if buf.len() > max_buffer_samples {
+                                let drain_amount = buf.len() - max_buffer_samples + FRAME_SIZE;
+                                buf.drain(..drain_amount);
                             }
+                            buf.extend(samples);
                         }
                     }
                 }
             } else if consecutive_losses > 0 && consecutive_losses <= 5 {
                 let mut output = [0i16; FRAME_SIZE];
                 if let Ok(mut dec) = decoder.lock() {
-                    if let Ok(signals) = MutSignals::try_from(&mut output[..]) {
-                        let none_packet: Option<Packet> = None;
-                        if dec.decode(none_packet, signals, false).is_ok() {
-                            let samples: Vec<f32> =
-                                output.iter().map(|&s| s as f32 / 32768.0).collect();
-                            if let Ok(mut buf) = playback_buffer.lock() {
-                                buf.extend(samples);
-                            }
+                    if dec.decode(&[], &mut output, false).is_ok() {
+                        let samples: Vec<f32> =
+                            output.iter().map(|&s| s as f32 / 32768.0).collect();
+                        if let Ok(mut buf) = playback_buffer.lock() {
+                            buf.extend(samples);
                         }
                     }
                 }
@@ -681,7 +662,7 @@ fn create_input_stream(
                             crate::group_call::get_local_audio_sender().try_send(frame_i16.clone());
 
                         let mut output = [0u8; MAX_OPUS_FRAME_SIZE];
-                        if let Ok(enc) = encoder.lock() {
+                        if let Ok(mut enc) = encoder.lock() {
                             if let Ok(result) = enc.encode(&frame_i16, &mut output) {
                                 let encoded = output[..result].to_vec();
                                 let _ = audio_tx.send(encoded);
