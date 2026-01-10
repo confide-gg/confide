@@ -187,9 +187,13 @@ export function DmList({ onCreateGroup, onLeaveGroup }: DmListProps) {
               <div className="text-[11px] text-muted-foreground truncate">
                 {memberCount} member{memberCount === 1 ? "" : "s"}
               </div>
-            ) : (
-              activity && <ActivityDisplay activity={activity} compact className="mt-0.5" />
-            )}
+            ) : activity ? (
+              <ActivityDisplay activity={activity} compact className="mt-0.5" />
+            ) : presence?.customStatus ? (
+              <div className="text-[11px] text-muted-foreground truncate">
+                {presence.customStatus}
+              </div>
+            ) : null}
           </div>
         </div>
 

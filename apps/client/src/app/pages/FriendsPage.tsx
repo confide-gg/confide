@@ -22,7 +22,7 @@ interface FriendRowProps {
   friend: Friend;
   onOpenChat: (friend: Friend) => void;
   onRemove: (friend: Friend) => void;
-  getUserPresence: (userId: string) => { status?: string } | undefined;
+  getUserPresence: (userId: string) => { status?: string; customStatus?: string } | undefined;
   isOnline: (userId: string) => boolean;
 }
 
@@ -44,6 +44,8 @@ function FriendRow({ friend, onOpenChat, onRemove, getUserPresence, isOnline }: 
           <span className="font-semibold text-foreground text-sm">{friend.username}</span>
           {activity ? (
             <ActivityDisplay activity={activity} compact className="mt-0.5" />
+          ) : presence?.customStatus ? (
+            <span className="text-xs text-muted-foreground truncate">{presence.customStatus}</span>
           ) : (
             <span className="text-xs text-muted-foreground">
               {STATUS_LABELS[displayStatus] || "Offline"}

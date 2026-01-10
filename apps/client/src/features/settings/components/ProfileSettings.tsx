@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePresence } from "@/context/PresenceContext";
 import { profileService } from "@/features/profiles/profiles";
 import { uploadService } from "@/features/uploads/UploadService";
 import { ImageCropper } from "@/components/common/ImageCropper";
@@ -27,6 +28,7 @@ const STATUS_OPTIONS: { value: UserStatus; label: string; color: string; descrip
 
 export function ProfileSettings() {
   const { user, refreshProfile } = useAuth();
+  const { updateMyPresence } = usePresence();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -136,6 +138,7 @@ export function ProfileSettings() {
         custom_status: customStatus || undefined,
         accent_color: accentColor,
       });
+      updateMyPresence(status, customStatus || undefined);
       await refreshProfile();
       initialValuesRef.current = {
         displayName,

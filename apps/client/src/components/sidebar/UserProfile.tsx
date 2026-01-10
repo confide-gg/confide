@@ -42,13 +42,14 @@ export function UserProfile() {
         if (data) {
           setProfile(data);
           setStatus(data.status || "online");
+          updateMyPresence(data.status || "online", data.custom_status || undefined);
         }
       } catch (err) {
         console.error("Failed to load profile:", err);
       }
     };
     loadProfile();
-  }, []);
+  }, [updateMyPresence]);
 
   if (!user) return null;
 
@@ -56,7 +57,7 @@ export function UserProfile() {
 
   const handleStatusChange = async (newStatus: UserStatus) => {
     setStatus(newStatus);
-    updateMyPresence(newStatus);
+    updateMyPresence(newStatus, profile?.custom_status || undefined);
     try {
       await profileService.updateProfile({ status: newStatus });
       await refreshProfile();
