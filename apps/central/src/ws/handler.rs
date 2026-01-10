@@ -90,10 +90,6 @@ pub enum WsMessage {
     #[serde(rename = "call_health_warning")]
     CallHealthWarning(CallHealthWarningData),
 
-    #[serde(rename = "screen_share_start")]
-    ScreenShareStart(ScreenShareStartData),
-    #[serde(rename = "screen_share_stop")]
-    ScreenShareStop(ScreenShareStopData),
     #[serde(rename = "call_mute_update")]
     CallMuteUpdate(CallMuteUpdateData),
 
@@ -416,20 +412,6 @@ pub struct CallHealthWarningData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ScreenShareStartData {
-    pub call_id: Uuid,
-    pub user_id: Uuid,
-    pub width: u32,
-    pub height: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ScreenShareStopData {
-    pub call_id: Uuid,
-    pub user_id: Uuid,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CallMuteUpdateData {
     pub call_id: Uuid,
     pub user_id: Uuid,
@@ -743,48 +725,6 @@ async fn handle_client_message(
             }
         }
         WsMessage::Ping => {}
-        WsMessage::ScreenShareStart(data) => {
-            if let Ok(Some(call)) = state
-                .db
-                .get_call_for_participant(data.call_id, user_id)
-                .await
-            {
-                let peer_id = if call.caller_id == Some(user_id) {
-                    call.callee_id
-                } else {
-                    call.caller_id
-                };
-                if let Some(peer_id) = peer_id {
-                    let msg = WsMessage::ScreenShareStart(data);
-                    if let Ok(json) = serde_json::to_string(&msg) {
-                        let channel = format!("user:{}", peer_id);
-                        let _ = publish_message(&state.redis, &channel, &json).await;
-                        tracing::debug!("Forwarded screen_share_start to user {}", peer_id);
-                    }
-                }
-            }
-        }
-        WsMessage::ScreenShareStop(data) => {
-            if let Ok(Some(call)) = state
-                .db
-                .get_call_for_participant(data.call_id, user_id)
-                .await
-            {
-                let peer_id = if call.caller_id == Some(user_id) {
-                    call.callee_id
-                } else {
-                    call.caller_id
-                };
-                if let Some(peer_id) = peer_id {
-                    let msg = WsMessage::ScreenShareStop(data);
-                    if let Ok(json) = serde_json::to_string(&msg) {
-                        let channel = format!("user:{}", peer_id);
-                        let _ = publish_message(&state.redis, &channel, &json).await;
-                        tracing::debug!("Forwarded screen_share_stop to user {}", peer_id);
-                    }
-                }
-            }
-        }
         WsMessage::CallMuteUpdate(data) => {
             if let Ok(Some(call)) = state
                 .db

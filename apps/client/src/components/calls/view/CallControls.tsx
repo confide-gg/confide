@@ -7,11 +7,9 @@ interface CallControlsProps {
   isLeft: boolean;
   isMuted: boolean;
   isDeafened: boolean;
-  isScreenSharing: boolean;
   isRejoining: boolean;
   onToggleMute: () => void;
   onToggleDeafen: () => void;
-  onScreenShareToggle: () => void;
   onLeave: () => void;
   onRejoin: () => void;
 }
@@ -21,11 +19,9 @@ export function CallControls({
   isLeft,
   isMuted,
   isDeafened,
-  isScreenSharing,
   isRejoining,
   onToggleMute,
   onToggleDeafen,
-  onScreenShareToggle,
   onLeave,
   onRejoin,
 }: CallControlsProps) {
@@ -69,20 +65,6 @@ export function CallControls({
               active={isDeafened}
               disabled={!isActive}
               tooltip={isDeafened ? "Undeafen" : "Deafen"}
-            />
-            <ControlButton
-              icon={
-                isScreenSharing ? (
-                  <FontAwesomeIcon icon="desktop" className="w-4 h-4" />
-                ) : (
-                  <FontAwesomeIcon icon="desktop" className="w-4 h-4" />
-                )
-              }
-              onClick={onScreenShareToggle}
-              active={isScreenSharing}
-              activeColor="green"
-              disabled={!isActive}
-              tooltip={isScreenSharing ? "Stop Sharing" : "Share Screen"}
             />
             <div className="w-px h-6 bg-white/10 mx-1" />
             <ControlButton

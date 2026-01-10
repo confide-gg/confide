@@ -56,10 +56,6 @@ export interface CallContextValue {
   startMediaSession: (relayEndpoint: string, relayToken: number[]) => Promise<void>;
   refreshState: () => Promise<void>;
   refreshAudioSettings: () => Promise<void>;
-  getScreenSources: () => Promise<ScreenCaptureSource[]>;
-  startScreenShare: (sourceId: string) => Promise<void>;
-  stopScreenShare: () => Promise<void>;
-  checkScreenPermission: () => Promise<boolean>;
   groupCallState: GroupCallState | null;
   incomingGroupCall: IncomingGroupCallInfo | null;
   startGroupCall: (params: {
@@ -101,9 +97,6 @@ export const defaultCallState: CallState = {
   peer_is_muted: false,
   started_at: null,
   connected_at: null,
-  is_screen_sharing: false,
-  peer_is_screen_sharing: false,
-  screen_share_source: null,
   connection_health: "good",
   last_audio_received_at: null,
   relay_token_expires_at: null,

@@ -456,75 +456,10 @@ fn get_current_audio_level() -> Result<f32, String> {
 }
 
 #[tauri::command]
-fn get_screen_sources() -> Result<Vec<call::ScreenCaptureSource>, String> {
-    call::get_screen_sources()
-}
-
-#[tauri::command]
-async fn start_screen_share(source_id: String) -> Result<(), String> {
-    let manager = get_call_manager().read().await;
-    manager.start_screen_share(&source_id).await
-}
-
-#[tauri::command]
-async fn stop_screen_share() -> Result<(), String> {
-    let manager = get_call_manager().read().await;
-    manager.stop_screen_share().await
-}
-
-#[tauri::command]
-fn check_screen_recording_permission() -> bool {
-    call::check_screen_recording_permission()
-}
-
-#[tauri::command]
-fn request_screen_recording_permission() -> bool {
-    call::request_screen_recording_permission()
-}
-
-#[tauri::command]
-async fn set_peer_screen_sharing(is_sharing: bool) -> Result<(), String> {
-    let manager = get_call_manager().read().await;
-    manager.set_peer_screen_sharing(is_sharing).await
-}
-
-#[tauri::command]
 async fn set_peer_muted(is_muted: bool) -> Result<(), String> {
     let manager = get_call_manager().read().await;
     manager.set_peer_muted(is_muted).await;
     Ok(())
-}
-
-#[tauri::command]
-async fn get_video_frame() -> Option<call::DecodedFrame> {
-    let manager = get_call_manager().read().await;
-    let rx = manager.get_decoded_frame_receiver();
-    rx.try_recv().ok()
-}
-
-#[tauri::command]
-async fn get_h264_chunk() -> Option<call::H264Chunk> {
-    let manager = get_call_manager().read().await;
-    let rx = manager.get_h264_chunk_receiver();
-    let mut last: Option<call::H264Chunk> = None;
-    let mut drained: u32 = 0;
-    while let Ok(chunk) = rx.try_recv() {
-        if last.is_some() {
-            drained = drained.saturating_add(1);
-        }
-        last = Some(chunk);
-    }
-    if let Some(mut chunk) = last {
-        let now_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
-        chunk.age_ms = now_ms.saturating_sub(chunk.queued_at_ms);
-        chunk.drained = drained;
-        Some(chunk)
-    } else {
-        None
-    }
 }
 
 #[tauri::command]
@@ -928,15 +863,7 @@ pub fn run() {
             get_audio_settings,
             update_audio_settings,
             get_current_audio_level,
-            get_screen_sources,
-            start_screen_share,
-            stop_screen_share,
-            check_screen_recording_permission,
-            request_screen_recording_permission,
-            set_peer_screen_sharing,
             set_peer_muted,
-            get_video_frame,
-            get_h264_chunk,
             init_notification_service,
             check_notification_permission,
             send_enhanced_notification,

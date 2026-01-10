@@ -22,7 +22,6 @@ export interface UserTileProps {
   size?: "sm" | "md" | "lg";
   isSelf?: boolean;
   horizontal?: boolean;
-  isScreenSharing?: boolean;
 }
 
 export interface DefaultCallLayoutProps {
@@ -38,28 +37,10 @@ export interface DefaultCallLayoutProps {
   isConnecting: boolean;
 }
 
-export interface ScreenShareLayoutProps {
-  isSharing: boolean;
-  peerIsSharing: boolean;
-  peerName: string;
-  myName: string;
-  myAvatarUrl?: string | null;
-  peerAvatarUrl?: string | null;
-  isMuted: boolean;
-  peerIsMuted?: boolean;
-  peerHasLeft: boolean;
-  isLeft: boolean;
-}
-
-export interface ScreenShareCanvasProps {
-  peerName: string;
-}
-
 export interface CallViewState {
   duration: number;
   quality: CallQuality;
   stats: CallQualityStats | null;
-  showScreenPicker: boolean;
   isRejoining: boolean;
 }
 

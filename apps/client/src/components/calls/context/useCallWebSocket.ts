@@ -249,19 +249,6 @@ export function useCallWebSocket({
                   relayToken: data.relay_token,
                 });
                 await refreshState();
-
-                const currentState = refs.callStateRef.current;
-                if (currentState.is_screen_sharing && currentUserId) {
-                  centralWebSocketService.send({
-                    type: "screen_share_start",
-                    data: {
-                      call_id: currentState.call_id!,
-                      user_id: currentUserId,
-                      width: 1920,
-                      height: 1080,
-                    },
-                  });
-                }
               } catch (e) {
                 console.error(
                   "[CallContext] Failed to restart media session after peer rejoin:",
@@ -269,39 +256,6 @@ export function useCallWebSocket({
                 );
               }
             })();
-          }
-          break;
-        }
-        case "screen_share_start": {
-          const data = (
-            msg as {
-              type: "screen_share_start";
-              data: { call_id: string; user_id: string; width: number; height: number };
-            }
-          ).data;
-          if (
-            refs.callStateRef.current.call_id === data.call_id &&
-            data.user_id !== currentUserId
-          ) {
-            invoke("set_peer_screen_sharing", { isSharing: true })
-              .then(() => {
-                refreshState();
-              })
-              .catch((e) => {
-                console.error("[CallContext] set_peer_screen_sharing failed:", e);
-              });
-          }
-          break;
-        }
-        case "screen_share_stop": {
-          const data = (
-            msg as { type: "screen_share_stop"; data: { call_id: string; user_id: string } }
-          ).data;
-          if (
-            refs.callStateRef.current.call_id === data.call_id &&
-            data.user_id !== currentUserId
-          ) {
-            invoke("set_peer_screen_sharing", { isSharing: false }).then(() => refreshState());
           }
           break;
         }

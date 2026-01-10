@@ -1,19 +1,11 @@
 pub mod audio;
-pub mod h264;
 pub mod jitter;
-pub mod screen;
 pub mod settings;
 pub mod state;
 pub mod transport;
-mod video_decoder;
 
-pub use screen::{
-    check_screen_recording_permission, get_screen_sources, request_screen_recording_permission,
-    ScreenCaptureSource,
-};
 pub use settings::AudioSettings;
 pub use state::{AudioDevices, CallQualityStats};
-pub use video_decoder::{DecodedFrame, H264Chunk};
 
 use chrono::{DateTime, Utc};
 use confide_sdk::crypto::call::{
@@ -28,33 +20,13 @@ use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
 use uuid::Uuid;
 
 use audio::{start_audio_pipeline, AudioPipelineHandle};
-use screen::{start_screen_share_pipeline, ScreenSharePipelineHandle};
-use transport::{
-    AudioSendStream, CallTransport, DatagramChannel, ScreenShareSendStream, VideoSendStream,
-};
-use video_decoder::{start_video_decoder, VideoDecoderHandle};
+use transport::{AudioSendStream, CallTransport, DatagramChannel, VideoSendStream};
 
 #[allow(clippy::type_complexity)]
 static AUDIO_CHANNEL: Lazy<(
     crossbeam_channel::Sender<Vec<u8>>,
     crossbeam_channel::Receiver<Vec<u8>>,
 )> = Lazy::new(|| crossbeam_channel::bounded(50));
-
-#[allow(clippy::type_complexity)]
-static VIDEO_SEND_CHANNEL: Lazy<(
-    crossbeam_channel::Sender<Vec<u8>>,
-    crossbeam_channel::Receiver<Vec<u8>>,
-)> = Lazy::new(|| crossbeam_channel::bounded(200));
-
-static VIDEO_RECV_CHANNEL: Lazy<(
-    crossbeam_channel::Sender<DecodedFrame>,
-    crossbeam_channel::Receiver<DecodedFrame>,
-)> = Lazy::new(|| crossbeam_channel::bounded(10));
-
-static VIDEO_H264_CHANNEL: Lazy<(
-    crossbeam_channel::Sender<H264Chunk>,
-    crossbeam_channel::Receiver<H264Chunk>,
-)> = Lazy::new(|| crossbeam_channel::bounded(30));
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -90,9 +62,6 @@ pub struct CallState {
     pub peer_is_muted: bool,
     pub started_at: Option<DateTime<Utc>>,
     pub connected_at: Option<DateTime<Utc>>,
-    pub is_screen_sharing: bool,
-    pub peer_is_screen_sharing: bool,
-    pub screen_share_source: Option<String>,
     pub connection_health: ConnectionHealth,
     pub last_audio_received_at: Option<DateTime<Utc>>,
     pub relay_token_expires_at: Option<DateTime<Utc>>,
@@ -117,9 +86,6 @@ impl Default for CallState {
             peer_is_muted: false,
             started_at: None,
             connected_at: None,
-            is_screen_sharing: false,
-            peer_is_screen_sharing: false,
-            screen_share_source: None,
             connection_health: ConnectionHealth::Good,
             last_audio_received_at: None,
             relay_token_expires_at: None,
@@ -173,7 +139,6 @@ pub struct CallManager {
     transport: RwLock<Option<Arc<Mutex<CallTransport>>>>,
     audio_send: RwLock<Option<Arc<AudioSendStream>>>,
     video_send: RwLock<Option<Arc<VideoSendStream>>>,
-    screenshare_send: RwLock<Option<Arc<ScreenShareSendStream>>>,
     datagram_channel: RwLock<Option<Arc<DatagramChannel>>>,
     audio_tx: RwLock<Option<mpsc::Sender<Vec<u8>>>>,
     is_muted: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -181,10 +146,6 @@ pub struct CallManager {
     stats: std::sync::Arc<std::sync::Mutex<CallQualityStats>>,
     audio_settings: RwLock<settings::AudioSettings>,
     audio_pipeline: std::sync::Mutex<Option<AudioPipelineHandle>>,
-    screen_pipeline: std::sync::Mutex<Option<ScreenSharePipelineHandle>>,
-    screen_quality_stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    video_decoder: std::sync::Mutex<Option<VideoDecoderHandle>>,
-    video_recv_tx: Arc<std::sync::Mutex<Option<crossbeam_channel::Sender<Vec<u8>>>>>,
     encryptor: RwLock<Option<Arc<std::sync::Mutex<confide_sdk::crypto::call::CallEncryptor>>>>,
     #[allow(dead_code)]
     use_datagram_audio: std::sync::atomic::AtomicBool,
@@ -206,7 +167,6 @@ impl CallManager {
             transport: RwLock::new(None),
             audio_send: RwLock::new(None),
             video_send: RwLock::new(None),
-            screenshare_send: RwLock::new(None),
             datagram_channel: RwLock::new(None),
             audio_tx: RwLock::new(None),
             is_muted: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
@@ -214,10 +174,6 @@ impl CallManager {
             stats: std::sync::Arc::new(std::sync::Mutex::new(CallQualityStats::default())),
             audio_settings: RwLock::new(audio_settings),
             audio_pipeline: std::sync::Mutex::new(None),
-            screen_pipeline: std::sync::Mutex::new(None),
-            screen_quality_stop: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
-            video_decoder: std::sync::Mutex::new(None),
-            video_recv_tx: Arc::new(std::sync::Mutex::new(None)),
             encryptor: RwLock::new(None),
             use_datagram_audio: std::sync::atomic::AtomicBool::new(true),
             last_audio_received: Arc::new(std::sync::Mutex::new(None)),
@@ -525,12 +481,10 @@ impl CallManager {
 
         let audio_send = Arc::new(media_streams.audio_send);
         let video_send = Arc::new(media_streams.video_send);
-        let screenshare_send = Arc::new(media_streams.screenshare_send);
         let datagram_channel = Arc::new(media_streams.datagram);
 
         *self.audio_send.write().await = Some(audio_send.clone());
         *self.video_send.write().await = Some(video_send.clone());
-        *self.screenshare_send.write().await = Some(screenshare_send.clone());
         *self.datagram_channel.write().await = Some(datagram_channel.clone());
 
         let (audio_recv_tx, audio_recv_rx) = crossbeam_channel::bounded::<Vec<u8>>(100);
@@ -649,7 +603,6 @@ impl CallManager {
 
         let recv_encryptor_streams = encryptor.clone();
         let recv_stats_streams = self.stats.clone();
-        let video_recv_tx_streams = self.video_recv_tx.clone();
         let audio_recv_tx_streams = audio_recv_tx.clone();
         let media_streams_for_recv = media_streams.connection.clone();
         let conn_error_streams = self.connection_error.clone();
@@ -663,7 +616,6 @@ impl CallManager {
                     Ok((_, mut recv)) => {
                         let enc = recv_encryptor_streams.clone();
                         let stats = recv_stats_streams.clone();
-                        let video_tx = video_recv_tx_streams.clone();
                         let audio_tx = audio_recv_tx_streams.clone();
                         let last_audio = last_audio_recv_streams.clone();
 
@@ -704,66 +656,7 @@ impl CallManager {
                                         }
                                     }
                                 }
-                                0x02 => {
-                                    let mut len_buf = [0u8; 2];
-                                    loop {
-                                        if recv.read_exact(&mut len_buf).await.is_err() {
-                                            break;
-                                        }
-                                        let len = u16::from_be_bytes(len_buf) as usize;
-                                        if len == 0 || len > 65000 {
-                                            break;
-                                        }
-                                        let mut data = vec![0u8; len];
-                                        if recv.read_exact(&mut data).await.is_err() {
-                                            break;
-                                        }
-                                        let tx_guard = video_tx.lock().unwrap();
-                                        if let Some(ref tx) = *tx_guard {
-                                            let decrypted = {
-                                                let mut e = enc.lock().unwrap();
-                                                match e.decrypt_video(&data) {
-                                                    Ok(d) => d.to_vec(),
-                                                    Err(_) => continue,
-                                                }
-                                            };
-                                            let _ = tx.send(decrypted);
-                                        }
-                                        if let Ok(mut s) = stats.lock() {
-                                            s.packets_received += 1;
-                                        }
-                                    }
-                                }
-                                0x03 => {
-                                    let mut len_buf = [0u8; 4];
-                                    loop {
-                                        if recv.read_exact(&mut len_buf).await.is_err() {
-                                            break;
-                                        }
-                                        let len = u32::from_be_bytes(len_buf) as usize;
-                                        if len == 0 || len > 10_000_000 {
-                                            break;
-                                        }
-                                        let mut data = vec![0u8; len];
-                                        if recv.read_exact(&mut data).await.is_err() {
-                                            break;
-                                        }
-                                        let tx_guard = video_tx.lock().unwrap();
-                                        if let Some(ref tx) = *tx_guard {
-                                            let decrypted = {
-                                                let mut e = enc.lock().unwrap();
-                                                match e.decrypt_screenshare(&data) {
-                                                    Ok(d) => d.to_vec(),
-                                                    Err(_) => continue,
-                                                }
-                                            };
-                                            let _ = tx.send(decrypted);
-                                        }
-                                        if let Ok(mut s) = stats.lock() {
-                                            s.packets_received += 1;
-                                        }
-                                    }
-                                }
+                                0x02 => {}
                                 _ => {}
                             }
                         });
@@ -799,15 +692,6 @@ impl CallManager {
         let call_id = state.call_id;
         drop(state);
 
-        if let Some(pipeline) = self.screen_pipeline.lock().unwrap().take() {
-            self.screen_quality_stop
-                .store(true, std::sync::atomic::Ordering::Relaxed);
-            pipeline.stop();
-        }
-        if let Some(decoder) = self.video_decoder.lock().unwrap().take() {
-            decoder.stop();
-        }
-
         if let Some(pipeline) = self.audio_pipeline.lock().unwrap().take() {
             pipeline.stop();
         }
@@ -819,9 +703,7 @@ impl CallManager {
 
         *self.audio_send.write().await = None;
         *self.video_send.write().await = None;
-        *self.screenshare_send.write().await = None;
         *self.datagram_channel.write().await = None;
-        *self.video_recv_tx.lock().unwrap() = None;
         *self.audio_tx.write().await = None;
         *self.encryptor.write().await = None;
         self.is_muted
@@ -831,9 +713,6 @@ impl CallManager {
 
         let mut state = self.state.write().await;
         state.status = CallStatus::Left;
-        state.is_screen_sharing = false;
-        state.peer_is_screen_sharing = false;
-        state.screen_share_source = None;
 
         // Set the time when user left the call
         *self.left_at.write().await = Some(Utc::now());
@@ -867,15 +746,6 @@ impl CallManager {
     }
 
     pub async fn end_call(&self) {
-        if let Some(pipeline) = self.screen_pipeline.lock().unwrap().take() {
-            self.screen_quality_stop
-                .store(true, std::sync::atomic::Ordering::Relaxed);
-            pipeline.stop();
-        }
-        if let Some(decoder) = self.video_decoder.lock().unwrap().take() {
-            decoder.stop();
-        }
-
         if let Some(pipeline) = self.audio_pipeline.lock().unwrap().take() {
             pipeline.stop();
         }
@@ -887,9 +757,7 @@ impl CallManager {
 
         *self.audio_send.write().await = None;
         *self.video_send.write().await = None;
-        *self.screenshare_send.write().await = None;
         *self.datagram_channel.write().await = None;
-        *self.video_recv_tx.lock().unwrap() = None;
         *self.ephemeral_keypair.write().await = None;
         *self.media_keys.write().await = None;
         *self.shared_secret_1.write().await = None;
@@ -1015,177 +883,9 @@ impl CallManager {
         self.end_call().await;
     }
 
-    pub async fn start_screen_share(&self, source_id: &str) -> Result<(), String> {
-        let state = self.state.read().await;
-        if state.status != CallStatus::Active {
-            return Err("Call not active".to_string());
-        }
-        drop(state);
-
-        if self.screen_pipeline.lock().unwrap().is_some() {
-            return Err("Already screen sharing".to_string());
-        }
-
-        let encryptor = self.encryptor.read().await;
-        let enc = encryptor.as_ref().ok_or("No encryptor available")?;
-        enc.lock().unwrap().reset_screenshare_counters();
-        let enc_clone = enc.clone();
-        drop(encryptor);
-
-        let screenshare_send_guard = self.screenshare_send.read().await;
-        let screenshare_send = screenshare_send_guard
-            .as_ref()
-            .ok_or("No screenshare stream available")?
-            .clone();
-        drop(screenshare_send_guard);
-
-        let frame_tx = VIDEO_SEND_CHANNEL.0.clone();
-        let frame_rx = VIDEO_SEND_CHANNEL.1.clone();
-
-        let pipeline = start_screen_share_pipeline(source_id, frame_tx)?;
-        let pipeline_for_quality = pipeline.clone();
-        *self.screen_pipeline.lock().unwrap() = Some(pipeline);
-
-        self.screen_quality_stop
-            .store(false, std::sync::atomic::Ordering::Relaxed);
-        let quality_stop = self.screen_quality_stop.clone();
-        let quality_stats = self.stats.clone();
-        std::thread::spawn(move || {
-            let mut bitrate = screen::TARGET_BITRATE;
-            let mut last_sent = 0u32;
-            let mut last_lost = 0u32;
-            while !quality_stop.load(std::sync::atomic::Ordering::Relaxed) {
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                let stats = match quality_stats.lock() {
-                    Ok(s) => s.clone(),
-                    Err(_) => continue,
-                };
-                let sent = stats.packets_sent;
-                let lost = stats.packets_lost;
-                let delta_sent = sent.saturating_sub(last_sent);
-                let delta_lost = lost.saturating_sub(last_lost);
-                last_sent = sent;
-                last_lost = lost;
-
-                let loss = if delta_sent > 0 {
-                    delta_lost as f32 / delta_sent as f32
-                } else {
-                    0.0
-                };
-
-                if loss > 0.08 {
-                    bitrate = ((bitrate as f32) * 0.75) as u32;
-                    pipeline_for_quality.request_keyframe();
-                } else if loss > 0.03 {
-                    bitrate = ((bitrate as f32) * 0.85) as u32;
-                } else if loss < 0.01 {
-                    bitrate = ((bitrate as f32) * 1.10) as u32;
-                }
-
-                bitrate = bitrate.clamp(1_500_000, 12_000_000);
-                pipeline_for_quality.set_quality(screen::TARGET_FPS, bitrate);
-            }
-        });
-
-        let send_enc = enc_clone.clone();
-        let send_stats = self.stats.clone();
-        tokio::spawn(async move {
-            loop {
-                match frame_rx.recv_timeout(std::time::Duration::from_millis(50)) {
-                    Ok(frame_data) => {
-                        let encrypted = {
-                            let mut e = send_enc.lock().unwrap();
-                            match e.encrypt_screenshare(&frame_data) {
-                                Ok(data) => data.to_vec(),
-                                Err(err) => {
-                                    eprintln!("[Screenshare] Encrypt error: {}", err);
-                                    continue;
-                                }
-                            }
-                        };
-                        match screenshare_send.send(&encrypted).await {
-                            Ok(_) => {
-                                if let Ok(mut stats) = send_stats.lock() {
-                                    stats.packets_sent += 1;
-                                }
-                            }
-                            Err(e) => {
-                                eprintln!("[Screenshare] Send error: {}", e);
-                            }
-                        }
-                    }
-                    Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
-                    Err(crossbeam_channel::RecvTimeoutError::Disconnected) => {
-                        eprintln!("[Screenshare] Channel disconnected, stopping");
-                        break;
-                    }
-                }
-            }
-        });
-
-        {
-            let mut state = self.state.write().await;
-            state.is_screen_sharing = true;
-            state.screen_share_source = Some(source_id.to_string());
-        }
-
-        Ok(())
-    }
-
-    pub async fn stop_screen_share(&self) -> Result<(), String> {
-        if let Some(pipeline) = self.screen_pipeline.lock().unwrap().take() {
-            self.screen_quality_stop
-                .store(true, std::sync::atomic::Ordering::Relaxed);
-            pipeline.stop();
-        }
-
-        {
-            let mut state = self.state.write().await;
-            state.is_screen_sharing = false;
-            state.screen_share_source = None;
-        }
-
-        Ok(())
-    }
-
     pub async fn set_peer_muted(&self, is_muted: bool) {
         let mut state = self.state.write().await;
         state.peer_is_muted = is_muted;
-    }
-
-    pub async fn set_peer_screen_sharing(&self, is_sharing: bool) -> Result<(), String> {
-        if is_sharing {
-            if let Some(ref enc) = *self.encryptor.read().await {
-                enc.lock().unwrap().reset_screenshare_counters();
-            }
-
-            let decoded_tx = VIDEO_RECV_CHANNEL.0.clone();
-            let h264_tx = VIDEO_H264_CHANNEL.0.clone();
-            let (video_recv_tx, video_recv_rx) = crossbeam_channel::bounded::<Vec<u8>>(30);
-
-            *self.video_recv_tx.lock().unwrap() = Some(video_recv_tx);
-
-            let decoder = start_video_decoder(video_recv_rx, decoded_tx, h264_tx)?;
-            *self.video_decoder.lock().unwrap() = Some(decoder);
-        } else {
-            *self.video_recv_tx.lock().unwrap() = None;
-
-            if let Some(decoder) = self.video_decoder.lock().unwrap().take() {
-                decoder.stop();
-            }
-        }
-
-        let mut state = self.state.write().await;
-        state.peer_is_screen_sharing = is_sharing;
-        Ok(())
-    }
-
-    pub fn get_decoded_frame_receiver(&self) -> crossbeam_channel::Receiver<DecodedFrame> {
-        VIDEO_RECV_CHANNEL.1.clone()
-    }
-
-    pub fn get_h264_chunk_receiver(&self) -> crossbeam_channel::Receiver<H264Chunk> {
-        VIDEO_H264_CHANNEL.1.clone()
     }
 
     #[allow(dead_code)]
