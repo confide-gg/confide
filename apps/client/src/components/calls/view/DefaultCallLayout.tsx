@@ -13,8 +13,8 @@ export function DefaultCallLayout({
   isConnecting,
 }: DefaultCallLayoutProps) {
   return (
-    <div className="flex-1 flex items-center justify-center p-4">
-      <div className="flex items-center gap-8">
+    <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex items-center justify-center gap-16">
         <UserTile
           name={peerName}
           avatarUrl={peerAvatarUrl}
@@ -22,7 +22,7 @@ export function DefaultCallLayout({
           isMuted={peerIsMuted}
           hasLeft={peerHasLeft}
           isConnecting={isConnecting}
-          size="md"
+          size="lg"
         />
 
         <UserTile
@@ -31,7 +31,7 @@ export function DefaultCallLayout({
           isSpeaking={!isMuted && !isLeft}
           isMuted={isMuted}
           hasLeft={isLeft}
-          size="md"
+          size="lg"
           isSelf
         />
       </div>

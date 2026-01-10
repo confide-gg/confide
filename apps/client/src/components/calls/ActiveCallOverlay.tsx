@@ -175,14 +175,13 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
   };
 
   const getQualityIcon = () => {
-    const iconClass = "h-3.5 w-3.5";
+    const iconClass = "h-3 w-3";
     switch (quality) {
       case "excellent":
-        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-green-400")} />;
       case "good":
-        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-green-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-emerald-400")} />;
       case "fair":
-        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-yellow-400")} />;
+        return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-amber-400")} />;
       case "poor":
         return <FontAwesomeIcon icon="signal" className={cn(iconClass, "text-red-400")} />;
     }
@@ -205,151 +204,212 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
     }
   };
 
-  const getStatusColor = () => {
-    if (isLeft || peerHasLeft) return "text-yellow-400";
-    if (isActive) return "text-green-400";
-    return "text-yellow-400";
+  const getStatusIndicatorColor = () => {
+    if (peerHasLeft) return "bg-red-500";
+    if (isLeft) return "bg-amber-500";
+    if (isActive) return "bg-emerald-500";
+    return "bg-amber-500";
   };
 
   return (
-    <>
+    <div
+      ref={containerRef}
+      className={cn(
+        "fixed z-50 select-none transition-shadow duration-200",
+        isDragging ? "cursor-grabbing" : "cursor-grab"
+      )}
+      style={{
+        right: position.x,
+        bottom: position.y,
+      }}
+      onMouseDown={handleMouseDown}
+    >
       <div
-        ref={containerRef}
-        className={cn("fixed z-50 select-none", isDragging ? "cursor-grabbing" : "cursor-grab")}
-        style={{
-          right: position.x,
-          bottom: position.y,
-        }}
-        onMouseDown={handleMouseDown}
+        className={cn(
+          "bg-zinc-900/95 backdrop-blur-xl rounded-2xl overflow-hidden min-w-[260px]",
+          "border border-white/[0.08] shadow-2xl shadow-black/40",
+          "transition-all duration-200",
+          isDragging && "scale-[1.02] shadow-black/50"
+        )}
       >
-        <div className="bg-background rounded-xl shadow-2xl border border-border overflow-hidden min-w-[240px]">
-          <div className="flex items-center gap-3 p-3">
-            <div className="relative">
-              <Avatar
-                src={callState.peer_avatar_url || undefined}
-                fallback={callState.peer_display_name || callState.peer_username || "?"}
-                size="md"
-                className={cn(peerHasLeft && "opacity-50")}
-              />
-              <div
+        {isActive && !peerHasLeft && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-emerald-500/10 blur-[60px] pointer-events-none" />
+        )}
+
+        <div className="relative flex items-center gap-3 p-3.5">
+          <div className="relative">
+            <Avatar
+              src={callState.peer_avatar_url || undefined}
+              fallback={callState.peer_display_name || callState.peer_username || "?"}
+              size="md"
+              className={cn(
+                "w-11 h-11 ring-2 transition-all duration-200",
+                peerHasLeft
+                  ? "ring-red-500/40 opacity-50 grayscale"
+                  : isActive
+                    ? "ring-emerald-500/50"
+                    : "ring-amber-500/50"
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-[2.5px] border-zinc-900 transition-colors duration-200",
+                getStatusIndicatorColor()
+              )}
+            />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-sm text-zinc-100 truncate tracking-tight">
+              {callState.peer_display_name || callState.peer_username}
+            </h3>
+            <div className="flex items-center gap-1.5 text-xs mt-0.5">
+              {isActive && !peerHasLeft && getQualityIcon()}
+              <span
                 className={cn(
-                  "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-                  peerHasLeft
-                    ? "bg-red-500"
-                    : isLeft
-                      ? "bg-yellow-500"
-                      : isActive
-                        ? "bg-green-500"
-                        : "bg-yellow-500"
+                  "font-medium tabular-nums",
+                  isLeft || peerHasLeft
+                    ? "text-amber-400"
+                    : isActive
+                      ? "text-emerald-400"
+                      : "text-amber-400"
                 )}
-              />
+              >
+                {getStatusText()}
+              </span>
+              {callState.is_screen_sharing && (
+                <span className="text-emerald-400 flex items-center gap-1 ml-1.5 px-1.5 py-0.5 bg-emerald-500/10 rounded">
+                  <FontAwesomeIcon icon="desktop" className="w-2.5 h-2.5" />
+                </span>
+              )}
+              {callState.peer_is_screen_sharing && !callState.is_screen_sharing && (
+                <span className="text-blue-400 flex items-center gap-1 ml-1.5 px-1.5 py-0.5 bg-blue-500/10 rounded">
+                  <FontAwesomeIcon icon="desktop" className="w-2.5 h-2.5" />
+                </span>
+              )}
             </div>
+          </div>
 
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-sm text-foreground truncate">
-                {callState.peer_display_name || callState.peer_username}
-              </h3>
-              <div className="flex items-center gap-1.5 text-xs">
-                {isActive && !peerHasLeft && getQualityIcon()}
-                <span className={getStatusColor()}>{getStatusText()}</span>
-                {callState.is_screen_sharing && (
-                  <span className="text-green-400 flex items-center gap-0.5 ml-1">
-                    <FontAwesomeIcon icon="desktop" className="w-3 h-3" />
-                  </span>
-                )}
-                {callState.peer_is_screen_sharing && !callState.is_screen_sharing && (
-                  <span className="text-blue-400 flex items-center gap-0.5 ml-1">
-                    <FontAwesomeIcon icon="desktop" className="w-3 h-3" />
-                  </span>
-                )}
-              </div>
-            </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-8 w-8 p-0 rounded-lg",
+                    "text-zinc-500 hover:text-zinc-200",
+                    "bg-transparent hover:bg-white/[0.06]",
+                    "transition-all duration-200"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNavigateToCall();
+                  }}
+                >
+                  <FontAwesomeIcon icon="arrow-up-right-from-square" className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="bg-zinc-900/95 backdrop-blur-sm border-white/[0.08] text-zinc-200 text-xs font-medium"
+              >
+                Go to call
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
+        <div className="flex items-center justify-center gap-2 px-3.5 pb-3.5 pt-1">
+          {isLeft ? (
             <Button
-              variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-secondary"
+              className={cn(
+                "h-9 px-5 rounded-full text-xs font-medium",
+                "bg-emerald-500 hover:bg-emerald-400 text-white",
+                "border border-emerald-400/50",
+                "shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30",
+                "transition-all duration-200 hover:scale-105 active:scale-95"
+              )}
               onClick={(e) => {
                 e.stopPropagation();
-                handleNavigateToCall();
+                handleRejoin();
               }}
+              disabled={isRejoining}
             >
-              <FontAwesomeIcon icon="arrow-up-right-from-square" className="w-4 h-4" />
+              <FontAwesomeIcon icon="phone-flip" className="w-3.5 h-3.5 mr-2" />
+              {isRejoining ? "Rejoining..." : "Rejoin"}
             </Button>
-          </div>
+          ) : (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-10 w-10 rounded-full p-0",
+                        "transition-all duration-200 hover:scale-105 active:scale-95",
+                        callState.is_muted
+                          ? "bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30"
+                          : "bg-white/[0.06] text-zinc-300 hover:text-white hover:bg-white/[0.12] border border-white/[0.08]"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleMute();
+                      }}
+                      disabled={!isActive}
+                    >
+                      {callState.is_muted ? (
+                        <FontAwesomeIcon icon="microphone-slash" className="h-4 w-4" />
+                      ) : (
+                        <FontAwesomeIcon icon="microphone" className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="bg-zinc-900/95 backdrop-blur-sm border-white/[0.08] text-zinc-200 text-xs font-medium"
+                  >
+                    {callState.is_muted ? "Unmute" : "Mute"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-          <div className="flex items-center justify-center gap-2 px-3 pb-3">
-            {isLeft ? (
-              <Button
-                size="sm"
-                className="h-9 px-4 rounded-full bg-green-600 hover:bg-green-700 text-foreground text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRejoin();
-                }}
-                disabled={isRejoining}
-              >
-                <FontAwesomeIcon icon="phone-flip" className="w-3.5 h-3.5 mr-1.5" />
-                {isRejoining ? "..." : "Rejoin"}
-              </Button>
-            ) : (
-              <>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          "h-9 w-9 rounded-full p-0",
-                          callState.is_muted
-                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                            : "bg-secondary text-foreground hover:bg-secondary/80"
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleMute();
-                        }}
-                        disabled={!isActive}
-                      >
-                        {callState.is_muted ? (
-                          <FontAwesomeIcon icon="microphone-slash" className="h-4 w-4" />
-                        ) : (
-                          <FontAwesomeIcon icon="microphone" className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs bg-popover border-border">
-                      {callState.is_muted ? "Unmute" : "Mute"}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 rounded-full p-0 bg-red-500 hover:bg-red-600 text-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLeave();
-                        }}
-                      >
-                        <FontAwesomeIcon icon="phone-slash" className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs bg-popover border-border">
-                      Leave Call
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </>
-            )}
-          </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-10 w-10 rounded-full p-0",
+                        "bg-red-500 hover:bg-red-400 text-white",
+                        "border border-red-400/50",
+                        "shadow-lg shadow-red-500/20 hover:shadow-red-500/30",
+                        "transition-all duration-200 hover:scale-105 active:scale-95"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLeave();
+                      }}
+                    >
+                      <FontAwesomeIcon icon="phone-slash" className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="bg-zinc-900/95 backdrop-blur-sm border-white/[0.08] text-zinc-200 text-xs font-medium"
+                  >
+                    Leave Call
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -17,16 +17,7 @@ export function CallView() {
     callState.status === "ringing" ||
     callState.status === "initiating";
 
-  const {
-    duration,
-    quality,
-    stats,
-    showScreenPicker,
-    setShowScreenPicker,
-    isRejoining,
-    setIsRejoining,
-    contentRef,
-  } = useCallViewState({
+  const { duration, quality, stats, isRejoining, setIsRejoining, contentRef } = useCallViewState({
     isActive,
     connectedAt: callState.connected_at,
   });
@@ -88,7 +79,7 @@ export function CallView() {
   }
 
   return (
-    <div className="flex flex-col bg-card text-white overflow-hidden h-full">
+    <div className="flex flex-col bg-zinc-950 text-white overflow-hidden h-full">
       <CallHeader
         isActive={isActive}
         isLeft={isLeft}
