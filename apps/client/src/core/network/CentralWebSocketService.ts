@@ -35,24 +35,6 @@ interface OutgoingSubscribeUser {
   };
 }
 
-interface OutgoingScreenShareStart {
-  type: "screen_share_start";
-  data: {
-    call_id: string;
-    user_id: string;
-    width: number;
-    height: number;
-  };
-}
-
-interface OutgoingScreenShareStop {
-  type: "screen_share_stop";
-  data: {
-    call_id: string;
-    user_id: string;
-  };
-}
-
 interface OutgoingCallMuteUpdate {
   type: "call_mute_update";
   data: {
@@ -71,8 +53,6 @@ export type OutgoingMessage =
   | OutgoingUpdatePresence
   | OutgoingSubscribeConversation
   | OutgoingSubscribeUser
-  | OutgoingScreenShareStart
-  | OutgoingScreenShareStop
   | OutgoingCallMuteUpdate
   | OutgoingPing;
 

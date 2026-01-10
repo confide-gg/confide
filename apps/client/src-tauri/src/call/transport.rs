@@ -9,7 +9,6 @@ use tokio::sync::Mutex;
 
 const STREAM_TYPE_AUDIO: u8 = 0x01;
 const STREAM_TYPE_VIDEO: u8 = 0x02;
-const STREAM_TYPE_SCREENSHARE: u8 = 0x03;
 const DATAGRAM_TYPE_AUDIO: u8 = 0x01;
 
 pub struct CallTransport {
@@ -35,10 +34,6 @@ pub struct VideoSendStream {
 #[allow(dead_code)]
 pub struct VideoRecvStream {
     recv: Mutex<RecvStream>,
-}
-
-pub struct ScreenShareSendStream {
-    send: Mutex<SendStream>,
 }
 
 pub struct DatagramChannel {
@@ -150,11 +145,6 @@ impl CallTransport {
             .await
             .map_err(|e| format!("Failed to open video stream: {}", e))?;
 
-        let (screenshare_send, _) = connection
-            .open_bi()
-            .await
-            .map_err(|e| format!("Failed to open screenshare stream: {}", e))?;
-
         let mut audio_send_wrapper = audio_send;
         audio_send_wrapper
             .write_all(&[STREAM_TYPE_AUDIO])
@@ -167,21 +157,12 @@ impl CallTransport {
             .await
             .map_err(|e| format!("Failed to write video stream type: {}", e))?;
 
-        let mut screenshare_send_wrapper = screenshare_send;
-        screenshare_send_wrapper
-            .write_all(&[STREAM_TYPE_SCREENSHARE])
-            .await
-            .map_err(|e| format!("Failed to write screenshare stream type: {}", e))?;
-
         let media_streams = MediaStreams {
             audio_send: AudioSendStream {
                 send: Mutex::new(audio_send_wrapper),
             },
             video_send: VideoSendStream {
                 send: Mutex::new(video_send_wrapper),
-            },
-            screenshare_send: ScreenShareSendStream {
-                send: Mutex::new(screenshare_send_wrapper),
             },
             datagram: DatagramChannel {
                 connection: connection.clone(),
@@ -211,7 +192,6 @@ impl CallTransport {
 pub struct MediaStreams {
     pub audio_send: AudioSendStream,
     pub video_send: VideoSendStream,
-    pub screenshare_send: ScreenShareSendStream,
     pub datagram: DatagramChannel,
     pub connection: Connection,
 }
@@ -288,20 +268,6 @@ impl VideoSendStream {
         send.write_all(data)
             .await
             .map_err(|e| format!("Failed to write video data: {}", e))?;
-        Ok(())
-    }
-}
-
-impl ScreenShareSendStream {
-    pub async fn send(&self, data: &[u8]) -> Result<(), String> {
-        let mut send = self.send.lock().await;
-        let len = (data.len() as u32).to_be_bytes();
-        send.write_all(&len)
-            .await
-            .map_err(|e| format!("Failed to write screenshare length: {}", e))?;
-        send.write_all(data)
-            .await
-            .map_err(|e| format!("Failed to write screenshare data: {}", e))?;
         Ok(())
     }
 }

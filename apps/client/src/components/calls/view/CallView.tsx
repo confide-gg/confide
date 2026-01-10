@@ -1,24 +1,13 @@
 import { useCall } from "../context";
 import { useAuth } from "@/context/AuthContext";
-import { ScreenSharePicker } from "../ScreenSharePicker";
 import { useCallViewState } from "./useCallViewState";
 import { CallHeader } from "./CallHeader";
 import { CallControls } from "./CallControls";
 import { DefaultCallLayout } from "./DefaultCallLayout";
-import { ScreenShareLayout } from "./ScreenShareLayout";
 import { CallEndedView } from "./CallEndedView";
 
 export function CallView() {
-  const {
-    callState,
-    peerHasLeft,
-    leaveCall,
-    rejoinCall,
-    setMuted,
-    setDeafened,
-    startScreenShare,
-    stopScreenShare,
-  } = useCall();
+  const { callState, peerHasLeft, leaveCall, rejoinCall, setMuted, setDeafened } = useCall();
   const { user, profile } = useAuth();
 
   const isLeft = callState.status === "left";
@@ -77,26 +66,6 @@ export function CallView() {
     }
   };
 
-  const handleScreenShareToggle = async () => {
-    if (callState.is_screen_sharing) {
-      try {
-        await stopScreenShare();
-      } catch (e) {
-        console.error("Failed to stop screen share:", e);
-      }
-    } else {
-      setShowScreenPicker(true);
-    }
-  };
-
-  const handleScreenShareStart = async (sourceId: string) => {
-    try {
-      await startScreenShare(sourceId);
-    } catch (e) {
-      console.error("Failed to start screen share:", e);
-    }
-  };
-
   const myDisplayName = profile?.display_name || user?.username || "You";
   const myAvatarUrl = profile?.avatar_url;
   const peerDisplayName = callState.peer_display_name || callState.peer_username || "User";
@@ -118,8 +87,6 @@ export function CallView() {
     );
   }
 
-  const hasScreenShare = callState.peer_is_screen_sharing || callState.is_screen_sharing;
-
   return (
     <div className="flex flex-col bg-card text-white overflow-hidden h-full">
       <CallHeader
@@ -134,33 +101,18 @@ export function CallView() {
       />
 
       <div ref={contentRef} className="flex-1 flex flex-col relative overflow-hidden min-h-0">
-        {hasScreenShare ? (
-          <ScreenShareLayout
-            isSharing={callState.is_screen_sharing}
-            peerIsSharing={callState.peer_is_screen_sharing}
-            peerName={peerDisplayName}
-            myName={myDisplayName}
-            myAvatarUrl={myAvatarUrl}
-            peerAvatarUrl={peerAvatarUrl}
-            isMuted={callState.is_muted}
-            peerIsMuted={callState.peer_is_muted}
-            peerHasLeft={peerHasLeft}
-            isLeft={isLeft}
-          />
-        ) : (
-          <DefaultCallLayout
-            myName={myDisplayName}
-            myAvatarUrl={myAvatarUrl}
-            peerName={peerDisplayName}
-            peerAvatarUrl={peerAvatarUrl}
-            isMuted={callState.is_muted}
-            isDeafened={callState.is_deafened}
-            peerIsMuted={callState.peer_is_muted}
-            peerHasLeft={peerHasLeft}
-            isLeft={isLeft}
-            isConnecting={isConnecting}
-          />
-        )}
+        <DefaultCallLayout
+          myName={myDisplayName}
+          myAvatarUrl={myAvatarUrl}
+          peerName={peerDisplayName}
+          peerAvatarUrl={peerAvatarUrl}
+          isMuted={callState.is_muted}
+          isDeafened={callState.is_deafened}
+          peerIsMuted={callState.peer_is_muted}
+          peerHasLeft={peerHasLeft}
+          isLeft={isLeft}
+          isConnecting={isConnecting}
+        />
       </div>
 
       <CallControls
@@ -168,19 +120,11 @@ export function CallView() {
         isLeft={isLeft}
         isMuted={callState.is_muted}
         isDeafened={callState.is_deafened}
-        isScreenSharing={callState.is_screen_sharing}
         isRejoining={isRejoining}
         onToggleMute={handleToggleMute}
         onToggleDeafen={handleToggleDeafen}
-        onScreenShareToggle={handleScreenShareToggle}
         onLeave={handleLeave}
         onRejoin={handleRejoin}
-      />
-
-      <ScreenSharePicker
-        open={showScreenPicker}
-        onClose={() => setShowScreenPicker(false)}
-        onSelect={handleScreenShareStart}
       />
     </div>
   );

@@ -100,24 +100,6 @@ export interface WsCallRejoin {
   };
 }
 
-export interface WsScreenShareStart {
-  type: "screen_share_start";
-  data: {
-    call_id: string;
-    user_id: string;
-    width: number;
-    height: number;
-  };
-}
-
-export interface WsScreenShareStop {
-  type: "screen_share_stop";
-  data: {
-    call_id: string;
-    user_id: string;
-  };
-}
-
 export interface WsCallMuteUpdate {
   type: "call_mute_update";
   data: {

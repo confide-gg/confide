@@ -11,11 +11,9 @@ use tokio::sync::mpsc;
 
 const STREAM_TYPE_AUDIO: u8 = 0x01;
 const STREAM_TYPE_VIDEO: u8 = 0x02;
-const STREAM_TYPE_SCREENSHARE: u8 = 0x03;
 
 const AUDIO_BUFFER_SIZE: usize = 64;
 const VIDEO_BUFFER_SIZE: usize = 32;
-const SCREENSHARE_BUFFER_SIZE: usize = 64;
 const DATAGRAM_BUFFER_SIZE: usize = 128;
 
 #[derive(Clone)]
@@ -35,7 +33,6 @@ struct CallSession {
 struct ParticipantChannels {
     audio_tx: mpsc::Sender<Bytes>,
     video_tx: mpsc::Sender<Bytes>,
-    screenshare_tx: mpsc::Sender<Bytes>,
     datagram_tx: mpsc::Sender<Bytes>,
 }
 
@@ -179,7 +176,6 @@ impl MediaRelay {
 
         let (audio_tx, audio_rx) = mpsc::channel::<Bytes>(AUDIO_BUFFER_SIZE);
         let (video_tx, video_rx) = mpsc::channel::<Bytes>(VIDEO_BUFFER_SIZE);
-        let (screenshare_tx, screenshare_rx) = mpsc::channel::<Bytes>(SCREENSHARE_BUFFER_SIZE);
         let (datagram_tx, datagram_rx) = mpsc::channel::<Bytes>(DATAGRAM_BUFFER_SIZE);
 
         session.participants.insert(
@@ -187,7 +183,6 @@ impl MediaRelay {
             ParticipantChannels {
                 audio_tx,
                 video_tx,
-                screenshare_tx,
                 datagram_tx,
             },
         );
@@ -215,7 +210,7 @@ impl MediaRelay {
         });
 
         let stream_sender = tokio::spawn(async move {
-            Self::handle_outgoing_streams(conn_send, audio_rx, video_rx, screenshare_rx).await
+            Self::handle_outgoing_streams(conn_send, audio_rx, video_rx).await
         });
 
         let datagram_sender = tokio::spawn(async move {
@@ -262,9 +257,6 @@ impl MediaRelay {
                     }
                     STREAM_TYPE_VIDEO => {
                         Self::relay_stream_data(recv, session_clone, sender_id_clone, false).await;
-                    }
-                    STREAM_TYPE_SCREENSHARE => {
-                        Self::relay_screenshare_data(recv, session_clone, sender_id_clone).await;
                     }
                     _ => {
                         tracing::warn!("Unknown stream type: {}", stream_type[0]);
@@ -313,38 +305,6 @@ impl MediaRelay {
         }
     }
 
-    async fn relay_screenshare_data(
-        mut recv: RecvStream,
-        session: Arc<CallSession>,
-        sender_id: [u8; 16],
-    ) {
-        let mut len_buf = [0u8; 4];
-
-        loop {
-            if recv.read_exact(&mut len_buf).await.is_err() {
-                break;
-            }
-
-            let len = u32::from_be_bytes(len_buf) as usize;
-            if len == 0 || len > 10_000_000 {
-                break;
-            }
-
-            let mut data = vec![0u8; len];
-            if recv.read_exact(&mut data).await.is_err() {
-                break;
-            }
-
-            let bytes = Bytes::from(data);
-
-            for entry in session.participants.iter() {
-                if entry.key() != &sender_id.to_vec() {
-                    let _ = entry.value().screenshare_tx.try_send(bytes.clone());
-                }
-            }
-        }
-    }
-
     async fn handle_incoming_datagrams(
         connection: Connection,
         session: Arc<CallSession>,
@@ -369,11 +329,9 @@ impl MediaRelay {
         connection: Connection,
         mut audio_rx: mpsc::Receiver<Bytes>,
         mut video_rx: mpsc::Receiver<Bytes>,
-        mut screenshare_rx: mpsc::Receiver<Bytes>,
     ) -> anyhow::Result<()> {
         let conn_audio = connection.clone();
         let conn_video = connection.clone();
-        let conn_screenshare = connection.clone();
 
         let audio_task = tokio::spawn(async move {
             let mut stream: Option<SendStream> = None;
@@ -429,47 +387,9 @@ impl MediaRelay {
             Ok::<_, anyhow::Error>(())
         });
 
-        let screenshare_task = tokio::spawn(async move {
-            let mut stream: Option<SendStream> = None;
-            let mut wrote_type = false;
-
-            while let Some(data) = screenshare_rx.recv().await {
-                let send = match &mut stream {
-                    Some(s) => s,
-                    None => {
-                        let (s, _) = conn_screenshare.open_bi().await?;
-                        stream = Some(s);
-                        wrote_type = false;
-                        stream.as_mut().unwrap()
-                    }
-                };
-
-                if !wrote_type {
-                    if send.write_all(&[STREAM_TYPE_SCREENSHARE]).await.is_err() {
-                        stream = None;
-                        continue;
-                    }
-                    wrote_type = true;
-                }
-
-                let len = (data.len() as u32).to_be_bytes();
-                if send.write_all(&len).await.is_err() {
-                    stream = None;
-                    continue;
-                }
-                if send.write_all(&data).await.is_err() {
-                    stream = None;
-                    continue;
-                }
-            }
-
-            Ok::<_, anyhow::Error>(())
-        });
-
         tokio::select! {
             r = audio_task => r??,
             r = video_task => r??,
-            r = screenshare_task => r??,
         }
 
         Ok(())

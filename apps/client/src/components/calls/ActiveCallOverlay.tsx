@@ -7,7 +7,6 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/
 import { useCall } from "./context";
 import { useChat } from "../../context/chat";
 import { CallQuality, CallQualityStats } from "./types";
-import { ScreenSharePicker } from "./ScreenSharePicker";
 import { cn } from "@/lib/utils";
 
 interface ActiveCallOverlayProps {
@@ -16,20 +15,10 @@ interface ActiveCallOverlayProps {
 }
 
 export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) {
-  const {
-    callState,
-    peerHasLeft,
-    leaveCall,
-    endCall,
-    rejoinCall,
-    setMuted,
-    startScreenShare,
-    stopScreenShare,
-  } = useCall();
+  const { callState, peerHasLeft, leaveCall, endCall, rejoinCall, setMuted } = useCall();
   const { activeChat, openChat, friendsList, setSidebarView } = useChat();
   const [duration, setDuration] = useState(0);
   const [quality, setQuality] = useState<CallQuality>("good");
-  const [showScreenPicker, setShowScreenPicker] = useState(false);
   const [isRejoining, setIsRejoining] = useState(false);
 
   const [position, setPosition] = useState({ x: 16, y: 16 });
@@ -171,26 +160,6 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
       await setMuted(!callState.is_muted);
     } catch (e) {
       console.error("Failed to toggle mute:", e);
-    }
-  };
-
-  const handleScreenShareToggle = async () => {
-    if (callState.is_screen_sharing) {
-      try {
-        await stopScreenShare();
-      } catch (e) {
-        console.error("Failed to stop screen share:", e);
-      }
-    } else {
-      setShowScreenPicker(true);
-    }
-  };
-
-  const handleScreenShareStart = async (sourceId: string) => {
-    try {
-      await startScreenShare(sourceId);
-    } catch (e) {
-      console.error("Failed to start screen share:", e);
     }
   };
 
@@ -362,37 +331,6 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={cn(
-                          "h-9 w-9 rounded-full p-0",
-                          callState.is_screen_sharing
-                            ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                            : "bg-secondary text-foreground hover:bg-secondary/80"
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleScreenShareToggle();
-                        }}
-                        disabled={!isActive}
-                      >
-                        {callState.is_screen_sharing ? (
-                          <FontAwesomeIcon icon="desktop" className="h-4 w-4" />
-                        ) : (
-                          <FontAwesomeIcon icon="desktop" className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs bg-popover border-border">
-                      {callState.is_screen_sharing ? "Stop Share" : "Share Screen"}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
                         className="h-9 w-9 rounded-full p-0 bg-red-500 hover:bg-red-600 text-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -412,12 +350,6 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
           </div>
         </div>
       </div>
-
-      <ScreenSharePicker
-        open={showScreenPicker}
-        onClose={() => setShowScreenPicker(false)}
-        onSelect={handleScreenShareStart}
-      />
     </>
   );
 }

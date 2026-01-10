@@ -230,19 +230,6 @@ export function useCallLifecycle({
       });
 
       await refreshState();
-
-      const newState = refs.callStateRef.current;
-      if (newState.is_screen_sharing && currentUserId && newState.call_id && newState.peer_id) {
-        centralWebSocketService.send({
-          type: "screen_share_start",
-          data: {
-            call_id: newState.call_id,
-            user_id: currentUserId,
-            width: 1920,
-            height: 1080,
-          },
-        });
-      }
     } catch (e) {
       console.error("[CallContext] Failed to rejoin call:", e);
       await invoke("end_call");

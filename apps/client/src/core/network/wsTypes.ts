@@ -11,8 +11,6 @@ import {
   WsCallOffer,
   WsCallReject,
   WsCallRejoin,
-  WsScreenShareStart,
-  WsScreenShareStop,
 } from "../../features/calls/types";
 import {
   WsGroupCreated,
@@ -81,7 +79,5 @@ export type WsMessage =
   | WsCallMissed
   | WsCallLeave
   | WsCallRejoin
-  | WsScreenShareStart
-  | WsScreenShareStop
   | WsCallMuteUpdate
   | WsActivityUpdate;

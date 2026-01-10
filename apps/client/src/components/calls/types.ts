@@ -24,9 +24,6 @@ export interface CallState {
   peer_is_muted: boolean;
   started_at: string | null;
   connected_at: string | null;
-  is_screen_sharing: boolean;
-  peer_is_screen_sharing: boolean;
-  screen_share_source: string | null;
   connection_health: ConnectionHealth;
   last_audio_received_at: string | null;
   relay_token_expires_at: string | null;
@@ -95,29 +92,6 @@ export interface AudioSettings {
   push_to_talk_enabled: boolean;
   push_to_talk_key: string | null;
   noise_suppression_enabled: boolean;
-}
-
-export type ScreenSourceType = "screen" | "window";
-
-export interface ScreenCaptureSource {
-  id: string;
-  name: string;
-  source_type: ScreenSourceType;
-  width: number;
-  height: number;
-  thumbnail: number[] | null;
-}
-
-export interface ScreenShareStartData {
-  call_id: string;
-  user_id: string;
-  width: number;
-  height: number;
-}
-
-export interface ScreenShareStopData {
-  call_id: string;
-  user_id: string;
 }
 
 export type CallType = "direct" | "group";

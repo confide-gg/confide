@@ -86,16 +86,7 @@ export function CallProvider({
     currentUserId,
   });
 
-  const {
-    setMuted,
-    setDeafened,
-    startMediaSession,
-    refreshAudioSettings,
-    getScreenSources,
-    startScreenShare,
-    stopScreenShare,
-    checkScreenPermission,
-  } = useCallMedia({
+  const { setMuted, setDeafened, startMediaSession, refreshAudioSettings } = useCallMedia({
     refs,
     callState,
     currentUserId,
@@ -218,10 +209,6 @@ export function CallProvider({
         startMediaSession,
         refreshState,
         refreshAudioSettings,
-        getScreenSources,
-        startScreenShare,
-        stopScreenShare,
-        checkScreenPermission,
         groupCallState,
         incomingGroupCall,
         startGroupCall,
