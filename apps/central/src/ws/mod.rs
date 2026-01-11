@@ -1,6 +1,6 @@
 pub mod call_recovery;
 pub mod handler;
-mod pubsub;
+pub mod subscriptions;
 
 pub use handler::{
     broadcast_activity_update, broadcast_key_update, send_call_answer, send_call_cancel,

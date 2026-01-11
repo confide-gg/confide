@@ -83,7 +83,7 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
                 for call in &calls {
                     tracing::info!("timed out stale ringing call: {}", call.id);
                     if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
-                        notify_call_missed(&state.redis, call.id, caller_id, callee_id).await;
+                        notify_call_missed(&state, call.id, caller_id, callee_id).await;
                     }
                 }
             }
@@ -98,7 +98,7 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
                     tracing::info!("ended call with both participants left: {}", call.id);
                     if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
                         notify_call_ended(
-                            &state.redis,
+                            &state,
                             call.id,
                             caller_id,
                             callee_id,
@@ -120,7 +120,7 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
                     tracing::info!("ended abandoned call: {}", call.id);
                     if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
                         notify_call_ended(
-                            &state.redis,
+                            &state,
                             call.id,
                             caller_id,
                             callee_id,
@@ -153,7 +153,7 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
                     tracing::info!("cleaned up stale connecting call: {}", call.id);
                     if let (Some(caller_id), Some(callee_id)) = (call.caller_id, call.callee_id) {
                         notify_call_ended(
-                            &state.redis,
+                            &state,
                             call.id,
                             caller_id,
                             callee_id,
@@ -193,23 +193,7 @@ pub async fn run_call_cleanup_task(state: Arc<AppState>) {
     }
 }
 
-async fn publish_to_user(redis: &redis::Client, user_id: Uuid, message: &str) {
-    if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-        let channel = format!("user:{}", user_id);
-        let _: Result<(), _> = redis::cmd("PUBLISH")
-            .arg(&channel)
-            .arg(message)
-            .query_async(&mut conn)
-            .await;
-    }
-}
-
-async fn notify_call_missed(
-    redis: &redis::Client,
-    call_id: Uuid,
-    caller_id: Uuid,
-    callee_id: Uuid,
-) {
+async fn notify_call_missed(state: &AppState, call_id: Uuid, caller_id: Uuid, callee_id: Uuid) {
     let msg = json!({
         "type": "call_missed",
         "data": {
@@ -220,12 +204,14 @@ async fn notify_call_missed(
     });
 
     let json_str = msg.to_string();
-    publish_to_user(redis, caller_id, &json_str).await;
-    publish_to_user(redis, callee_id, &json_str).await;
+    state
+        .subscriptions
+        .send_to_users(&[caller_id, callee_id], &json_str)
+        .await;
 }
 
 async fn notify_call_ended(
-    redis: &redis::Client,
+    state: &AppState,
     call_id: Uuid,
     caller_id: Uuid,
     callee_id: Uuid,
@@ -242,6 +228,8 @@ async fn notify_call_ended(
     });
 
     let json_str = msg.to_string();
-    publish_to_user(redis, caller_id, &json_str).await;
-    publish_to_user(redis, callee_id, &json_str).await;
+    state
+        .subscriptions
+        .send_to_users(&[caller_id, callee_id], &json_str)
+        .await;
 }

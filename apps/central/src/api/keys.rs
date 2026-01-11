@@ -13,19 +13,6 @@ use crate::AppState;
 
 use super::middleware::AuthUser;
 
-async fn publish_to_redis(
-    redis: &redis::Client,
-    channel: &str,
-    message: &str,
-) -> std::result::Result<(), redis::RedisError> {
-    let mut conn = redis.get_multiplexed_async_connection().await?;
-    redis::cmd("PUBLISH")
-        .arg(channel)
-        .arg(message)
-        .query_async(&mut conn)
-        .await
-}
-
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/prekeys", post(upload_prekeys))
@@ -158,8 +145,10 @@ pub async fn initiate_key_exchange(
         created_at: exchange.created_at,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("user:{}", req.to_user_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        state
+            .subscriptions
+            .send_to_user(req.to_user_id, &json)
+            .await;
     }
 
     Ok(Json(KeyExchangeResponse { id: exchange.id }))

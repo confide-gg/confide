@@ -23,6 +23,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::config::Config;
 use crate::db::Database;
+use crate::ws::subscriptions::SubscriptionManager;
 
 pub struct AppState {
     pub db: Database,
@@ -30,6 +31,7 @@ pub struct AppState {
     pub config: Config,
     pub upload_semaphore: Arc<Semaphore>,
     pub s3: s3::S3Service,
+    pub subscriptions: Arc<SubscriptionManager>,
 }
 
 #[tokio::main]
@@ -118,12 +120,16 @@ async fn main() -> anyhow::Result<()> {
         config.s3.max_file_size_bytes / 1024 / 1024
     );
 
+    let subscriptions = Arc::new(SubscriptionManager::new());
+    tracing::info!("Subscription manager initialized");
+
     let state = Arc::new(AppState {
         db: Database::new(api_pool, ws_pool, redis.clone()),
         redis,
         config: config.clone(),
         upload_semaphore,
         s3,
+        subscriptions,
     });
 
     let cleanup_state = state.clone();

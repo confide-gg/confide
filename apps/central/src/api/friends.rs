@@ -77,8 +77,7 @@ pub async fn update_friends(
             by_user_id: auth.user_id,
         });
         if let Ok(json) = serde_json::to_string(&ws_msg) {
-            let channel = format!("user:{}", removed_id);
-            let _ = publish_to_redis(&state.redis, &channel, &json).await;
+            state.subscriptions.send_to_user(removed_id, &json).await;
         }
     }
 
@@ -200,8 +199,10 @@ pub async fn send_friend_request(
             by_username: sender_user.username.clone(),
         });
         if let Ok(json) = serde_json::to_string(&ws_msg_to_other) {
-            let channel = format!("user:{}", body.to_user_id);
-            let _ = publish_to_redis(&state.redis, &channel, &json).await;
+            state
+                .subscriptions
+                .send_to_user(body.to_user_id, &json)
+                .await;
         }
 
         let ws_msg_to_sender = WsMessage::FriendAccepted(FriendAcceptedData {
@@ -209,8 +210,7 @@ pub async fn send_friend_request(
             by_username: to_user.username.clone(),
         });
         if let Ok(json) = serde_json::to_string(&ws_msg_to_sender) {
-            let channel = format!("user:{}", auth.user_id);
-            let _ = publish_to_redis(&state.redis, &channel, &json).await;
+            state.subscriptions.send_to_user(auth.user_id, &json).await;
         }
 
         send_presence_to_new_friends(&state, auth.user_id, body.to_user_id).await;
@@ -236,50 +236,24 @@ pub async fn send_friend_request(
         encrypted_message: body.encrypted_message,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("user:{}", body.to_user_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        state
+            .subscriptions
+            .send_to_user(body.to_user_id, &json)
+            .await;
     }
 
     Ok(Json(SendFriendRequestResponse::RequestSent { request }))
 }
 
-async fn publish_to_redis(
-    redis: &redis::Client,
-    channel: &str,
-    message: &str,
-) -> std::result::Result<(), redis::RedisError> {
-    let mut conn = redis.get_multiplexed_async_connection().await?;
-    redis::cmd("PUBLISH")
-        .arg(channel)
-        .arg(message)
-        .query_async(&mut conn)
-        .await
-}
-
 async fn send_presence_to_new_friends(state: &AppState, user_a: Uuid, user_b: Uuid) {
-    let Ok(mut conn) = state.redis.get_multiplexed_async_connection().await else {
-        return;
-    };
-
-    let user_ids = vec![user_a.to_string(), user_b.to_string()];
-    let online_statuses: std::result::Result<Vec<bool>, _> = redis::cmd("SMISMEMBER")
-        .arg("online_users")
-        .arg(&user_ids)
-        .query_async(&mut conn)
-        .await;
-
-    let Ok(statuses) = online_statuses else {
-        return;
-    };
-
-    let user_a_online = statuses.first().copied().unwrap_or(false);
-    let user_b_online = statuses.get(1).copied().unwrap_or(false);
+    let user_a_online = state.subscriptions.is_online(user_a);
+    let user_b_online = state.subscriptions.is_online(user_b);
 
     if user_a_online {
         let (status, custom_status) = state
-            .db
-            .get_user_presence_data(user_a)
-            .await
+            .subscriptions
+            .get_presence(user_a)
+            .map(|p| (p.status, p.custom_status))
             .unwrap_or(("online".to_string(), None));
 
         let presence_msg = WsMessage::Presence(PresenceData {
@@ -289,15 +263,18 @@ async fn send_presence_to_new_friends(state: &AppState, user_a: Uuid, user_b: Uu
             custom_status,
         });
         if let Ok(json) = serde_json::to_string(&presence_msg) {
-            let _ = publish_to_redis(&state.redis, &format!("presence:{}", user_a), &json).await;
+            state
+                .subscriptions
+                .broadcast_presence_update(user_a, &json)
+                .await;
         }
     }
 
     if user_b_online {
         let (status, custom_status) = state
-            .db
-            .get_user_presence_data(user_b)
-            .await
+            .subscriptions
+            .get_presence(user_b)
+            .map(|p| (p.status, p.custom_status))
             .unwrap_or(("online".to_string(), None));
 
         let presence_msg = WsMessage::Presence(PresenceData {
@@ -307,7 +284,10 @@ async fn send_presence_to_new_friends(state: &AppState, user_a: Uuid, user_b: Uu
             custom_status,
         });
         if let Ok(json) = serde_json::to_string(&presence_msg) {
-            let _ = publish_to_redis(&state.redis, &format!("presence:{}", user_b), &json).await;
+            state
+                .subscriptions
+                .broadcast_presence_update(user_b, &json)
+                .await;
         }
     }
 }
@@ -357,8 +337,10 @@ pub async fn accept_friend_request(
         by_username: accepting_user.username.clone(),
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        let channel = format!("user:{}", friend_request.from_user_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        state
+            .subscriptions
+            .send_to_user(friend_request.from_user_id, &json)
+            .await;
     }
 
     send_presence_to_new_friends(&state, auth.user_id, friend_request.from_user_id).await;

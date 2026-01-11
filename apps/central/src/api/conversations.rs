@@ -196,10 +196,8 @@ pub async fn create_group(
     });
     if let Ok(json) = serde_json::to_string(&msg) {
         if let Ok(members) = state.db.get_conversation_members(conversation.id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state.subscriptions.send_to_users(&member_ids, &json).await;
         }
     }
 
@@ -234,10 +232,8 @@ pub async fn create_group(
 
         if let Ok(json) = serde_json::to_string(&sys_ws) {
             if let Ok(members) = state.db.get_conversation_members(conversation.id).await {
-                for member in members {
-                    let channel = format!("user:{}", member.user_id);
-                    let _ = publish_to_redis(&state.redis, &channel, &json).await;
-                }
+                let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+                state.subscriptions.send_to_users(&member_ids, &json).await;
             }
         }
     }
@@ -442,10 +438,8 @@ pub async fn add_member(
     });
     if let Ok(json) = serde_json::to_string(&msg) {
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state.subscriptions.send_to_users(&member_ids, &json).await;
         }
     }
 
@@ -478,10 +472,8 @@ pub async fn add_member(
     });
     if let Ok(json) = serde_json::to_string(&sys_ws) {
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state.subscriptions.send_to_users(&member_ids, &json).await;
         }
     }
 
@@ -585,12 +577,9 @@ pub async fn add_members_bulk(
             added_by: auth.user_id,
         });
         if let Ok(json) = serde_json::to_string(&msg) {
-            for member_id in &existing_ids {
-                let channel = format!("user:{}", member_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
-            let channel = format!("user:{}", m.user_id);
-            let _ = publish_to_redis(&state.redis, &channel, &json).await;
+            let mut all_ids: Vec<Uuid> = existing_ids.iter().copied().collect();
+            all_ids.push(m.user_id);
+            state.subscriptions.send_to_users(&all_ids, &json).await;
         }
 
         added_ids.push(m.user_id);
@@ -626,14 +615,9 @@ pub async fn add_members_bulk(
         });
 
         if let Ok(json) = serde_json::to_string(&sys_ws) {
-            for member_id in &existing_ids {
-                let channel = format!("user:{}", member_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
-            for added_id in &added_ids {
-                let channel = format!("user:{}", added_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let mut all_ids: Vec<Uuid> = existing_ids.iter().copied().collect();
+            all_ids.extend(&added_ids);
+            state.subscriptions.send_to_users(&all_ids, &json).await;
         }
     }
 
@@ -696,13 +680,12 @@ pub async fn remove_member(
     });
     if let Ok(json) = serde_json::to_string(&msg) {
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let mut member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            member_ids.push(user_id);
+            state.subscriptions.send_to_users(&member_ids, &json).await;
+        } else {
+            state.subscriptions.send_to_user(user_id, &json).await;
         }
-        let channel = format!("user:{}", user_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
     }
 
     let payload = serde_json::json!({ "removed_user_id": user_id }).to_string();
@@ -733,10 +716,8 @@ pub async fn remove_member(
         created_at: sys.created_at,
     });
     if let Ok(json) = serde_json::to_string(&sys_ws) {
-        for member in members_before {
-            let channel = format!("user:{}", member.user_id);
-            let _ = publish_to_redis(&state.redis, &channel, &json).await;
-        }
+        let member_ids: Vec<Uuid> = members_before.iter().map(|m| m.user_id).collect();
+        state.subscriptions.send_to_users(&member_ids, &json).await;
     }
 
     Ok(Json(super::messages::SuccessResponse { success: true }))
@@ -772,8 +753,7 @@ pub async fn leave_group(
                 deleted_by: auth.user_id,
             });
             if let Ok(json) = serde_json::to_string(&msg) {
-                let channel = format!("user:{}", auth.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
+                state.subscriptions.send_to_user(auth.user_id, &json).await;
             }
             state.db.delete_conversation(conversation_id).await?;
             let _ = state
@@ -809,10 +789,8 @@ pub async fn leave_group(
         });
         if let Ok(json) = serde_json::to_string(&msg) {
             if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-                for member in members {
-                    let channel = format!("user:{}", member.user_id);
-                    let _ = publish_to_redis(&state.redis, &channel, &json).await;
-                }
+                let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+                state.subscriptions.send_to_users(&member_ids, &json).await;
             }
         }
 
@@ -846,10 +824,8 @@ pub async fn leave_group(
         });
         if let Ok(json) = serde_json::to_string(&sys_ws) {
             if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-                for member in members {
-                    let channel = format!("user:{}", member.user_id);
-                    let _ = publish_to_redis(&state.redis, &channel, &json).await;
-                }
+                let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+                state.subscriptions.send_to_users(&member_ids, &json).await;
             }
         }
     }
@@ -881,14 +857,11 @@ pub async fn leave_group(
         created_at: sys.created_at,
     });
     if let Ok(json) = serde_json::to_string(&sys_ws) {
+        let mut member_ids: Vec<Uuid> = vec![auth.user_id];
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            member_ids.extend(members.iter().map(|m| m.user_id));
         }
-        let channel = format!("user:{}", auth.user_id);
-        let _ = publish_to_redis(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_users(&member_ids, &json).await;
     }
 
     state
@@ -913,16 +886,11 @@ pub async fn leave_group(
     if let Ok(json) = serde_json::to_string(&msg) {
         let mut targets = vec![auth.user_id];
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                targets.push(member.user_id);
-            }
+            targets.extend(members.iter().map(|m| m.user_id));
         }
         targets.sort();
         targets.dedup();
-        for uid in targets {
-            let channel = format!("user:{}", uid);
-            let _ = publish_to_redis(&state.redis, &channel, &json).await;
-        }
+        state.subscriptions.send_to_users(&targets, &json).await;
     }
 
     Ok(Json(super::messages::SuccessResponse { success: true }))
@@ -987,10 +955,8 @@ pub async fn update_owner(
     });
     if let Ok(json) = serde_json::to_string(&msg) {
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state.subscriptions.send_to_users(&member_ids, &json).await;
         }
     }
 
@@ -1024,10 +990,8 @@ pub async fn update_owner(
     });
     if let Ok(json) = serde_json::to_string(&sys_ws) {
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state.subscriptions.send_to_users(&member_ids, &json).await;
         }
     }
 
@@ -1085,10 +1049,8 @@ pub async fn update_metadata(
     });
     if let Ok(json) = serde_json::to_string(&msg) {
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &channel, &json).await;
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state.subscriptions.send_to_users(&member_ids, &json).await;
         }
     }
 
@@ -1144,10 +1106,8 @@ pub async fn delete_conversation(
         deleted_by: auth.user_id,
     });
     if let Ok(json) = serde_json::to_string(&msg) {
-        for member in &members {
-            let channel = format!("user:{}", member.user_id);
-            let _ = publish_to_redis(&state.redis, &channel, &json).await;
-        }
+        let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+        state.subscriptions.send_to_users(&member_ids, &json).await;
     }
 
     state.db.delete_conversation(conversation_id).await?;
@@ -1158,17 +1118,4 @@ pub async fn delete_conversation(
         .await;
 
     Ok(Json(super::messages::SuccessResponse { success: true }))
-}
-
-async fn publish_to_redis(
-    redis: &redis::Client,
-    channel: &str,
-    message: &str,
-) -> std::result::Result<(), redis::RedisError> {
-    let mut conn = redis.get_multiplexed_async_connection().await?;
-    redis::cmd("PUBLISH")
-        .arg(channel)
-        .arg(message)
-        .query_async(&mut conn)
-        .await
 }

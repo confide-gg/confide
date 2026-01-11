@@ -487,30 +487,19 @@ pub struct GroupCallSenderKeyData {
 pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uuid) {
     tracing::info!("WebSocket connected for user {}", user_id);
 
-    let (mut sender, mut receiver) = socket.split();
-    let (send_tx, mut send_rx) = mpsc::channel::<String>(100);
+    let (mut ws_sender, mut ws_receiver) = socket.split();
+    let (tx, mut rx) = mpsc::channel::<String>(100);
 
-    let (pubsub, pubsub_handle) = match super::pubsub::PubSub::new(&state.redis).await {
-        Ok((ps, handle)) => (ps, handle),
-        Err(e) => {
-            tracing::error!(
-                "Failed to create pubsub connection for user {}: {:?}",
-                user_id,
-                e
-            );
-            return;
-        }
-    };
+    state.subscriptions.add_connection(user_id, tx.clone());
 
-    let _conversations = match state.db.get_user_conversations(user_id).await {
-        Ok(convs) => convs,
-        Err(e) => {
-            tracing::error!("Failed to get user conversations for {}: {:?}", user_id, e);
-            return;
-        }
-    };
-
-    let initial_channels = vec![format!("user:{}", user_id)];
+    let (status, custom_status) = state
+        .db
+        .get_user_presence_data(user_id)
+        .await
+        .unwrap_or(("online".to_string(), None));
+    state
+        .subscriptions
+        .set_online(user_id, &status, custom_status.clone());
 
     broadcast_presence(&state, user_id, true).await;
 
@@ -535,89 +524,53 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Uui
         });
 
         if let Ok(json) = serde_json::to_string(&recovery_msg) {
-            let _ = send_tx.send(json).await;
+            let _ = tx.send(json).await;
         }
     }
 
-    let send_handle = tokio::spawn(async move {
-        while let Some(json) = send_rx.recv().await {
-            if sender.send(Message::Text(json.into())).await.is_err() {
-                break;
-            }
-        }
-    });
-
-    let (pubsub_tx, mut pubsub_rx) = mpsc::channel::<String>(100);
-    let pubsub_run_handle = tokio::spawn(async move {
-        pubsub.run(pubsub_tx).await;
-    });
-
-    let pubsub_handle_clone = pubsub_handle.clone();
-    tokio::spawn(async move {
-        for channel in initial_channels {
-            if let Err(e) = pubsub_handle_clone.subscribe(&channel).await {
-                tracing::error!("Failed to subscribe to {}: {:?}", channel, e);
-            }
-        }
-    });
-
-    let send_tx_clone = send_tx.clone();
-    let health_monitor_handle = tokio::spawn(async move {
-        while let Some(msg) = pubsub_rx.recv().await {
-            if send_tx_clone.send(msg).await.is_err() {
+    let send_task = tokio::spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            if ws_sender.send(Message::Text(msg.into())).await.is_err() {
                 break;
             }
         }
     });
 
     let state_clone = state.clone();
-    let send_tx_for_recv = send_tx.clone();
-    let recv_handle = tokio::spawn(async move {
-        while let Some(Ok(msg)) = receiver.next().await {
-            match msg {
-                Message::Text(text) => {
-                    const MAX_WS_MESSAGE_SIZE: usize = 64 * 1024;
-                    if text.len() > MAX_WS_MESSAGE_SIZE {
-                        tracing::warn!(
-                            "WebSocket message too large: {} bytes from user {}",
-                            text.len(),
-                            user_id
-                        );
-                        break;
-                    }
-                    if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
-                        handle_client_message(
-                            &state_clone,
-                            user_id,
-                            ws_msg,
-                            &pubsub_handle,
-                            &send_tx_for_recv,
-                        )
-                        .await;
-                    }
+    let tx_clone = tx.clone();
+    while let Some(Ok(msg)) = ws_receiver.next().await {
+        match msg {
+            Message::Text(text) => {
+                const MAX_WS_MESSAGE_SIZE: usize = 64 * 1024;
+                if text.len() > MAX_WS_MESSAGE_SIZE {
+                    tracing::warn!(
+                        "WebSocket message too large: {} bytes from user {}",
+                        text.len(),
+                        user_id
+                    );
+                    break;
                 }
-                Message::Close(_) => break,
-                _ => {}
+                if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
+                    handle_client_message(&state_clone, user_id, ws_msg, &tx_clone).await;
+                }
             }
+            Message::Close(_) => break,
+            _ => {}
         }
-    });
-
-    tokio::select! {
-        _ = pubsub_run_handle => {}
-        _ = send_handle => {}
-        _ = recv_handle => {}
-        _ = health_monitor_handle => {}
     }
 
+    send_task.abort();
+    state.subscriptions.remove_connection(user_id);
+    state.subscriptions.set_offline(user_id);
     broadcast_presence(&state, user_id, false).await;
-    tracing::debug!("websocket connection closed for user {}", user_id);
+
+    tracing::debug!("WebSocket connection closed for user {}", user_id);
 }
 
 async fn handle_client_message(
     state: &AppState,
     user_id: Uuid,
     msg: WsMessage,
-    pubsub_handle: &super::pubsub::PubSubHandle,
     tx: &mpsc::Sender<String>,
 ) {
     match msg {
@@ -628,16 +581,14 @@ async fn handle_client_message(
                 .await
             {
                 if routing.is_some() {
-                    let channel = format!("conversation:{}", data.conversation_id);
-                    if let Err(e) = pubsub_handle.subscribe(&channel).await {
-                        tracing::error!(
-                            "Failed to subscribe to conversation {}: {:?}",
-                            data.conversation_id,
-                            e
-                        );
-                    } else {
-                        tracing::debug!("User {} dynamically subscribed to {}", user_id, channel);
-                    }
+                    state
+                        .subscriptions
+                        .subscribe_conversation(user_id, data.conversation_id);
+                    tracing::debug!(
+                        "User {} subscribed to conversation {}",
+                        user_id,
+                        data.conversation_id
+                    );
                 } else {
                     tracing::warn!(
                         "User {} tried to subscribe to conversation {} but is not a member",
@@ -648,42 +599,34 @@ async fn handle_client_message(
             }
         }
         WsMessage::SubscribeUser(data) => {
-            let channel = format!("presence:{}", data.user_id);
-            if let Err(e) = pubsub_handle.subscribe(&channel).await {
-                tracing::error!("Failed to subscribe to presence {}: {:?}", data.user_id, e);
+            state
+                .subscriptions
+                .subscribe_presence(user_id, data.user_id);
+            tracing::debug!(
+                "User {} subscribed to presence of {}",
+                user_id,
+                data.user_id
+            );
+
+            let online = state.subscriptions.is_online(data.user_id);
+            let (status, custom_status) = if online {
+                state
+                    .subscriptions
+                    .get_presence(data.user_id)
+                    .map(|p| (Some(p.status), p.custom_status))
+                    .unwrap_or((Some("online".to_string()), None))
             } else {
-                tracing::debug!(
-                    "User {} subscribed to presence channel {}",
-                    user_id,
-                    channel
-                );
-                if let Ok(mut conn) = state.redis.get_multiplexed_async_connection().await {
-                    let is_online: Result<bool, _> = redis::cmd("SISMEMBER")
-                        .arg("online_users")
-                        .arg(data.user_id.to_string())
-                        .query_async(&mut conn)
-                        .await;
-                    let online = is_online.unwrap_or(false);
-                    let (status, custom_status) = if online {
-                        state
-                            .db
-                            .get_user_presence_data(data.user_id)
-                            .await
-                            .map(|(s, c)| (Some(s), c))
-                            .unwrap_or((Some("online".to_string()), None))
-                    } else {
-                        (None, None)
-                    };
-                    let presence_msg = WsMessage::Presence(PresenceData {
-                        user_id: data.user_id,
-                        online,
-                        status,
-                        custom_status,
-                    });
-                    if let Ok(json) = serde_json::to_string(&presence_msg) {
-                        let _ = tx.send(json).await;
-                    }
-                }
+                (None, None)
+            };
+
+            let presence_msg = WsMessage::Presence(PresenceData {
+                user_id: data.user_id,
+                online,
+                status,
+                custom_status,
+            });
+            if let Ok(json) = serde_json::to_string(&presence_msg) {
+                let _ = tx.send(json).await;
             }
         }
         WsMessage::Typing(data) => {
@@ -704,10 +647,15 @@ async fn handle_client_message(
                             .get_conversation_members(data.conversation_id)
                             .await
                         {
-                            for member in members {
-                                let user_channel = format!("user:{}", member.user_id);
-                                let _ = publish_message(&state.redis, &user_channel, &json).await;
-                            }
+                            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+                            state
+                                .subscriptions
+                                .broadcast_to_conversation_members(
+                                    &member_ids,
+                                    &json,
+                                    Some(user_id),
+                                )
+                                .await;
                         }
                     }
                 }
@@ -721,6 +669,9 @@ async fn handle_client_message(
             {
                 tracing::error!("Failed to update presence for user {}: {:?}", user_id, e);
             } else {
+                state
+                    .subscriptions
+                    .set_online(user_id, &data.status, data.custom_status);
                 broadcast_presence(state, user_id, true).await;
             }
         }
@@ -739,8 +690,7 @@ async fn handle_client_message(
                 if let Some(peer_id) = peer_id {
                     let msg = WsMessage::CallMuteUpdate(data);
                     if let Ok(json) = serde_json::to_string(&msg) {
-                        let channel = format!("user:{}", peer_id);
-                        let _ = publish_message(&state.redis, &channel, &json).await;
+                        state.subscriptions.send_to_user(peer_id, &json).await;
                         tracing::debug!("Forwarded call_mute_update to user {}", peer_id);
                     }
                 }
@@ -750,45 +700,13 @@ async fn handle_client_message(
     }
 }
 
-async fn publish_message(
-    redis: &redis::Client,
-    channel: &str,
-    message: &str,
-) -> Result<(), redis::RedisError> {
-    let mut conn = redis.get_multiplexed_async_connection().await?;
-    redis::cmd("PUBLISH")
-        .arg(channel)
-        .arg(message)
-        .query_async(&mut conn)
-        .await
-}
-
 async fn broadcast_presence(state: &AppState, user_id: Uuid, online: bool) {
-    let redis = &state.redis;
-
-    if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-        if online {
-            let _: Result<(), _> = redis::cmd("SADD")
-                .arg("online_users")
-                .arg(user_id.to_string())
-                .query_async(&mut conn)
-                .await;
-        } else {
-            let _: Result<(), _> = redis::cmd("SREM")
-                .arg("online_users")
-                .arg(user_id.to_string())
-                .query_async(&mut conn)
-                .await;
-        }
-    }
-
     let (status, custom_status) = if online {
-        let (s, c) = state
-            .db
-            .get_user_presence_data(user_id)
-            .await
-            .unwrap_or(("online".to_string(), None));
-        (Some(s), c)
+        state
+            .subscriptions
+            .get_presence(user_id)
+            .map(|p| (Some(p.status), p.custom_status))
+            .unwrap_or((Some("online".to_string()), None))
     } else {
         (None, None)
     };
@@ -799,9 +717,12 @@ async fn broadcast_presence(state: &AppState, user_id: Uuid, online: bool) {
         status,
         custom_status,
     });
+
     if let Ok(json) = serde_json::to_string(&presence_msg) {
-        let presence_channel = format!("presence:{}", user_id);
-        let _ = publish_message(redis, &presence_channel, &json).await;
+        state
+            .subscriptions
+            .broadcast_presence_update(user_id, &json)
+            .await;
     }
 }
 
@@ -829,10 +750,7 @@ pub async fn broadcast_key_update(state: &AppState, user_id: Uuid, kem_public_ke
             .get_members_for_conversations(&conversation_ids, user_id)
             .await
         {
-            for uid in user_ids {
-                let channel = format!("user:{}", uid);
-                let _ = publish_message(&state.redis, &channel, &json).await;
-            }
+            state.subscriptions.send_to_users(&user_ids, &json).await;
         }
     }
 }
@@ -840,56 +758,49 @@ pub async fn broadcast_key_update(state: &AppState, user_id: Uuid, kem_public_ke
 pub async fn send_call_offer(state: &AppState, callee_id: Uuid, data: CallOfferData) {
     let msg = WsMessage::CallOffer(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", callee_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(callee_id, &json).await;
     }
 }
 
 pub async fn send_call_answer(state: &AppState, caller_id: Uuid, data: CallAnswerData) {
     let msg = WsMessage::CallAnswer(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", caller_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(caller_id, &json).await;
     }
 }
 
 pub async fn send_call_key_complete(state: &AppState, callee_id: Uuid, data: CallKeyCompleteData) {
     let msg = WsMessage::CallKeyComplete(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", callee_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(callee_id, &json).await;
     }
 }
 
 pub async fn send_call_media_ready(state: &AppState, user_id: Uuid, data: CallMediaReadyData) {
     let msg = WsMessage::CallMediaReady(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
 pub async fn send_call_reject(state: &AppState, caller_id: Uuid, data: CallRejectData) {
     let msg = WsMessage::CallReject(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", caller_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(caller_id, &json).await;
     }
 }
 
 pub async fn send_call_cancel(state: &AppState, callee_id: Uuid, data: CallCancelData) {
     let msg = WsMessage::CallCancel(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", callee_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(callee_id, &json).await;
     }
 }
 
 pub async fn send_call_end(state: &AppState, user_id: Uuid, data: CallEndData) {
     let msg = WsMessage::CallEnd(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
@@ -897,24 +808,21 @@ pub async fn send_call_end(state: &AppState, user_id: Uuid, data: CallEndData) {
 pub async fn send_call_missed(state: &AppState, callee_id: Uuid, data: CallMissedData) {
     let msg = WsMessage::CallMissed(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", callee_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(callee_id, &json).await;
     }
 }
 
 pub async fn send_call_leave(state: &AppState, peer_id: Uuid, data: CallLeaveData) {
     let msg = WsMessage::CallLeave(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", peer_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(peer_id, &json).await;
     }
 }
 
 pub async fn send_call_rejoin(state: &AppState, peer_id: Uuid, data: CallRejoinData) {
     let msg = WsMessage::CallRejoin(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", peer_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(peer_id, &json).await;
     }
 }
 
@@ -926,16 +834,12 @@ pub async fn send_new_message(
 ) {
     let msg = WsMessage::NewMessage(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("conversation:{}", conversation_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
-
         if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                if exclude_user != Some(member.user_id) {
-                    let user_channel = format!("user:{}", member.user_id);
-                    let _ = publish_message(&state.redis, &user_channel, &json).await;
-                }
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state
+                .subscriptions
+                .broadcast_to_conversation_members(&member_ids, &json, exclude_user)
+                .await;
         }
     }
 }
@@ -963,81 +867,17 @@ pub async fn broadcast_activity_update(
     let activity_msg = WsMessage::ActivityUpdate(ActivityUpdateData { user_id, activity });
 
     if let Ok(json) = serde_json::to_string(&activity_msg) {
-        let presence_channel = format!("presence:{}", user_id);
-        let _ = publish_message(&state.redis, &presence_channel, &json).await;
-    }
-}
-
-#[allow(dead_code)]
-async fn send_presence_sync(state: &AppState, tx: &mpsc::Sender<WsMessage>) {
-    if let Ok(mut conn) = state.redis.get_multiplexed_async_connection().await {
-        let online_user_ids: Result<Vec<String>, _> = redis::cmd("SMEMBERS")
-            .arg("online_users")
-            .query_async(&mut conn)
+        state
+            .subscriptions
+            .broadcast_presence_update(user_id, &json)
             .await;
-
-        if let Ok(user_id_strings) = online_user_ids {
-            let mut presence_infos = Vec::new();
-
-            for uid_str in user_id_strings {
-                if let Ok(uid) = Uuid::parse_str(&uid_str) {
-                    let (status, custom_status) = state
-                        .db
-                        .get_user_presence_data(uid)
-                        .await
-                        .unwrap_or(("online".to_string(), None));
-
-                    presence_infos.push(PresenceInfo {
-                        user_id: uid,
-                        status,
-                        custom_status,
-                    });
-                }
-            }
-
-            let sync_msg = WsMessage::PresenceSync(PresenceSyncData {
-                online_users: presence_infos,
-            });
-
-            let _ = tx.send(sync_msg).await;
-        }
-    }
-}
-
-#[allow(dead_code)]
-async fn get_online_users(redis: &redis::Client, user_ids: &[Uuid]) -> Vec<Uuid> {
-    if user_ids.is_empty() {
-        return Vec::new();
-    }
-
-    if let Ok(mut conn) = redis.get_multiplexed_async_connection().await {
-        let user_id_strings: Vec<String> = user_ids.iter().map(|id| id.to_string()).collect();
-
-        let results: Result<Vec<bool>, _> = redis::cmd("SMISMEMBER")
-            .arg("online_users")
-            .arg(&user_id_strings)
-            .query_async(&mut conn)
-            .await;
-
-        if let Ok(online_statuses) = results {
-            user_ids
-                .iter()
-                .zip(online_statuses.iter())
-                .filter_map(|(uid, is_online)| if *is_online { Some(*uid) } else { None })
-                .collect()
-        } else {
-            Vec::new()
-        }
-    } else {
-        Vec::new()
     }
 }
 
 pub async fn send_group_call_ring(state: &AppState, user_id: Uuid, data: GroupCallRingData) {
     let msg = WsMessage::GroupCallRing(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
@@ -1048,8 +888,7 @@ pub async fn send_group_call_participant_joined(
 ) {
     let msg = WsMessage::GroupCallParticipantJoined(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
@@ -1060,16 +899,14 @@ pub async fn send_group_call_participant_left(
 ) {
     let msg = WsMessage::GroupCallParticipantLeft(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
 pub async fn send_group_call_ended(state: &AppState, user_id: Uuid, data: GroupCallEndedData) {
     let msg = WsMessage::GroupCallEnded(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
@@ -1080,8 +917,7 @@ pub async fn send_group_call_mute_update(
 ) {
     let msg = WsMessage::GroupCallMuteUpdate(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
@@ -1093,8 +929,7 @@ pub async fn send_group_call_speaking_update(
 ) {
     let msg = WsMessage::GroupCallSpeakingUpdate(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }
 
@@ -1105,7 +940,6 @@ pub async fn send_group_call_sender_key(
 ) {
     let msg = WsMessage::GroupCallSenderKey(data);
     if let Ok(json) = serde_json::to_string(&msg) {
-        let channel = format!("user:{}", user_id);
-        let _ = publish_message(&state.redis, &channel, &json).await;
+        state.subscriptions.send_to_user(user_id, &json).await;
     }
 }

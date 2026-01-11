@@ -10,6 +10,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+async fn broadcast_to_members(state: &crate::AppState, conversation_id: Uuid, json: &str) {
+    if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
+        let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+        state.subscriptions.send_to_users(&member_ids, json).await;
+    }
+}
+
 use crate::error::{AppError, Result};
 use crate::models::{Message, MessageKey, MessageReaction};
 use crate::ws::{
@@ -276,10 +283,8 @@ pub async fn send_message(
         }
 
         if let Ok(json) = serde_json::to_string(&ws_msg) {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
+            let member_ids: Vec<Uuid> = members.iter().map(|m| m.user_id).collect();
+            state.subscriptions.send_to_users(&member_ids, &json).await;
         }
     }
 
@@ -372,12 +377,7 @@ pub async fn edit_message(
         edited_at,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
-        }
+        broadcast_to_members(&state, conversation_id, &json).await;
     }
 
     Ok(Json(EditMessageResponse { edited_at }))
@@ -405,12 +405,7 @@ pub async fn delete_message(
         conversation_id,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
-        }
+        broadcast_to_members(&state, conversation_id, &json).await;
     }
 
     Ok(Json(SuccessResponse { success: true }))
@@ -479,12 +474,7 @@ pub async fn add_reaction(
         emoji: req.emoji,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
-        }
+        broadcast_to_members(&state, conversation_id, &json).await;
     }
 
     Ok(Json(reaction))
@@ -527,12 +517,7 @@ pub async fn remove_reaction(
         emoji,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
-        }
+        broadcast_to_members(&state, conversation_id, &json).await;
     }
 
     Ok(Json(SuccessResponse { success: true }))
@@ -568,12 +553,7 @@ pub async fn pin_message(
         pinned_at,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
-        }
+        broadcast_to_members(&state, conversation_id, &json).await;
     }
 
     // Create system message for pin
@@ -605,12 +585,7 @@ pub async fn pin_message(
     });
 
     if let Ok(json) = serde_json::to_string(&sys_ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
-        }
+        broadcast_to_members(&state, conversation_id, &json).await;
     }
 
     Ok(Json(SuccessResponse { success: true }))
@@ -645,12 +620,7 @@ pub async fn unpin_message(
         unpinner_id: auth.user_id,
     });
     if let Ok(json) = serde_json::to_string(&ws_msg) {
-        if let Ok(members) = state.db.get_conversation_members(conversation_id).await {
-            for member in members {
-                let user_channel = format!("user:{}", member.user_id);
-                let _ = publish_to_redis(&state.redis, &user_channel, &json).await;
-            }
-        }
+        broadcast_to_members(&state, conversation_id, &json).await;
     }
 
     Ok(Json(SuccessResponse { success: true }))
@@ -689,17 +659,4 @@ pub async fn get_pinned_messages(
         .collect();
 
     Ok(Json(messages_with_keys))
-}
-
-async fn publish_to_redis(
-    redis: &redis::Client,
-    channel: &str,
-    message: &str,
-) -> std::result::Result<(), redis::RedisError> {
-    let mut conn = redis.get_multiplexed_async_connection().await?;
-    redis::cmd("PUBLISH")
-        .arg(channel)
-        .arg(message)
-        .query_async(&mut conn)
-        .await
 }
