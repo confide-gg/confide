@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/confide-gg/confide/compare/confide-central-v0.14.0...confide-central-v0.15.0) (2026-01-11)
+
+
+### Features
+
+* optimize WebSocket message routing ([6a4807e](https://github.com/confide-gg/confide/commit/6a4807e81034b2d5531267225b7c40a3d61fadbd))
+
 ## [0.14.0](https://github.com/confide-gg/confide/compare/confide-central-v0.13.1...confide-central-v0.14.0) (2025-12-29)
 
 
