@@ -4,7 +4,6 @@ import type {
   CallOfferResult,
   CallAnswerResult,
   KeyCompleteResult,
-  ScreenCaptureSource,
   GroupCallState,
   IncomingGroupCallInfo,
   GroupCallResponse,

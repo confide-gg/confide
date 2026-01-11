@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { CallState, IncomingCallInfo, CallOfferResult, CallAnswerResult } from "../types";
 import { callService as callsApi } from "../../../features/calls/calls";
-import { centralWebSocketService } from "../../../core/network/CentralWebSocketService";
 import type { PeerInfo, CallRefs } from "./types";
 import { MAX_INCOMING_CALL_QUEUE, defaultCallState } from "./types";
 

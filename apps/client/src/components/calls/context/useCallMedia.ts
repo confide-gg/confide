@@ -1,13 +1,12 @@
 import { useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { CallState, AudioSettings } from "../types";
+import { AudioSettings } from "../types";
 import { centralWebSocketService } from "../../../core/network/CentralWebSocketService";
 import { audioSettingsService } from "../../../features/calls/audioSettings";
 import type { CallRefs } from "./types";
 
 interface UseCallMediaParams {
   refs: CallRefs;
-  callState: CallState;
   currentUserId?: string;
   setIsPTTEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   setPttKey: React.Dispatch<React.SetStateAction<string | null>>;
@@ -16,7 +15,6 @@ interface UseCallMediaParams {
 
 export function useCallMedia({
   refs,
-  callState,
   currentUserId,
   setIsPTTEnabled,
   setPttKey,

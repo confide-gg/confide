@@ -277,16 +277,6 @@ export function ActiveCallOverlay({ onNavigateToCall }: ActiveCallOverlayProps) 
               >
                 {getStatusText()}
               </span>
-              {callState.is_screen_sharing && (
-                <span className="text-emerald-400 flex items-center gap-1 ml-1.5 px-1.5 py-0.5 bg-emerald-500/10 rounded">
-                  <FontAwesomeIcon icon="desktop" className="w-2.5 h-2.5" />
-                </span>
-              )}
-              {callState.peer_is_screen_sharing && !callState.is_screen_sharing && (
-                <span className="text-blue-400 flex items-center gap-1 ml-1.5 px-1.5 py-0.5 bg-blue-500/10 rounded">
-                  <FontAwesomeIcon icon="desktop" className="w-2.5 h-2.5" />
-                </span>
-              )}
             </div>
           </div>
 

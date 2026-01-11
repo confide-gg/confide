@@ -77,14 +77,6 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
           <span className="text-xs text-muted-foreground">{callDuration}</span>
         </div>
 
-        <div className="flex items-center gap-1 ml-auto">
-          {callState.is_screen_sharing && (
-            <FontAwesomeIcon icon="desktop" className="h-3 w-3 text-green-400" />
-          )}
-          {callState.peer_is_screen_sharing && (
-            <FontAwesomeIcon icon="video" className="h-3 w-3 text-blue-400" />
-          )}
-        </div>
       </div>
     );
   }
@@ -112,18 +104,6 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <FontAwesomeIcon icon="clock" className="h-3 w-3" />
               <span>{callDuration}</span>
-              {callState.is_screen_sharing && (
-                <div className="flex items-center gap-1 text-green-400">
-                  <FontAwesomeIcon icon="desktop" className="h-3 w-3" />
-                  <span>Sharing screen</span>
-                </div>
-              )}
-              {callState.peer_is_screen_sharing && (
-                <div className="flex items-center gap-1 text-blue-400">
-                  <FontAwesomeIcon icon="video" className="h-3 w-3" />
-                  <span>Peer sharing</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

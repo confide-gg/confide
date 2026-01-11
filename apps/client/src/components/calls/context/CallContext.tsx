@@ -88,7 +88,6 @@ export function CallProvider({
 
   const { setMuted, setDeafened, startMediaSession, refreshAudioSettings } = useCallMedia({
     refs,
-    callState,
     currentUserId,
     setIsPTTEnabled,
     setPttKey,

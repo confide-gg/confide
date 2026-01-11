@@ -13,7 +13,6 @@ export function UserTile({
   size = "md",
   isSelf,
   horizontal,
-  isScreenSharing,
 }: UserTileProps) {
   const avatarSizeMap = {
     sm: "sm" as const,
@@ -91,12 +90,6 @@ export function UserTile({
             {name}
             {isSelf && <span className="text-zinc-500 font-normal ml-1">(You)</span>}
           </div>
-          {isScreenSharing && (
-            <div className="text-xs text-emerald-400 flex items-center gap-1.5 mt-0.5">
-              <FontAwesomeIcon icon="desktop" className="w-3 h-3" />
-              <span>Sharing screen</span>
-            </div>
-          )}
           {hasLeft && <div className="text-xs text-red-400/80 mt-0.5">Left the call</div>}
           {isConnecting && <div className="text-xs text-amber-400/80 mt-0.5">Connecting...</div>}
         </div>
