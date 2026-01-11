@@ -117,7 +117,6 @@ export function AttachmentImage({ metadata }: AttachmentImageProps) {
             src={data.blobUrl}
             alt={metadata.file.name}
             className="block rounded-lg max-h-[32rem] max-w-full w-auto cursor-pointer hover:brightness-95 transition-all duration-200"
-            loading="lazy"
             onContextMenu={handleContextMenu}
             onClick={handleExpand}
           />

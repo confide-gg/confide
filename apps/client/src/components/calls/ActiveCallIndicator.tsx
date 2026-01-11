@@ -76,7 +76,6 @@ export function ActiveCallIndicator({ compact = false, className }: ActiveCallIn
           </span>
           <span className="text-xs text-muted-foreground">{callDuration}</span>
         </div>
-
       </div>
     );
   }

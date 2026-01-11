@@ -67,7 +67,6 @@ export function ChannelMessage({
                 src={message.content}
                 alt="Content"
                 className="max-w-xs rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity"
-                loading="lazy"
               />
             ) : (
               <a

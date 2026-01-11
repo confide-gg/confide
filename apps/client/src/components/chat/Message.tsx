@@ -247,7 +247,6 @@ export const Message = memo(function Message({ message, showHeader }: MessagePro
             src={message.content}
             alt="GIF"
             className="rounded-lg cursor-pointer hover:opacity-90 transition-opacity max-h-64 w-auto"
-            loading="lazy"
             onClick={() => setExpandedGif(message.content)}
           />
           <button

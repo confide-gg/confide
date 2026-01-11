@@ -335,7 +335,6 @@ export function GifPicker({ onSelect, onTabChange, activeTab = "gif", className 
                     src={previewUrl}
                     alt={gif.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                   <button
