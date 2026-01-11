@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.0](https://github.com/confide-gg/confide/compare/confide-client-v0.30.0...confide-client-v0.31.0) (2026-01-11)
+
+
+### Features
+
+* show status in dms and friends list ([83c0380](https://github.com/confide-gg/confide/commit/83c0380d7fbd189d7fb837886d9c1e4e0c5029ba))
+
 ## [0.30.0](https://github.com/confide-gg/confide/compare/confide-client-v0.29.0...confide-client-v0.30.0) (2025-12-29)
 
 
