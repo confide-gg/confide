@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.31.1](https://github.com/confide-gg/confide/compare/confide-client-v0.31.0...confide-client-v0.31.1) (2026-01-12)
+
+
+### Bug Fixes
+
+* remove lazy loading from GIFs to prevent double reload ([62757e6](https://github.com/confide-gg/confide/commit/62757e688ce04cd1535a39d690c152a79973c448))
+
 ## [0.31.0](https://github.com/confide-gg/confide/compare/confide-client-v0.30.0...confide-client-v0.31.0) (2026-01-11)
 
 
